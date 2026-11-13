@@ -1,0 +1,30 @@
+# Brownfield-Start: Bestand liegt unter alte_projektdatein/.
+name: beusti_musik
+summary: >-
+  Setlist Pro – Band-App für Setlisten, Songs, Mitglieder und Auftritte als
+  installierbare Single-File-PWA.
+type: webapp
+platform: Netlify
+stack:
+  name: Single-File React PWA (Tailwind, kein Build)
+  language: HTML/JavaScript
+verify:
+  allow:
+    - "node scripts/*"
+    - "npm test"
+    - "npm run *"
+git:
+  remote: http://192.168.2.104/qftm_projekte/beusti_musik.git
+  branches: [main]
+  merger: Nutzer
+language: de
+address_form: Du
+constraints:
+  - "Brownfield: Bestand unter alte_projektdatein/ nicht löschen oder überschreiben, Übernahme nur bewusst."
+  - "Auslieferung bleibt eine statische Single-File-PWA ohne Build-Schritt."
+  - "Firebase-Web-Config ist öffentlich; Service-Accounts und Admin-Keys niemals ins Repo."
+  - "Hosting über Netlify (netlify.toml, _redirects); Service-Worker-Cache versioniert."
+policy:
+  git: user_only
+  requirements: required
+  review: on_request

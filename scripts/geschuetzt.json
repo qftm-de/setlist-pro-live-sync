@@ -1,0 +1,16 @@
+{
+  "pfade": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "harness/",
+    ".cursor/",
+    ".kilo/",
+    ".claude/",
+    ".codex/",
+    ".agents/",
+    "kilo.jsonc",
+    "scripts/",
+    "docs/templates/",
+    ".githooks/"
+  ]
+}

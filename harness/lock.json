@@ -1,0 +1,260 @@
+{
+  "format": 2,
+  "version": "0.2.0",
+  "revision": "c9816fda54d9c97d6774dc46043c90f6179b850a",
+  "source": "/home/rene/harness/software_harness",
+  "files": {
+    ".agents/skills/humanizer/SKILL.md": {
+      "hash": "58fae978ec2f7bf06312dfd31bc62cae2dd2ef6ce8f4f1d0b500acf628c9fb2e",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "writing"
+    },
+    ".agents/skills/requirements-verify/SKILL.md": {
+      "hash": "9c3bfddeaea4d04298d23453c405de4edca12a0c579f2b712b6cd009eaae8694",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "requirements"
+    },
+    ".agents/skills/review/SKILL.md": {
+      "hash": "233ef9aa1312fea750fee70a2db81cf98eccff1147dee01310c2448a79a37e70",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "review"
+    },
+    ".agents/skills/spec-review/SKILL.md": {
+      "hash": "fe0de884da9038b6ddf6dedfbd15b1e1176e8e5c678efae1d9400762adc98372",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "review"
+    },
+    ".agents/skills/stop-slop/SKILL.md": {
+      "hash": "c239102fe482f5e34b65d5974e9f78d05c8e6a28e601deee661ff7a3d66031b8",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "writing"
+    },
+    ".claude/agents/review.md": {
+      "hash": "c54d8df1c42ec4e6d964469a11a5b3d025c038ef35abc3726b80b1b958abfa98",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "review"
+    },
+    ".claude/agents/spec-review.md": {
+      "hash": "a03e7c0e938329ed845cc185a6f5e71cfd35f92cbf474c8c14de33370a7c5bc9",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "review"
+    },
+    ".claude/hooks/gate-stop.mjs": {
+      "hash": "d7cfd421f9aa16f26990f6f08bb5cefecf4d492b550741951d71fd0b095f8c0c",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "harness"
+    },
+    ".claude/hooks/git-sperre.mjs": {
+      "hash": "6884f4e2459cb17347e919a9819e92a92c538de03a5b5df2395d9d38475e7c83",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "harness"
+    },
+    ".claude/hooks/schutzliste.mjs": {
+      "hash": "607c84cf69f0a4fc8248cbb9a28b8a2b5605968731d8f5ee088d5bff5f14064a",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "harness"
+    },
+    ".claude/rules/harness.md": {
+      "hash": "ef6a8dd0c07bbb4e42a64706d8a90d1c9c65b6863d8ac4afd0026b3e2180359b",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "harness"
+    },
+    ".claude/settings.json": {
+      "hash": "66e773311aad83a0a74b7a63cfd36777480effd2ac1d3d6c7f186b8dfe2d42db",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "harness"
+    },
+    ".claude/skills/humanizer/SKILL.md": {
+      "hash": "58fae978ec2f7bf06312dfd31bc62cae2dd2ef6ce8f4f1d0b500acf628c9fb2e",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "writing"
+    },
+    ".claude/skills/requirements-verify/SKILL.md": {
+      "hash": "9c3bfddeaea4d04298d23453c405de4edca12a0c579f2b712b6cd009eaae8694",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "requirements"
+    },
+    ".claude/skills/review/SKILL.md": {
+      "hash": "233ef9aa1312fea750fee70a2db81cf98eccff1147dee01310c2448a79a37e70",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "review"
+    },
+    ".claude/skills/spec-review/SKILL.md": {
+      "hash": "fe0de884da9038b6ddf6dedfbd15b1e1176e8e5c678efae1d9400762adc98372",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "review"
+    },
+    ".claude/skills/stop-slop/SKILL.md": {
+      "hash": "c239102fe482f5e34b65d5974e9f78d05c8e6a28e601deee661ff7a3d66031b8",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "writing"
+    },
+    ".codex/agents/review.toml": {
+      "hash": "ed42f521e4ad4111a49cb423290495249f0613ed68324c661f9df3c15d0662e2",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "review"
+    },
+    ".codex/agents/spec-review.toml": {
+      "hash": "06b8267450d45328d49cd082bf60c6e7bb08afa5864d6d6677bfc834e34a14a7",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "review"
+    },
+    ".codex/config.toml": {
+      "hash": "692c49ae453be439bfe33eb6a818b2d79ab8353f64812e1a953401cfd14b8857",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "harness"
+    },
+    ".env.example": {
+      "hash": "f1235ebd2c83a1c6c46c6cf8c440236e1a2124900949c3346c7f4b795f27f8d0",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "harness"
+    },
+    ".githooks/pre-push": {
+      "hash": "77bdb2b9f62749a0019724209249305ab7bfe71e136209f2008f125226d6318d",
+      "mode": 493,
+      "kind": "managed",
+      "owner": "core"
+    },
+    ".gitignore": {
+      "hash": "1b62a661bfe93aa1ec73f983efeea0c7181db9144abe1c24dddc1b317b7dfc87",
+      "mode": 436,
+      "kind": "seed",
+      "owner": "harness"
+    },
+    "AGENTS.md": {
+      "hash": "8205ce2e727a09672998e407274a1fdbd1acaf805d11d4cd9b94629ece3d620f",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "core"
+    },
+    "CHANGELOG.md": {
+      "hash": "62159f8c787c8f1b94d78cf69760333d4f2d82fae029df39b446635681cd379f",
+      "mode": 436,
+      "kind": "seed",
+      "owner": "core"
+    },
+    "CLAUDE.md": {
+      "hash": "a0128062806a453e8d20bfbb5550a6e63e1b04fe3339fb6d17ecff36b0e7181a",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "harness"
+    },
+    "DECISIONS.md": {
+      "hash": "0606881ecdf693e543a9e371cca7d58836b9fe0f823c7af40d790f2c21a790a1",
+      "mode": 436,
+      "kind": "seed",
+      "owner": "core"
+    },
+    "PROGRESS.md": {
+      "hash": "cff6a3f0db7e02f2b01b3b13c0facb62528153e1be5270907ad713b333a6850e",
+      "mode": 436,
+      "kind": "seed",
+      "owner": "core"
+    },
+    "REQUIREMENTS.md": {
+      "hash": "44f6cc9b6c79f25e823111c1fd33725e0144a4e4b884e1656e34ab70e270db10",
+      "mode": 436,
+      "kind": "seed",
+      "owner": "harness"
+    },
+    "docs/conventions.md": {
+      "hash": "5e2565fc1ade2da195cdcbd590d69489ee97137af16a3d8e73642ea0094d7c2c",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "core"
+    },
+    "docs/templates/REQUIREMENTS.md": {
+      "hash": "50f9aa79a71b0f65cd324704b2591e184b474145c8d892f3571d78ad3ec4b0d9",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "requirements"
+    },
+    "harness/README.md": {
+      "hash": "84ed23e8edd785d97b4ef8862d0924dde55b8a0b9bb3d16ad2cad190841f231f",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "core"
+    },
+    "scripts/gate.mjs": {
+      "hash": "56390aee883611b2dfec1f15192e787663d79dcc655760b74388da906413a55f",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "core"
+    },
+    "scripts/geschuetzt.json": {
+      "hash": "88d025850588d1d2dc23a761f0d8ed8dda8db7f611cf1c7633065bae554d6fb0",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "core"
+    },
+    "scripts/harness.mjs": {
+      "hash": "7a819e6aa8e44443c3e64073699829fdffb3a41c901df24860619aba862d8eed",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "harness"
+    },
+    "scripts/lib/requirements.mjs": {
+      "hash": "005b918bba5158b1c71d634bc4876f8bc3e49e223948679dcd85300e5c99b526",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "requirements"
+    },
+    "scripts/lib/yaml.mjs": {
+      "hash": "e816ebe5d6ca9cead75b29dd5f496772ada1d15d9e14d384a11ad201eff2a8cb",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "requirements"
+    },
+    "scripts/requirements-gate.mjs": {
+      "hash": "7fd2f773df9223bfc4fdf8f0bd3d9411a0e67f121c95dfc6bb7f65cf4e46be47",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "requirements"
+    },
+    "scripts/review-constraints.mjs": {
+      "hash": "08d1c1afcd45949454908738a0e594d9e1eef9fd43465f5bd58dc57d7af1877a",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "review"
+    },
+    "scripts/review-run.mjs": {
+      "hash": "c0ffa0f32d29a704b03ecdb9f900a65fa3ee3aaf45e82d344b0319fa5f3b67f1",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "review"
+    },
+    "scripts/review-stand.mjs": {
+      "hash": "a0fdbc64d9fb2b39884f78ff26e522cb029c8a8ff9034d86027d8b85b296885a",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "review"
+    },
+    "scripts/verify-requirements.mjs": {
+      "hash": "72d5f99fdf7e7078bf8dc6d8950f8aa137f666774faf1f188690a9d8c641f8d5",
+      "mode": 436,
+      "kind": "managed",
+      "owner": "requirements"
+    }
+  }
+}

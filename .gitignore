@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.tmp/
+.cache/
+*.log
+.clawpatch/
+!.clawpatch/*.mjs
+
+# Brownfield-Referenz. Enthält Zugangsdaten (Admin-Passwort im Client, Logs).
+# Erst nach Passwortwechsel und Bereinigung versionieren.
+alte_projektdatein/
