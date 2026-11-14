@@ -1,2 +1,0 @@
-model = "gpt-5"
-developer_instructions = "Lies den Skill `spec-review` und folge nur diesem Skill. Kein Anwendungscode.\n"

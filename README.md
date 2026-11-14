@@ -1,39 +1,31 @@
-# beusti_musik
+# Setlist Pro Live Sync
 
-Setlist Pro ist eine Band-App für Setlisten, Songs, Mitglieder und Auftritte.
-Sie läuft als installierbare Single-File-PWA ohne Build-Schritt und wird über
-Netlify ausgeliefert.
+Band-App für Setlisten, Songs, Mitglieder und Auftritte. Deutsch, für kleine
+Bands, ohne Abo und ohne Konto-Zwang. Der Kern läuft selbst gehostet und
+autark, ein Community-Hub ist optional.
 
-## Stand
+Stand: Planung. Es gibt noch keinen Produktcode und nichts zu installieren.
 
-Brownfield-Start. Der übernommene Bestand liegt unverändert unter
-`alte_projektdatein/` und dient als Referenz. Der Ordner ist bewusst nicht
-versioniert, weil er Zugangsdaten enthält. Neue Arbeit beginnt mit einer Zeile
-in `REQUIREMENTS.md`.
+## Planung
 
-## Arbeiten
-
-```bash
-node scripts/harness.mjs check      # Config prüfen
-node scripts/harness.mjs render     # Dateien aus harness/ neu erzeugen
-node scripts/gate.mjs --schnell     # vor dem Commit
-node scripts/gate.mjs --voll        # vor Push oder Merge Request
-```
-
-Git-Schreibaktionen macht der Mensch. Der Pre-Push-Hook wird mit
-`git config core.hooksPath .githooks` aktiv.
-
-## Aufbau
-
-| Pfad | Inhalt |
+| Dokument | Inhalt |
 |---|---|
-| `harness/` | einzige Quelle für Projekt-, Agenten- und Modulconfig |
-| `docs/` | Konventionen und Vorlagen |
-| `scripts/` | Gate, Requirements und Review |
-| `.claude/`, `.codex/`, `.agents/` | erzeugt aus `harness/`, nicht direkt ändern |
-| `alte_projektdatein/` | Bestand vor dem Harness-Start |
+| `docs/planung/hybrid-modell.md` | Architektur, Betriebsmodi, Datenmodell, API, Phasen, Sicherheit |
+| `docs/analyse/00-ueberblick.md` | Analyse der Alt-App, Einstieg |
+| `docs/brand/01-brand.md` | Marke, Sprache, Farben, Namen |
+| `PROGRESS.md` | aktueller Stand und nächster Schritt |
+| `DECISIONS.md` | geltende Entscheidungen und warum |
 
-## Deployment
+Geplanter Stack: React, TypeScript, Vite, Django REST Framework, PostgreSQL,
+Redis, Docker Compose. Zwei Modi: `core` selbst gehostet, `hub` zentral.
 
-Netlify liefert das Repo-Root aus (`netlify.toml`, `_redirects`). Der Service
-Worker cached versioniert. Nach Änderungen an `sw.js` die Cache-Version erhöhen.
+## Keine echten Daten
+
+In Dateien, Docs und Tests gehören keine echten Bandcodes, Projekt-IDs,
+API-Keys, Nutzernamen oder Server-Adressen. Das gilt für Beiträge genauso wie
+für Commits.
+
+## Lizenz
+
+Noch offen. Zur Wahl stehen AGPL-3.0 und Apache-2.0. Die Entscheidung fällt vor
+der ersten Veröffentlichung.

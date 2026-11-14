@@ -11,3 +11,28 @@ node_modules/
 # Brownfield-Referenz. Enthält Zugangsdaten (Admin-Passwort im Client, Logs).
 # Erst nach Passwortwechsel und Bereinigung versionieren.
 alte_projektdatein/
+
+# Screens der Alt-App zeigen Band-Beitrittscode und Mitgliedernamen.
+# Bleiben lokal, bis die Alt-App abgeschaltet ist.
+docs/analyse/screens/
+
+# Konfliktberichte aus node scripts/harness.mjs render.
+harness/conflicts/
+
+# Agenten, Harness und lokaler Prozess. Bleibt auf der Platte, nicht im Repo.
+# Das Repo ist öffentlich gedacht. Hier steht nur das Projekt.
+harness/
+scripts/
+.githooks/
+.claude/
+.codex/
+.agents/
+.kilo/
+kilo.jsonc
+AGENTS.md
+CLAUDE.md
+CHANGELOG.md
+docs/conventions.md
+docs/templates/
+docs/analyse/tools/
+

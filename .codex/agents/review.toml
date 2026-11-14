@@ -1,2 +1,0 @@
-model = "gpt-5"
-developer_instructions = "Lies den Skill `review` und folge nur diesem Skill.\n\nWer reviewt, ändert keinen Code. Schreiben nur nach `.tmp/review/`. Keine Secrets im Bericht. Kein voller Verify, kein `--verify-affected`.\n"
