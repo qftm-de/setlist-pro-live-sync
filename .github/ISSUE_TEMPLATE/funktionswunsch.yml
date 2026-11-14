@@ -1,0 +1,30 @@
+name: Funktionswunsch
+description: Ein Problem, das die App noch nicht löst
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Was geht heute nicht oder kostet Zeit?
+    validations:
+      required: true
+  - type: textarea
+    id: loesung
+    attributes:
+      label: Mögliche Lösung
+    validations:
+      required: false
+  - type: textarea
+    id: alternativen
+    attributes:
+      label: Alternativen
+    validations:
+      required: false
+  - type: checkboxes
+    id: umfang
+    attributes:
+      label: Umfang
+      options:
+        - label: Der Wunsch passt zum bewusst kleinen Umfang (kein MIDI, Audio, Booking, Finanzen, KI)
+          required: true
