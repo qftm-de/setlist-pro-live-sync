@@ -1,0 +1,107 @@
+:root {
+  color-scheme: light;
+  --papier: #f4efe4;
+  --tinte: #1c1a17;
+  --orange: #d9611f;
+  --linie: #cbbfa8;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--papier);
+  color: var(--tinte);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.huelle {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.kopf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 2px solid var(--tinte);
+  background: var(--papier);
+}
+
+.kopf nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.kopf a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  color: var(--tinte);
+  text-decoration: none;
+  border: 1px solid var(--linie);
+  border-radius: 0.5rem;
+}
+
+.kopf a.community {
+  border-color: var(--tinte);
+}
+
+.kopf a[aria-current="page"] {
+  border-color: var(--orange);
+  background: var(--orange);
+  color: #fff;
+}
+
+.inhalt {
+  width: min(64rem, 100%);
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.bandwechsel {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-weight: 600;
+}
+
+.bandwechsel select,
+button {
+  min-height: 44px;
+  min-width: 44px;
+  font: inherit;
+  padding: 0 0.75rem;
+}
+
+.fehler {
+  border: 2px solid var(--orange);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: #fff8f0;
+}
+
+.status {
+  font-weight: 600;
+}
+
+.status-fehler {
+  color: #a3230f;
+}
+
+.status-gespeichert {
+  color: #2f6b2f;
+}
+
+.anmeldung {
+  max-width: 32rem;
+}

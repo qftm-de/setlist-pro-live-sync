@@ -1,0 +1,9 @@
+{
+  "name": "setlist-pro-live-sync-harness",
+  "private": true,
+  "description": "Gate-Skripte und Harness für setlist-pro-live-sync. Kein Produktcode.",
+  "type": "module",
+  "dependencies": {
+    "yaml": "^2.8.0"
+  }
+}

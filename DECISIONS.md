@@ -17,8 +17,12 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 ## Prozess
 
 - Anforderungen vor Code. Verify schreibt `State`, nicht der Agent.
-- Review-Schiene immer: vor Push oder Merge Request läuft ein Review zum aktuellen Stand. Reviewer ändert keinen Code.
+- Review-Schiene immer: vor Push oder Merge Request läuft ein Review zum aktuellen Stand. Reviewer ändert keinen Code. Das Voll-Gate ruft den Kilo-Review-Agenten automatisch auf (`scripts/review-kilo.mjs`, Gate-Schritt `kilo-review`), sobald die Befunddatei nicht zum Stand passt. Offene Blocker oder Major stoppen den Push.
 - Versionierung nach SemVer, CHANGELOG nach Keep a Changelog. Jeder Release bekommt einen Version-Bump und einen CHANGELOG-Eintrag.
 - Git-Schreibaktionen nur der Mensch.
-- Sicherheits-Baseline: `scripts/review-constraints.mjs` läuft im Gate und blockt Secrets, Zugangsdaten, private IPs, eingebettete Dateien und unsichere Code-Muster (innerHTML, eval, csrf_exempt, DEBUG, verify=False, shell=True, Token im localStorage). Ein Treffer ist ein Stopp, kein Hinweis.
+- Harness und Gate-Skripte sind versioniert (früher bewusst nur lokal). Grund: Ein Gate, das in keinem Clone läuft, ist keine gemeinsame Schranke. Der Render bleibt Maintainer-Sache mit Harness-Quelle; Gates laufen überall mit `npm ci`.
+- Review-Basis ist der Commit-Bereich (Upstream, sonst origin/main, sonst main) plus Working Tree. Grund: Committete Arbeit darf nicht unbemerkt am Review vorbei laufen.
+- CI führt Requirements-Gate, Security-Baseline, Datei-Größen und Gitleaks als technische Schranke vor der Integration. Grund: Lokale Regeln gelten für alle, nur wenn sie in CI verlangt werden.
+- Datei-Größen begrenzt: Code 300 Ziel/500 hart, Doku 500 Ziel/1000 hart, geprüft mit `lint-file-size` im Gate und in CI. Grund: Ausufernde Dateien brechen Review, Navigation und Merge-Konflikte. Generierte und normative Dateien sind exempt.
+- Sicherheits-Baseline: `scripts/review-constraints.mjs` läuft im Gate und blockt Secrets, Zugangsdaten, private IPs, eingebettete Dateien und unsichere Code-Muster (innerHTML, eval, csrf_exempt, DEBUG, verify=False, shell=True, Token im localStorage). Ein Treffer ist ein Stopp, kein Hinweis. Gitleaks ergänzt als etablierter Secret-Scanner.
 - Keine echten Daten im Repo: keine Bandcodes, Projekt-IDs, API-Keys, Nutzernamen oder Server-Adressen in Dateien, Docs und Tests. Das Projekt ist privat und soll offen werden.

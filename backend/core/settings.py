@@ -1,14 +1,37 @@
-import os
-import secrets
 from pathlib import Path
+
+from .config import load_runtime_config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or secrets.token_urlsafe(64)
+konfiguration = load_runtime_config()
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() == "true"
+SECRET_KEY = konfiguration.secret_key
+DEBUG = konfiguration.debug
+ALLOWED_HOSTS = list(konfiguration.allowed_hosts)
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,api").split(",")
+APP_MODE = konfiguration.modus
+INSTANCE_NAME = konfiguration.instanzname
+COMMUNITY_URL = konfiguration.community_url
+
+CSRF_TRUSTED_ORIGINS = list(konfiguration.csrf_trusted_origins)
+USE_X_FORWARDED_HOST = konfiguration.trust_proxy_headers
+if konfiguration.trust_proxy_headers:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SECURE = not DEBUG
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+if not DEBUG:
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -50,24 +73,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "core.wsgi.application"
 
-if os.environ.get("POSTGRES_HOST"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.environ.get("POSTGRES_DB", "setlist"),
-            "USER": os.environ.get("POSTGRES_USER", "setlist"),
-            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
-            "HOST": os.environ["POSTGRES_HOST"],
-            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
-        }
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": konfiguration.db_name,
+        "USER": konfiguration.db_user,
+        "PASSWORD": konfiguration.db_password,
+        "HOST": konfiguration.db_host,
+        "PORT": konfiguration.db_port,
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -75,6 +90,25 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "api.authentication.SessionAuthentication401",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+    ],
+}
 
 LANGUAGE_CODE = "de"
 TIME_ZONE = "Europe/Berlin"
