@@ -1,7 +1,7 @@
 # Setlist Pro Live Sync
 
 [![Lizenz: AGPL-3.0](https://img.shields.io/badge/Lizenz-AGPL--3.0-blue.svg)](LICENSE)
-[![Status: Planung](https://img.shields.io/badge/Status-Planung-orange.svg)](#status)
+[![Status: Gerüst](https://img.shields.io/badge/Status-Ger%C3%BCst-yellow.svg)](#status)
 [![Sprache: Deutsch](https://img.shields.io/badge/Sprache-Deutsch-informational.svg)](#)
 
 Setlist Pro Live Sync ist eine Setlist-App für kleine Bands. Sie läuft auf dem
@@ -17,7 +17,8 @@ Ohne Abo, ohne Konto-Zwang, ohne Termin- und Finanzmodul.
 
 ## Status
 
-**Planung.** Es gibt noch keinen Produktcode. Die nächsten Schritte stehen in
+**Gerüst.** Frontend, Backend, Docker Compose und CI stehen. Produktfunktionen
+sind noch nicht gebaut. Die nächsten Schritte stehen in
 [`PROGRESS.md`](PROGRESS.md), die geltenden Entscheidungen in
 [`DECISIONS.md`](DECISIONS.md).
 
@@ -43,6 +44,13 @@ Aktion. Details stehen im [Hybrid-Modell](docs/planung/hybrid-modell.md).
 
 Geplanter Stack: React, TypeScript, Vite, Django REST Framework, PostgreSQL,
 Redis, Docker Compose.
+
+## Lokal starten
+
+1. `.env` im Repo-Root anlegen. Namen stehen in `backend/.env.example`,
+   mindestens `POSTGRES_PASSWORD` setzen.
+2. `docker compose up --build` startet Frontend, API, PostgreSQL und Redis.
+3. Frontend: http://localhost:8080, API-Health: http://localhost:8000/api/health/
 
 ## Dokumentation
 

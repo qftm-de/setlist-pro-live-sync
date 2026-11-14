@@ -5,8 +5,13 @@ node_modules/
 .tmp/
 .cache/
 *.log
-.clawpatch/
-!.clawpatch/*.mjs
+__pycache__/
+*.pyc
+.venv/
+venv/
+db.sqlite3
+staticfiles/
+dist/
 
 # Brownfield-Referenz. Enthält Zugangsdaten (Admin-Passwort im Client, Logs).
 # Erst nach Passwortwechsel und Bereinigung versionieren.
@@ -19,8 +24,8 @@ docs/analyse/screens/
 # Konfliktberichte aus node scripts/harness.mjs render.
 harness/conflicts/
 
-# Agenten, Harness und lokaler Prozess. Bleibt auf der Platte, nicht im Repo.
-# Das Repo ist öffentlich gedacht. Hier steht nur das Projekt.
+# Lokale Entwicklungswerkzeuge: Harness, Gate-Skripte, Agentenkonfiguration.
+# Bewusst nicht Teil des veröffentlichten Repos.
 harness/
 scripts/
 .githooks/

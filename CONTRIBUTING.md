@@ -42,6 +42,11 @@ Ein Pull Request ändert eine Sache. Zwei Themen gehören in zwei Pull Requests.
 
 ## Qualität
 
+Dieses Repository wird mit einem lokalen Qualitätssicherungsharness entwickelt.
+Die Gate-Skripte unter `scripts/` sind bewusst nicht Teil des veröffentlichten
+Repos. `REQUIREMENTS.md` und `PROGRESS.md` beschreiben diesen internen Ablauf.
+Für deinen Beitrag zählt, was im Repo ankommt:
+
 - Tests für neue Logik, mindestens ein Fall, der bei Fehlern scheitert.
 - Lint und Format laufen, sobald das Gerüst steht.
 - Keine neuen Abhängigkeiten ohne Begründung im Pull Request.
