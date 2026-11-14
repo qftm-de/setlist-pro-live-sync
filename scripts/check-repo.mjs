@@ -22,8 +22,6 @@ const pflichtDateien = [
   ".gitattributes",
   ".env.example",
   ".gitignore",
-  "AGENTS.md",
-  "kilo.jsonc",
   "docker-compose.yml",
   ".github/workflows/ci.yml",
   ".github/PULL_REQUEST_TEMPLATE.md",
@@ -31,8 +29,6 @@ const pflichtDateien = [
   ".github/ISSUE_TEMPLATE/funktionswunsch.yml",
   "docs/templates/REQUIREMENTS.md",
   "docs/conventions.md",
-  "harness/projekt.yaml",
-  "harness/module.yaml",
   "scripts/gate.mjs",
   "scripts/requirements-gate.mjs",
   "scripts/verify-requirements.mjs",
@@ -56,6 +52,31 @@ const gate = spawnSync(process.execPath, [path.join(root, "scripts", "gate.mjs")
 });
 if ((gate.status ?? 1) !== 0 || (gate.stdout || "").trim().length === 0) {
   fehler.push("node scripts/gate.mjs --list liefert keine Schritte");
+}
+
+// Agenten-, Harness- und Kilo-Dateien bleiben lokal. Versioniert werden nur
+// die Gate-Skripte und die Repo-Grundausstattung.
+for (const rel of [
+  ".claude",
+  ".codex",
+  ".kilo",
+  ".agents",
+  "harness",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "kilo.json",
+  "kilo.jsonc",
+]) {
+  if (!fs.existsSync(path.join(root, rel))) {
+    continue;
+  }
+  const ignoriert = spawnSync("git", ["check-ignore", "-q", rel], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  if ((ignoriert.status ?? 1) !== 0) {
+    fehler.push(`${rel}/ ist nicht gitignored.`);
+  }
 }
 
 // Brownfield-Schutz: alte_projektdatein/ bleibt ignoriert und unversioniert.
@@ -86,4 +107,4 @@ if (fehler.length > 0) {
   }
   process.exit(1);
 }
-console.log("check-repo ok: Grundausstattung und Harness vorhanden, Brownfield unversioniert.");
+console.log("check-repo ok: Grundausstattung und Gate-Skripte vorhanden, Agentenkonfiguration lokal, Brownfield unversioniert.");

@@ -15,9 +15,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   im Modus core (web, api, PostgreSQL, Redis) und CI-Workflow.
 - Versionsübersicht der Fremdpakete und Basis-Images mit
   Kompatibilitätshinweisen in `docs/planung/versionen.md`.
-- Qualitätssicherung nachgebaut: Harness, Gate-Skripte und
-  Agentenkonfiguration sind versioniert. Ein frischer Clone führt das
-  Gate nach `npm ci` im Root aus.
+- Qualitätssicherung nachgebaut: Gate-Skripte sind versioniert. Ein
+  frischer Clone führt das Gate nach `npm ci` im Root aus. Harness und
+  Agentenkonfiguration bleiben lokal.
 - CI: neuer Job `gate` mit Requirements-Gate, Security-Baseline
   (`review-constraints`) und Gitleaks vor den Test-Jobs.
 - R1-Verify prüft die Repo-Grundausstattung real
@@ -34,9 +34,24 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   prüft die Datenbank.
 - Frontend und Proxy (R4): nginx liefert SPA-Fallback und proxyt API,
   Admin und statische Dateien unter einer Origin. React-Hülle mit
-  Navigation, Bandwechsel, getrennten Zuständen und API-Fehlerklassen.
+  Navigation, Bandwechsel, API-Fehlerklassen, sichtbarem Speicherzustand
+  am Songformular und Rückführung zur Anmeldung bei abgelaufener Session.
 - Paketprüfungen: `scripts/verify-foundation.mjs`,
   `scripts/verify-ui-foundation.mjs` und `scripts/verify-ci.mjs`.
+- Konten und Sitzung (R6): eigene Kontoentität mit eindeutiger E-Mail und
+  Anzeigename, Anmeldung und Abmeldung als Django-Views mit CSRF-Schutz,
+  Anmeldeformular im Frontend. Gleiche Fehlerantwort für unbekanntes Konto
+  und falsches Passwort. Erster Betreiber per `createsuperuser`.
+- Bands und Rechte (R7): Band mit Owner-Mitgliedschaft, Liste und Detail
+  nur für Mitglieder, fremde Band ist 404. Banddetail liefert die
+  Songliste mit, Bandformular im Frontend.
+- Songs (R8): Titel, Interpret, Tonart, BPM und Notiz, Anlegen, Ändern
+  und Löschen mit Prüfung der BPM-Grenzen. Songliste ohne Neuladen.
+- Bands umbenennen (R7) ist serverseitig auf Mitglieder beschränkt und
+  geprüft; fremde Band bleibt 404.
+- Kern-Smoke `scripts/verify-kern.mjs`: baut den Core, legt zwei Konten
+  an und prüft Anmeldung, CSRF, Bandschnitt, Songpflege und Abmeldung
+  über nginx.
 
 ### Changed
 
@@ -62,6 +77,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   sind Pflichtwerte.
 - CI: Node 26.13.1, Python 3.13, Backend-Tests gegen PostgreSQL 18.7,
   Frontend mit Typprüfung, Tests und Build.
+- Gate-Skripte bleiben versioniert. Harness, `AGENTS.md`, `kilo.jsonc`
+  und die Agentenordner bleiben lokal. Ein frischer Clone nutzt die
+  eingebauten Gate-Schritte.
 
 ### Security
 
@@ -70,6 +88,16 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   Proxy-Vertrauen sind als Schalter und Tests abgesichert.
   Konfigurationsantworten enthalten keine Secrets oder interne
   Dienstadressen.
+- Anmeldung ohne CSRF-Token wird abgelehnt. DRF-APIViews sind
+  `csrf_exempt`, deshalb laufen Anmeldung und Abmeldung als
+  Django-Views unter der CSRF-Middleware.
+- nginx begrenzt Anmeldeversuche auf 20 pro Minute je IP (burst 10) und
+  nimmt die Client-IP hinter dem TLS-Proxy aus X-Forwarded-For, aber nur
+  von lokalen und privaten Adressen. Der Admin-Login hat eine eigene Zone
+  (30 pro Minute, burst 20). X-Forwarded-Proto zählt nur von
+  vertrauenswürdigen Clients. Tote Notiz-Komponente samt Adapter entfernt;
+  die Speicherzustände hängen jetzt am Songformular.
+- Passwörter liegen als Argon2-Hash mit Argon2 als erstem Hasher.
 
 - Analyse der Alt-App: offene Firestore-Regeln, Passwort im Client,
   Klartextfeld in einem Banddokument. Keine Werte im Repository.

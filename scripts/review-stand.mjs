@@ -4,6 +4,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { resolveDiffBase } from "./lib/git-base.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -25,11 +26,16 @@ function git(args) {
 }
 
 const head = git(["rev-parse", "HEAD"]).trim();
+const base = resolveDiffBase(root);
+const commitDiff = base ? git(["diff", base, "HEAD"]) : "";
 const diff = git(["diff", "HEAD"]);
 const cached = git(["diff", "--cached"]);
 const extra = git(["ls-files", "--others", "--exclude-standard", "-z"]);
 const untracked = extra.split("\0").filter(Boolean).sort().map(file=>file+":"+crypto.createHash("sha256").update(fs.readFileSync(path.join(root,file))).digest("hex")).join("\n");
-const hash = crypto.createHash("sha256").update(diff).update("\n").update(cached).update("\n").update(untracked).digest("hex").slice(0, 16);
+const hash = crypto.createHash("sha256").update(commitDiff).update("\n").update(diff).update("\n").update(cached).update("\n").update(untracked).digest("hex").slice(0, 16);
 
 console.log(`HEAD ${head}`);
+if (base) {
+  console.log(`BASE ${base}`);
+}
 console.log(`DIFF ${hash}`);

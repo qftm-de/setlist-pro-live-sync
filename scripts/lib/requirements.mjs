@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { gitText, resolveDiffBase } from "./git-base.mjs";
 import { loadYamlFile } from "./yaml.mjs";
 
 export function parseRequirements(raw) {
@@ -114,16 +115,12 @@ export function inScope(file, scopes) {
 }
 
 function gitLines(root, args) {
-  const result = spawnSync("git", args, {
-    cwd: root,
-    encoding: "utf8",
-    shell: process.platform === "win32",
-  });
-  if ((result.status ?? 1) !== 0) {
+  const out = gitText(root, args);
+  if (out === null) {
     return [];
   }
   // trimEnd, nicht trim: porcelain-Zeilen beginnen mit zwei Statusspalten.
-  return (result.stdout || "").split(/\r?\n/).map((l) => l.trimEnd()).filter(Boolean);
+  return out.split(/\r?\n/).map((l) => l.trimEnd()).filter(Boolean);
 }
 
 function isRepoRelPath(file) {
@@ -147,6 +144,10 @@ export function listChangedFiles(root) {
     ["diff", "--name-only", "--cached"],
     ["ls-files", "--others", "--exclude-standard"],
   ];
+  const base = resolveDiffBase(root);
+  if (base) {
+    cmds.push(["diff", "--name-only", base, "HEAD"]);
+  }
   for (const args of cmds) {
     for (const file of gitLines(root, args)) {
       const f = normalizePath(file);

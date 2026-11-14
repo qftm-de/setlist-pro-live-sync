@@ -105,3 +105,67 @@ button {
 .anmeldung {
   max-width: 32rem;
 }
+
+form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+form input {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  font: inherit;
+  border: 1px solid var(--linie);
+  border-radius: 0.5rem;
+}
+
+.konto {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.songliste {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.songliste li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--linie);
+}
+
+.songtitel {
+  font-weight: 600;
+}
+
+.songmeta {
+  color: #5a5348;
+}
+
+.songformular,
+.bandformular {
+  max-width: 40rem;
+}
+
+form textarea {
+  display: block;
+  width: 100%;
+  min-height: 3.5rem;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  font: inherit;
+  border: 1px solid var(--linie);
+  border-radius: 0.5rem;
+}
+

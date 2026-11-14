@@ -5,8 +5,11 @@ import { fehlerText, istApiFehler } from "./api/client";
 import { apiBands, type Band, type BandAdapter } from "./bands/bands";
 import { useBandDaten } from "./bands/useBandDaten";
 import { apiSitzung, type SessionAdapter } from "./session/session";
+import { AnmeldeFormular } from "./ui/AnmeldeFormular";
 import { AppShell } from "./ui/AppShell";
+import { BandFormular } from "./ui/BandFormular";
 import { FehlerAnzeige } from "./ui/FehlerAnzeige";
+import { Songs } from "./ui/Songs";
 import { StatusAnzeige } from "./ui/StatusAnzeige";
 
 interface AppProps {
@@ -137,6 +140,39 @@ export function App({
     setVersuch((wert) => wert + 1);
   }
 
+  const sitzungAbgelaufen = () => setSitzung({ status: "anonym" });
+
+  async function anmelden(benutzer: string, passwort: string) {
+    await sessionAdapter.anmelden(benutzer, passwort);
+    erneutVersuchen();
+  }
+
+  async function abmelden() {
+    try {
+      await sessionAdapter.abmelden();
+    } catch (ursache) {
+      setSitzung({ status: "fehler", fehler: fehlerText(ursache) });
+      return;
+    }
+    erneutVersuchen();
+  }
+
+  async function bandAnlegen(name: string) {
+    const band = await bandAdapter.erstelleBand(name);
+    const liste = await bandAdapter.ladeBands();
+    setBands({ status: "fertig", bands: liste });
+    setBandId(band.id);
+  }
+
+  const kontoZeile = (
+    <p className="konto">
+      Angemeldet als {sitzung.status === "angemeldet" ? sitzung.benutzername : ""}
+      <button type="button" className="abmelden" onClick={abmelden}>
+        Abmelden
+      </button>
+    </p>
+  );
+
   let inhalt;
 
   if (konfiguration.status === "laedt") {
@@ -148,18 +184,19 @@ export function App({
   } else if (sitzung.status === "fehler") {
     inhalt = <FehlerAnzeige text={sitzung.fehler} onWiederholen={erneutVersuchen} />;
   } else if (sitzung.status === "anonym") {
-    inhalt = (
-      <section className="anmeldung" aria-labelledby="anmeldung-titel">
-        <h1 id="anmeldung-titel">Anmeldung erforderlich</h1>
-        <p>Bitte melde dich am Core an. Konten vergibt der Betreiber oder eine Einladung.</p>
-      </section>
-    );
+    inhalt = <AnmeldeFormular onAnmelden={anmelden} />;
   } else if (bands.status === "laedt") {
     inhalt = <StatusAnzeige zustand="laedt" />;
   } else if (bands.status === "fehler") {
     inhalt = <FehlerAnzeige text={bands.fehler} onWiederholen={erneutVersuchen} />;
   } else if (bands.bands.length === 0) {
-    inhalt = <p>Keine Band vorhanden. Eine Einladung oder ein neues Konto schafft Zugang.</p>;
+    inhalt = (
+      <>
+        {kontoZeile}
+        <p>Noch keine Band. Lege die erste an.</p>
+        <BandFormular onAnlegen={bandAnlegen} onSitzungAbgelaufen={sitzungAbgelaufen} />
+      </>
+    );
   } else {
     const gewaehlteBand = bands.bands.find((band) => band.id === bandId);
     inhalt = (
@@ -177,7 +214,7 @@ export function App({
             ))}
           </select>
         </label>
-        <p className="konto">Angemeldet als {sitzung.benutzername}</p>
+        {kontoZeile}
         {bandDaten.status === "laedt" ? <StatusAnzeige zustand="laedt" /> : null}
         {bandDaten.status === "fehler" ? (
           <FehlerAnzeige text={bandDaten.fehler} onWiederholen={erneutVersuchen} />
@@ -188,15 +225,13 @@ export function App({
             <p className="band-id" data-band-id={bandDaten.daten.bandId}>
               Bereich {pfad}
             </p>
-            {bandDaten.daten.songs.length === 0 ? (
-              <p>Keine Songs in dieser Band.</p>
-            ) : (
-              <ul>
-                {bandDaten.daten.songs.map((song) => (
-                  <li key={song}>{song}</li>
-                ))}
-              </ul>
-            )}
+            <Songs
+              key={bandDaten.daten.bandId}
+              bandId={bandDaten.daten.bandId}
+              adapter={bandAdapter}
+              songs={bandDaten.daten.songs}
+              onSitzungAbgelaufen={sitzungAbgelaufen}
+            />
           </section>
         ) : null}
       </>

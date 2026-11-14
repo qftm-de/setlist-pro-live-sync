@@ -7,22 +7,39 @@ export interface Sitzung {
 
 export interface SessionAdapter {
   ladeSitzung(): Promise<Sitzung>;
+  anmelden(benutzer: string, passwort: string): Promise<Sitzung>;
+  abmelden(): Promise<void>;
 }
 
 interface SitzungsAntwort {
   username: string;
+  display_name?: string;
+}
+
+function alsSitzung(antwort: SitzungsAntwort): Sitzung {
+  return { angemeldet: true, benutzername: antwort.display_name || antwort.username };
 }
 
 export const apiSitzung: SessionAdapter = {
   async ladeSitzung() {
     try {
-      const antwort = await apiFetch<SitzungsAntwort>("/api/session/");
-      return { angemeldet: true, benutzername: antwort.username };
+      return alsSitzung(await apiFetch<SitzungsAntwort>("/api/session/"));
     } catch (fehler) {
       if (istApiFehler(fehler) && fehler.code === "unauthenticated") {
         return { angemeldet: false };
       }
       throw fehler;
     }
+  },
+  async anmelden(benutzer, passwort) {
+    return alsSitzung(
+      await apiFetch<SitzungsAntwort>("/api/anmeldung/", {
+        method: "POST",
+        body: JSON.stringify({ username: benutzer, password: passwort }),
+      }),
+    );
+  },
+  async abmelden() {
+    await apiFetch<void>("/api/abmeldung/", { method: "POST" });
   },
 };

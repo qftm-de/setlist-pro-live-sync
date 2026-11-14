@@ -5,7 +5,7 @@ from django.test import Client, RequestFactory, SimpleTestCase, TestCase, overri
 from django.urls import path
 from django.contrib.auth import get_user_model
 
-from core.config import load_runtime_config
+from core.config import cookie_secure, load_runtime_config
 
 
 def sitzung_setzen(request):
@@ -96,9 +96,28 @@ class LaufzeitKonfigurationTest(SimpleTestCase):
             "http://localhost:9000",
         )
 
+    def test_trust_proxy_muss_explizit_sein(self):
+        for wert in (None, "", "ja"):
+            with self.subTest(wert=wert):
+                with self.assertRaises(ImproperlyConfigured):
+                    load_runtime_config(env(TRUST_PROXY_HEADERS=wert))
+
     def test_csrf_origin_ohne_pfad(self):
-        with self.assertRaises(ImproperlyConfigured):
-            load_runtime_config(env(CSRF_TRUSTED_ORIGINS="https://pilot.example/pfad"))
+        for wert in (
+            "https://pilot.example/pfad",
+            "https://pilot.example/",
+            "https://pilot.example?x",
+            "https://pilot.example#fragment",
+        ):
+            with self.subTest(wert=wert):
+                with self.assertRaises(ImproperlyConfigured):
+                    load_runtime_config(env(CSRF_TRUSTED_ORIGINS=wert))
+
+    def test_cookie_secure_aus_debug_und_proxy_vertrauen(self):
+        self.assertTrue(cookie_secure(False, True))
+        self.assertFalse(cookie_secure(False, False))
+        self.assertFalse(cookie_secure(True, True))
+        self.assertFalse(cookie_secure(True, False))
 
     def test_secret_bleibt_bei_gleicher_konfiguration(self):
         erst = load_runtime_config(env())
@@ -153,12 +172,34 @@ class KonfigurationsEndpunktTest(TestCase):
         )
         self.assertEqual(eigene.status_code, 405)
 
-    @override_settings(ROOT_URLCONF="api.test_config")
-    def test_session_cookie_ist_secure_und_httponly(self):
+    @override_settings(
+        ROOT_URLCONF="api.test_config",
+        SESSION_COOKIE_SECURE=False,
+        CSRF_COOKIE_SECURE=False,
+    )
+    def test_session_cookie_ohne_proxy_vertrauen_nicht_secure(self):
+        response = self.client.get("/test/session/", secure=False)
+        cookie = response.cookies["sessionid"]
+        self.assertFalse(cookie["secure"])
+        self.assertTrue(cookie["httponly"])
+
+    @override_settings(
+        ROOT_URLCONF="api.test_config",
+        SESSION_COOKIE_SECURE=True,
+        CSRF_COOKIE_SECURE=True,
+    )
+    def test_session_cookie_mit_tls_proxy_ist_secure(self):
         response = self.client.get("/test/session/", secure=True)
         cookie = response.cookies["sessionid"]
         self.assertTrue(cookie["secure"])
         self.assertTrue(cookie["httponly"])
+
+    def test_cookie_secure_haengt_am_proxy_vertrauen(self):
+        from core import settings as core_settings
+
+        erwartet = not core_settings.DEBUG and core_settings.konfiguration.trust_proxy_headers
+        self.assertEqual(core_settings.SESSION_COOKIE_SECURE, erwartet)
+        self.assertEqual(core_settings.CSRF_COOKIE_SECURE, erwartet)
 
 
 class SitzungTest(TestCase):

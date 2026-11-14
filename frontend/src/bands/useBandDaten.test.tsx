@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { erstelleTestAdapter, type BandDaten } from "./bands";
+import { erstelleTestAdapter, type BandDaten, type Song } from "./bands";
 import { useBandDaten } from "./useBandDaten";
 
 function verzögert<T>() {
@@ -9,6 +9,10 @@ function verzögert<T>() {
     aufloesen = resolve;
   });
   return { promise, aufloesen };
+}
+
+function song(titel: string): Song {
+  return { id: 1, title: titel };
 }
 
 describe("useBandDaten", () => {
@@ -31,19 +35,19 @@ describe("useBandDaten", () => {
     expect(result.current.status).toBe("laedt");
 
     await act(async () => {
-      b.aufloesen({ bandId: "b", songs: ["Song B"] });
+      b.aufloesen({ bandId: "b", songs: [song("Song B")] });
     });
     expect(result.current).toMatchObject({
       status: "fertig",
-      daten: { bandId: "b", songs: ["Song B"] },
+      daten: { bandId: "b", songs: [song("Song B")] },
     });
 
     await act(async () => {
-      a.aufloesen({ bandId: "a", songs: ["Song A"] });
+      a.aufloesen({ bandId: "a", songs: [song("Song A")] });
     });
     expect(result.current).toMatchObject({
       status: "fertig",
-      daten: { bandId: "b", songs: ["Song B"] },
+      daten: { bandId: "b", songs: [song("Song B")] },
     });
   });
 
@@ -53,7 +57,7 @@ describe("useBandDaten", () => {
         { id: "a", name: "Band A" },
         { id: "b", name: "Band B" },
       ],
-      async (bandId) => ({ bandId, songs: bandId === "a" ? ["Song A"] : [] }),
+      async (bandId) => ({ bandId, songs: bandId === "a" ? [song("Song A")] : [] }),
     );
     const { result, rerender } = renderHook(({ bandId }) => useBandDaten(adapter, bandId), {
       initialProps: { bandId: "a" },

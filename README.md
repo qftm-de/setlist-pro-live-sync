@@ -19,11 +19,12 @@ Serverbestätigung als gespeichert angezeigt.
 
 ## Status
 
-**Fundament.** Frontend, Backend, Compose und CI stehen. Paket 1 ist umgesetzt:
-Laufzeitkonfiguration, gleiche Origin über nginx, lokale Konten-Grundlage und
-PostgreSQL-Tests in der CI. Produktfunktionen sind noch nicht gebaut. Die
-nächsten Schritte stehen in [`PROGRESS.md`](PROGRESS.md), die geltenden
-Entscheidungen in [`DECISIONS.md`](DECISIONS.md).
+**Vorabversion des Kerns.** Frontend, Backend, Compose und CI stehen. Umgesetzt
+sind Laufzeitkonfiguration, gleiche Origin über nginx, lokale Anmeldung mit
+Session, Bands und Songs. Konten legt der Betreiber an, eine öffentliche
+Registrierung gibt es im Core nicht. Die nächsten Schritte stehen in
+[`PROGRESS.md`](PROGRESS.md), die geltenden Entscheidungen in
+[`DECISIONS.md`](DECISIONS.md).
 
 | Phase | Inhalt | Stand |
 |---|---|---|
@@ -53,12 +54,35 @@ Redis, Docker Compose.
 1. `.env` im Repo-Root anlegen. Namen stehen in `backend/.env.example`.
    Pflicht sind ein stabiler `DJANGO_SECRET_KEY` und `POSTGRES_PASSWORD`.
 2. `docker compose up --build` startet Web, API, PostgreSQL und Redis.
-3. Web: http://localhost:8080, Health über den Proxy:
-   http://localhost:8080/api/health/
+3. Erstes Konto anlegen, solange die Instanz läuft:
 
-Nur der Web-Container ist nach außen erreichbar. API, PostgreSQL und Redis
-bleiben im Compose-Netz. `APP_MODE=core` ist fest gesetzt; `hub` und fehlende
-Pflichtwerte verhindern den Start.
+   ```bash
+   docker compose run --rm \
+     -e DJANGO_SUPERUSER_USERNAME=admin \
+     -e DJANGO_SUPERUSER_EMAIL=admin@example.test \
+     -e DJANGO_SUPERUSER_PASSWORD='<Passwort>' \
+     api python manage.py createsuperuser --noinput
+   ```
+
+4. Web: http://localhost:8080. Anmelden, Band anlegen, Songs eintragen.
+   Health über den Proxy: http://localhost:8080/api/health/
+
+Der Web-Port bindet nur an `127.0.0.1`. Davor gehört der TLS-Reverse-Proxy.
+Dieser muss `X-Forwarded-Proto` selbst setzen und eingehende Werte
+überschreiben. API, PostgreSQL und Redis bleiben im Compose-Netz.
+`TRUST_PROXY_HEADERS` ist Pflicht: hinter dem TLS-Proxy `true`, bei lokalem
+HTTP ohne TLS `false`. Für den Proxy zusätzlich `ALLOWED_HOSTS` auf den
+Pilot-Host und `CSRF_TRUSTED_ORIGINS` auf die HTTPS-Origin setzen.
+`APP_MODE=core` ist fest gesetzt; `hub` und fehlende Pflichtwerte verhindern
+den Start.
+
+## Review vor Push
+
+Vor Push oder Merge Request: `node scripts/gate.mjs --voll`. Mit lokaler
+Harness-Konfiguration startet das Gate den Review-Agenten, wenn
+`.tmp/review/findings.md` nicht zum Stand passt. Ohne Harness legst du die
+Befunddatei selbst an. Der Kopf braucht `HEAD` und `DIFF` aus
+`node scripts/review-stand.mjs`. Offene Blocker oder Major stoppen den Push.
 
 ## Dokumentation
 

@@ -19,8 +19,22 @@ if (args.includes("--help")) {
   process.exit(0);
 }
 
-const DEFAULT_SCHNELL = ["requirements-gate", "review-constraints", "verify-affected", "harness"];
-const DEFAULT_VOLL = ["requirements-gate", "review-constraints", "verify-all", "harness", "review-stand"];
+const DEFAULT_SCHNELL = [
+  "requirements-gate",
+  "review-constraints",
+  "lint-file-size",
+  "verify-affected",
+  "harness",
+];
+const DEFAULT_VOLL = [
+  "requirements-gate",
+  "review-constraints",
+  "lint-file-size",
+  "verify-all",
+  "gitleaks",
+  "harness",
+  "review-stand",
+];
 
 function loadProjekt() {
   const p = path.join(root, "harness", "projekt.yaml");
@@ -31,7 +45,7 @@ function loadProjekt() {
 }
 
 const projekt = loadProjekt();
-const policy = {requirements:"required",review:"on_request",...projekt.policy};
+const policy = {requirements:"required",review:"required",...projekt.policy};
 const gateCfg = projekt.gate || {};
 const SCHNELL = normalizeSteps(gateCfg.schnell || DEFAULT_SCHNELL);
 const VOLL = normalizeSteps(gateCfg.voll || DEFAULT_VOLL);
@@ -281,6 +295,7 @@ const builtins = {
   "review-constraints": () => schrittNode("review-constraints", "scripts/review-constraints.mjs"),
   "lint-colors": () => schrittNode("lint-colors", "scripts/lint-colors.mjs"),
   "content-validate": () => schrittNode("content-validate", "scripts/content-validate.mjs"),
+  "lint-file-size": () => schrittNode("lint-file-size", "scripts/lint-file-size.mjs"),
   "verify-affected": () => schrittVerify("affected"),
   "verify-all": () => schrittVerify("all"),
   gitleaks: schrittGitleaks,

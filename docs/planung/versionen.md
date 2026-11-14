@@ -29,11 +29,11 @@ Stand: 14.11.2026. Grundlage sind die Live-Abfragen bei npm, PyPI und Docker Hub
 | djangorestframework | REST-API | `>=3.18.3,<4` | 3.18.3 | `>=3.18.3,<4`. Unterstützt Django 5.2, 6.0 und 6.1. |
 | psycopg[binary] | PostgreSQL-Treiber | `>=3.3.9,<4` | 3.3.9 | `>=3.3.9,<4`. |
 | gunicorn | WSGI-Server | `>=27.0.1,<28` | 27.0.1 | `>=27.0.1,<28`. 27.0.1 ist vom 12.11.2026, bei Problemen auf 26.2.0 zurück. |
-| channels | ASGI und WebSocket | geplant für R8 | 4.3.2 | `>=4.3.2,<5`. Nennt Django 6.0 als höchste unterstützte Version. |
-| channels-redis | Channel-Layer über Redis | geplant für R8 | 4.3.0 | `>=4.3.0,<5`. Zieht `redis>=4.6` nach. |
-| daphne | ASGI-Server | geplant für R8 | 4.2.3 | `>=4.2.3,<5`. Offizieller Server für Channels. Alternative: `uvicorn` 0.54.0. |
-| pypdf | PDF prüfen und Seiten zählen | geplant für R6 | 7.1.0 | `>=7.1.0,<8`. |
-| django-allauth | Registrierung und E-Mail-Verifikation | geplant für R6 | 65.22.1 | `>=65.22.1,<66`. Headless auch im Core. Der Core nutzt lokale Konten und Sessions. |
+| channels | ASGI und WebSocket | geplant, Paket offen | 4.3.2 | `>=4.3.2,<5`. Nennt Django 6.0 als höchste unterstützte Version. |
+| channels-redis | Channel-Layer über Redis | geplant, Paket offen | 4.3.0 | `>=4.3.0,<5`. Zieht `redis>=4.6` nach. |
+| daphne | ASGI-Server | geplant, Paket offen | 4.2.3 | `>=4.2.3,<5`. Offizieller Server für Channels. Alternative: `uvicorn` 0.54.0. |
+| pypdf | PDF prüfen und Seiten zählen | geplant, Paket offen | 7.1.0 | `>=7.1.0,<8`. |
+| django-allauth | Registrierung und E-Mail-Verifikation | geplant für den Hub | 65.22.1 | `>=65.22.1,<66`. Headless im Hub. Der Core meldet lokale Konten ohne allauth an. |
 | argon2-cffi | Passwort-Hashing | `>=25.1.0,<26` | 25.1.0 | `>=25.1.0,<26`. In `PASSWORD_HASHERS` vor PBKDF2 setzen. |
 | django-filter | Filter in der API | optional für R5 | 26.2 | `>=26.2,<27`. |
 | drf-spectacular | OpenAPI-Schema | optional | 0.30.0 | `>=0.30.0,<0.31`. Nennt Django 6.0 als höchste Version. |
@@ -54,7 +54,7 @@ Stand: 14.11.2026. Grundlage sind die Live-Abfragen bei npm, PyPI und Docker Hub
 | vitest | Unit-Tests | `^5.1.0` | 5.1.0 | `^5.1.0`. |
 | react-router-dom | Routing | geplant | 7.18.5 | `^7.18.5`. |
 | @tanstack/react-query | Server-State und Cache | geplant | 5.107.1 | `^5.107.1`. |
-| pdfjs-dist | PDF-Anzeige | geplant für R6 | 6.5.438 | `^6.5.438`. Den Worker separat über Vite laden. |
+| pdfjs-dist | PDF-Anzeige | geplant, Paket offen | 6.5.438 | `^6.5.438`. Den Worker separat über Vite laden. |
 | vite-plugin-pwa | Offline und PWA | geplant | 2.0.0 | `^2.0.0`. Peers: `workbox-build` und `workbox-window` 7.4.1. |
 | workbox-build | PWA-Build | transitiv | 7.4.1 | `^7.4.1`. |
 | workbox-window | Service-Worker-Registrierung | transitiv | 7.4.1 | `^7.4.1`. |

@@ -47,6 +47,25 @@ describe("lokale Ressourcen", () => {
     expect(header).toBeLessThan(ersterProxy);
   });
 
+  it("liefert gesammelte statische Dateien aus dem Volume", () => {
+    const nginx = fs.readFileSync(path.resolve(process.cwd(), "nginx.conf"), "utf8");
+    const start = nginx.indexOf("location /static/");
+    const ende = nginx.indexOf("location /assets/", start);
+    expect(start).toBeGreaterThan(-1);
+    expect(ende).toBeGreaterThan(start);
+    expect(nginx.slice(start, ende)).toContain("alias /usr/share/nginx/static/");
+
+    const compose = fs.readFileSync(path.resolve(process.cwd(), "../docker-compose.yml"), "utf8");
+    expect(compose).toContain("/app/staticfiles");
+    expect(compose).toContain("/usr/share/nginx/static");
+
+    const settings = fs.readFileSync(
+      path.resolve(process.cwd(), "../backend/core/settings.py"),
+      "utf8",
+    );
+    expect(settings).toContain('STATIC_ROOT = BASE_DIR / "staticfiles"');
+  });
+
   it("wiederholt die Security-Header im Assets-Block", () => {
     const nginx = fs.readFileSync(path.resolve(process.cwd(), "nginx.conf"), "utf8");
     const start = nginx.indexOf("location /assets/");

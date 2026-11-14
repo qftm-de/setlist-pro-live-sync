@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from .config import load_runtime_config
+from .config import cookie_secure, load_runtime_config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -19,11 +19,12 @@ USE_X_FORWARDED_HOST = konfiguration.trust_proxy_headers
 if konfiguration.trust_proxy_headers:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+COOKIE_SECURE = cookie_secure(DEBUG, konfiguration.trust_proxy_headers)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = COOKIE_SECURE
 CSRF_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = COOKIE_SECURE
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
@@ -41,8 +42,13 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "accounts",
+    "bands",
+    "library",
     "api",
 ]
+
+AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -115,7 +121,7 @@ TIME_ZONE = "Europe/Berlin"
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

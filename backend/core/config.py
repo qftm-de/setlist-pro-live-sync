@@ -76,7 +76,13 @@ def _csrf_origins(environ: Mapping[str, str]) -> tuple[str, ...]:
     origins = _liste(environ, "CSRF_TRUSTED_ORIGINS")
     for origin in origins:
         teile = urlsplit(origin)
-        if teile.scheme not in ("http", "https") or not teile.netloc or teile.path not in ("", "/"):
+        if (
+            teile.scheme not in ("http", "https")
+            or not teile.netloc
+            or teile.path != ""
+            or teile.query
+            or teile.fragment
+        ):
             raise ImproperlyConfigured(
                 "CSRF_TRUSTED_ORIGINS erwartet Origins als Schema und Host ohne Pfad."
             )
@@ -87,8 +93,17 @@ def _debug(environ: Mapping[str, str]) -> bool:
     return _wert(environ, "DJANGO_DEBUG").lower() == "true"
 
 
+def cookie_secure(debug: bool, trust_proxy_headers: bool) -> bool:
+    return not debug and trust_proxy_headers
+
+
 def _trust_proxy(environ: Mapping[str, str]) -> bool:
-    return _wert(environ, "TRUST_PROXY_HEADERS").lower() == "true"
+    wert = _wert(environ, "TRUST_PROXY_HEADERS").lower()
+    if wert not in ("true", "false"):
+        raise ImproperlyConfigured(
+            "TRUST_PROXY_HEADERS muss explizit true oder false sein."
+        )
+    return wert == "true"
 
 
 def load_runtime_config(environ: Mapping[str, str] | None = None) -> LaufzeitKonfiguration:

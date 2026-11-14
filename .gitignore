@@ -30,6 +30,8 @@ harness/transaction.json
 # Lokale Infrastruktur-Doku. Bleibt auf dieser Maschine.
 _lokal/
 
+# Agenten-, Harness- und Kilo-Konfiguration bleibt lokal. Versioniert sind
+# nur die Gate-Skripte und die Repo-Grundausstattung.
 .claude
 .kilo
 .codex

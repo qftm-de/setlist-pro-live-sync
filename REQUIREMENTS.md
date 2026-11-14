@@ -1,8 +1,8 @@
 # Anforderungen
 
-R1 | Behavior: Repo-Grundausstattung und Agent-Harness stehen und sind versioniert. Ein frischer Clone führt das Gate aus. Der Brownfield-Bestand liegt unverändert und unversioniert unter alte_projektdatein/.
+R1 | Behavior: Repo-Grundausstattung und Gate-Skripte stehen und sind versioniert. Ein frischer Clone führt das Gate mit den eingebauten Schritten aus. Agenten-, Harness- und Kilo-Dateien bleiben lokal und unversioniert; versioniert sind nur die Gate-Skripte einschließlich `scripts/harness.mjs`. Der Brownfield-Bestand liegt unverändert und unversioniert unter alte_projektdatein/.
    | Verify:  node scripts/check-repo.mjs
-   | Scope:   docs/templates, docs/conventions.md, scripts, harness, .githooks, .kilo, .agents, alte_projektdatein, README.md, LICENSE, CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, CHANGELOG.md, .github, .editorconfig, .gitattributes, package.json, package-lock.json
+   | Scope:   docs/templates, docs/conventions.md, scripts, .githooks, alte_projektdatein, README.md, LICENSE, CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, CHANGELOG.md, .github, .editorconfig, .gitattributes, package.json, package-lock.json
    | Risk:    niedrig
    | State:   passing
 
@@ -24,7 +24,8 @@ R3 | Behavior: Der Core startet nur mit explizitem Modus core, festem Secret-Key
    | State:   passing
 
 R4 | Behavior: Browser, API und spätere WebSockets laufen unter einer Origin. Der nginx-Proxy liefert API und SPA-Fallback,
-   |  die React-Hülle zeigt Laden, Fehler, Entwurf, Speichern und bestätigte Speicherung getrennt und wechselt Bands ohne Datenreste.
+   |  die React-Hülle zeigt Laden und Fehler getrennt, führt bei abgelaufener Session aus jedem Formular zurück zur Anmeldung,
+   |  zeigt am Songformular den Speicherzustand von Entwurf bis bestätigter Speicherung und wechselt Bands ohne Datenreste.
    |  Ohne Session erscheint die Anmeldung, API-Fehler bleiben ohne interne Details sichtbar.
    | Verify:  node scripts/verify-ui-foundation.mjs
    | Scope:   frontend/src, frontend/index.html, frontend/vite.config.ts, frontend/Dockerfile, frontend/nginx.conf, frontend/package.json, frontend/package-lock.json, frontend/tsconfig.json, scripts/verify-ui-foundation.mjs
@@ -38,4 +39,32 @@ R5 | Behavior: Die versionierte CI prüft vor Integration Requirements und Siche
    | Verify:  node scripts/verify-ci.mjs
    | Scope:   .github/workflows, scripts/verify-ci.mjs
    | Risk:    mittel
+   | State:   passing
+
+R6 | Behavior: Im Core melden sich lokale Konten mit Benutzername und Passwort an einer Session an und wieder ab.
+   |  Das Konto hat eine eindeutige E-Mail und einen Anzeigenamen. Anmeldung und Abmeldung verlangen ein CSRF-Token,
+   |  falsche Zugangsdaten antworten ohne Hinweis auf vorhandene Konten, und ohne Session bleibt jeder geschützte Aufruf bei 401.
+   |  Es gibt keine öffentliche Registrierung; der erste Betreiber wird per Kommando angelegt.
+   | Verify:  node scripts/verify-kern.mjs
+   | Scope:   backend/accounts, backend/api/session.py, backend/api/test_session.py, backend/api/urls.py, backend/core/settings.py, backend/core/urls.py, frontend/src/session, frontend/src/ui/AnmeldeFormular.tsx, frontend/src/App.tsx, frontend/src/api/client.ts, docker-compose.yml, frontend/nginx.conf, scripts/verify-kern.mjs
+   | Risk:    hoch
+   | Cases:   R6-P: Anmeldung mit gültigem Konto setzt Session, /api/session/ liefert Anzeigenamen, Abmeldung beendet sie; R6-N: falsches Passwort 400 ohne Konto-Hinweis, Anmeldung ohne CSRF-Token 403, geschützte Aufrufe ohne Session 401, Nutzernamen werden nicht durch zeitgleiche Anmeldung getauscht; R6-G: Session-Cookie HttpOnly und SameSite, Passwort wird als Argon2-Hash gespeichert, Anmeldung bei gesperrtem Konto scheitert.
+   | State:   passing
+
+R7 | Behavior: Angemeldete Nutzer legen Bands an und sehen ausschließlich Bands, in denen sie Mitglied sind.
+   |  Der Ersteller wird Owner. Mitglieder benennen die Band um. Ein Band-Detail liefert Name und Songliste in einer Antwort.
+   |  Fremde Bands antworten mit 404, nicht mit 403, damit die Existenz nicht durchsickert.
+   | Verify:  node scripts/verify-kern.mjs
+   | Scope:   backend/bands, backend/api/bands.py, backend/api/test_bands.py, backend/api/serializers.py, backend/api/urls.py, frontend/src/bands, frontend/src/App.tsx, frontend/src/ui/BandFormular.tsx, scripts/verify-kern.mjs
+   | Risk:    hoch
+   | Cases:   R7-P: Band anlegen macht den Ersteller zum Owner, Liste zeigt nur eigene Bands, Detail enthält Name und Songs; R7-N: Fremdband liefert 404, anonyme Aufrufe 401, leerer oder überlanger Name wird abgelehnt; R7-G: zwei Nutzer sehen getrennte Listen, Owner bleibt nach Neustart erhalten.
+   | State:   passing
+
+R8 | Behavior: Songs hängen an einer Band. Mitglieder legen Songs mit Titel, Interpret, Tonart, BPM und Notiz an,
+   |  ändern und löschen sie. Titel ist Pflicht, BPM liegt zwischen 20 und 400, die Notiz steht im Anlege- und im
+   |  Änderungsformular. Nach dem Anlegen erscheint der Song in der Bandliste der Antwort ohne Neuladen der Seite.
+   | Verify:  node scripts/verify-kern.mjs
+   | Scope:   backend/library, backend/api/songs.py, backend/api/test_songs.py, backend/api/serializers.py, backend/api/urls.py, frontend/src/bands, frontend/src/ui/Songs.tsx, frontend/src/ui/SongZeile.tsx, scripts/verify-kern.mjs
+   | Risk:    mittel
+   | Cases:   R8-P: Anlegen, Ändern und Löschen eines Songs als Mitglied wirkt auf die Bandliste; R8-N: leerer Titel und BPM außerhalb der Grenzen werden abgelehnt, Song einer Fremdband liefert 404; R8-G: Reihenfolge bleibt nach Änderung stabil, Songs einer gelöschten Band sind nicht erreichbar.
    | State:   passing

@@ -3,8 +3,6 @@ from django.db import connection
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
 
 def health(request):
@@ -26,13 +24,3 @@ def konfiguration(request):
             "community_url": settings.COMMUNITY_URL,
         }
     )
-
-
-class SitzungView(APIView):
-    def get(self, request):
-        return Response(
-            {
-                "authenticated": True,
-                "username": request.user.get_username(),
-            }
-        )

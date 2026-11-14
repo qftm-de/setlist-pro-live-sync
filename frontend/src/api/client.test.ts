@@ -2,10 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiFehler, apiFetch } from "./client";
 
 function antwort(status: number, koerper: unknown = {}): Response {
+  const text = koerper === undefined ? "" : JSON.stringify(koerper);
   return {
     ok: status >= 200 && status < 300,
     status,
-    json: async () => koerper,
+    text: async () => text,
+    json: async () => JSON.parse(text),
   } as Response;
 }
 
@@ -19,6 +21,9 @@ describe("apiFetch", () => {
       "API-Pfad muss relativ zur eigenen Origin sein.",
     );
     await expect(apiFetch("//fremd.example/api/")).rejects.toThrow(
+      "API-Pfad muss relativ zur eigenen Origin sein.",
+    );
+    await expect(apiFetch("/\\fremd.example/api/")).rejects.toThrow(
       "API-Pfad muss relativ zur eigenen Origin sein.",
     );
   });
@@ -43,6 +48,24 @@ describe("apiFetch", () => {
   it("meldet 403 als fehlende Berechtigung", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => antwort(403)));
     await expect(apiFetch("/api/bands/")).rejects.toMatchObject({ code: "forbidden" });
+  });
+
+  it("schickt bei Schreibmethoden den CSRF-Token", async () => {
+    document.cookie = "csrftoken=abc123";
+    const fetchMock = vi.fn(
+      async (_pfad: RequestInfo | URL, _init?: RequestInit) => antwort(200, {}),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await apiFetch("/api/notiz/", { method: "PUT", body: "{}" });
+    const kopfzeilen = new Headers(fetchMock.mock.calls[0][1]?.headers);
+    expect(kopfzeilen.get("X-CSRFToken")).toBe("abc123");
+    expect(kopfzeilen.get("Content-Type")).toBe("application/json");
+    document.cookie = "csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  });
+
+  it("behandelt leere Erfolgsantworten ohne JSON", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => antwort(204, undefined)));
+    await expect(apiFetch("/api/notiz/", { method: "DELETE" })).resolves.toBeUndefined();
   });
 
   it("meldet 404 als noch nicht verfügbaren Bereich", async () => {
@@ -87,9 +110,7 @@ describe("apiFetch", () => {
           ({
             ok: true,
             status: 200,
-            json: async () => {
-              throw new Error("kaputt");
-            },
+            text: async () => "kein json",
           }) as unknown as Response,
       ),
     );

@@ -6,22 +6,13 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveDiffBase } from "./lib/git-base.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const findingsPath = path.join(root, ".tmp", "review", "findings.md");
 const timeoutSekunden = Number.parseInt(process.env.KILO_REVIEW_TIMEOUT || "", 10) || 600;
-
-function git(args) {
-  const result = spawnSync("git", args, {
-    cwd: root,
-    encoding: "utf8",
-    shell: process.platform === "win32",
-  });
-  if ((result.status ?? 1) !== 0) {
-    return null;
-  }
-  return result.stdout;
-}
+// Review-Modell: glm-5.3 über OpenCode Go, unabhängig vom Kilo-Standard.
+const modell = process.env.KILO_REVIEW_MODEL || "opencode-go/glm-5.3";
 
 function stand() {
   const r = spawnSync(process.execPath, [path.join(root, "scripts", "review-stand.mjs")], {
@@ -50,33 +41,13 @@ function findingsAktuell(st) {
 }
 
 // Review-Basis: der tatsächliche Commit-Bereich plus Working Tree.
-// Kette: Upstream → origin/main → main. Ein Kandidat entfällt, wenn der
-// Merge-Base HEAD selbst ist (dann gäbe es keinen diffbaren Bereich).
-// Ohne auflösbare Basis bleibt nur der Working Tree; committete Arbeit
-// läge dann außerhalb des Reviews, deshalb wird das gemeldet.
+// Die Basis wird auch bei unsauberem Working Tree ermittelt.
 function diffBasis() {
-  const dirty = (git(["status", "--porcelain=v1"]) || "").trim().length > 0;
-  if (dirty) {
-    return null;
+  const base = resolveDiffBase(root);
+  if (!base) {
+    process.stderr.write("Keine Review-Basis gefunden (kein Upstream, kein origin/main/main). Review prüft nur den Working Tree.\n");
   }
-  const head = (git(["rev-parse", "HEAD"]) || "").trim();
-  if (!/^[0-9a-f]{7,40}$/.test(head)) {
-    return null;
-  }
-  const upstream = (git(["rev-parse", "--abbrev-ref", "@{u}"]) || "").trim();
-  const kandidaten = [];
-  if (upstream) {
-    kandidaten.push(upstream);
-  }
-  kandidaten.push("origin/main", "main");
-  for (const ref of kandidaten) {
-    const base = (git(["merge-base", "HEAD", ref]) || "").trim();
-    if (/^[0-9a-f]{7,40}$/.test(base) && base !== head) {
-      return base;
-    }
-  }
-  process.stderr.write("Keine Review-Basis gefunden (kein Upstream, kein origin/main/main). Review prüft nur den Working Tree.\n");
-  return null;
+  return base;
 }
 
 function kurz(text) {
@@ -101,10 +72,14 @@ const env = { ...process.env };
 if (base) {
   env.REQUIREMENTS_DIFF_BASE = base;
 }
-const basisText = base ? `Branch-Diff ab ${base.slice(0, 12)} (REQUIREMENTS_DIFF_BASE gesetzt)` : "Working Tree";
+const basisText = base
+  ? `Branch-Diff ab ${base.slice(0, 12)} (REQUIREMENTS_DIFF_BASE gesetzt) plus Working Tree`
+  : "Working Tree";
 
 const r = spawnSync("kilo", [
   "run",
+  "--model",
+  modell,
   "--agent", "review",
   "--title", "Pre-Push-Review",
   `Pre-Push-Review: Prüfe den Diff nach dem Skill review. Basis: ${basisText}. Schreibe .tmp/review/findings.md.`,

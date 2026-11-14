@@ -59,5 +59,10 @@ if (koerper.status !== "ok") {
   fail({ stderr: `Health-Endpoint antwortet falsch: ${JSON.stringify(koerper)}` });
 }
 
+const statik = await fetch(`http://localhost:${env.WEB_PORT}/static/admin/css/base.css`);
+if (!statik.ok) {
+  fail({ stderr: `Admin-Statik antwortet nicht mit 200: ${statik.status}` });
+}
+
 run(["down", "-v"]);
 console.log("geruest-smoke ok");
