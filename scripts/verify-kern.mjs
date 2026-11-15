@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 /**
- * Kern-Smoke für R6 bis R9: baut den Core, legt Konten an und fährt den
+ * Kern-Smoke für R6 bis R10: baut den Core, legt Konten an und fährt den
  * echten Weg über nginx und die API. Kein Mock, keine Testdatenbank.
+ * Auftritte prüft scripts/lib/verify-gigs.mjs im selben Lauf.
  */
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { pruefeGigs } from "./lib/verify-gigs.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const projekt = "setlist-kern";
@@ -119,6 +123,22 @@ function pruefe(bedingung, text) {
   }
 }
 
+function frontendPruefen() {
+  const frontend = path.join(root, "frontend");
+  const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+  const lauf = (args, text) => {
+    const ergebnis = spawnSync(npm, args, { cwd: frontend, encoding: "utf8" });
+    if ((ergebnis.status ?? 1) !== 0) {
+      abbruch(text, `${ergebnis.stdout || ""}${ergebnis.stderr || ""}`);
+    }
+  };
+  if (!fs.existsSync(path.join(frontend, "node_modules", "vitest"))) {
+    lauf(["ci", "--no-audit", "--no-fund"], "Frontend-Abhängigkeiten installieren");
+  }
+  lauf(["test"], "Frontend-Tests");
+  lauf(["run", "build"], "Frontend-Build");
+}
+
 function kontoAnlegen(name) {
   schritt(
     [
@@ -142,9 +162,27 @@ function kontoAnlegen(name) {
 }
 
 try {
+  frontendPruefen();
+
   schritt(["config", "-q"], "Compose-Konfiguration");
   schritt(["build"], "Images bauen");
   schritt(["up", "-d", "--wait"], "Core starten", 2);
+  schritt(
+    [
+      "exec",
+      "-T",
+      "api",
+      "python",
+      "manage.py",
+      "test",
+      "api",
+      "bands",
+      "library",
+      "setlists",
+      "gigs",
+    ],
+    "Backend-Tests",
+  );
   kontoAnlegen("pilot");
   kontoAnlegen("pilot2");
 
@@ -295,6 +333,8 @@ try {
   pruefe((await zweite.ruf(`/api/bands/${bandId}/songs/`)).status === 404, "Fremde Songs sind nicht 404");
   pruefe((await zweite.ruf(`/api/bands/${bandId}/setlists/`)).status === 404, "Fremde Setlists sind nicht 404");
   pruefe((await zweite.ruf(`${setlistPfad}/`)).status === 404, "Fremde Setlist ist nicht 404");
+
+  await pruefeGigs({ erste, zweite, bandId, setlistId, pruefe });
 
   pruefe(
     (await erste.ruf(`/api/bands/${bandId}/songs/${song.daten.id}/`, { methode: "DELETE" })).status === 204,

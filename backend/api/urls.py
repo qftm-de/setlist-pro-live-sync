@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import bands, session, setlists, songs, views
+from . import bands, gigs, session, setlists, songs, views
 
 urlpatterns = [
     path("health/", views.health),
@@ -18,4 +18,6 @@ urlpatterns = [
         "bands/<int:band_id>/setlists/<int:setlist_id>/content/",
         setlists.SetlistInhalt.as_view(),
     ),
+    path("bands/<int:band_id>/gigs/", gigs.GigListe.as_view()),
+    path("bands/<int:band_id>/gigs/<int:gig_id>/", gigs.GigDetail.as_view()),
 ]

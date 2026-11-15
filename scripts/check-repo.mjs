@@ -31,6 +31,7 @@ const pflichtDateien = [
   "docs/conventions.md",
   "scripts/gate.mjs",
   "scripts/requirements-gate.mjs",
+  "scripts/docs-sync.mjs",
   "scripts/verify-requirements.mjs",
   "scripts/review-constraints.mjs",
   "scripts/lint-file-size.mjs",

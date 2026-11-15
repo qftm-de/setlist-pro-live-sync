@@ -279,7 +279,7 @@ describe("App", () => {
     fireEvent.change(await screen.findByLabelText("Neue Setlist"), {
       target: { value: "Hauptset" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Setlist anlegen" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Setlist anlegen" }));
     fireEvent.click(await screen.findByRole("button", { name: "Set hinzufügen" }));
     fireEvent.click(screen.getByRole("button", { name: "Set hinzufügen" }));
 

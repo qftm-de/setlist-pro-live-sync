@@ -56,11 +56,27 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   stehen. Ein Song, der in einer Setlist steht, ist gegen Löschen
   geschützt. Frontend mit Setlist-Liste und Editor (Songwahl, Pausen,
   Notizen, Hoch/Runter, Speicherzustand).
+- Auftritte (R10): bandgebundene Termine mit Pflicht-Titel und
+  Pflicht-Datum, optionaler Uhrzeit, Ort, Notiz und Setlist-Verweis.
+  Die API liefert Kommend und Vergangen nach Berliner Datum gruppiert.
+  Der Setlist-Verweis ist ein Live-Link mit `SET_NULL`, kein historischer
+  Snapshot. Frontend mit Reiter Auftritte, gemeinsamem Formular,
+  bestätigtem Löschen und Direktlink auf die verknüpfte Setlist.
 - Kern-Smoke `scripts/verify-kern.mjs`: baut den Core, legt zwei Konten
-  an und prüft Anmeldung, CSRF, Bandschnitt, Songpflege, Setlist-Inhalt
-  und Abmeldung über nginx.
+  an und prüft Anmeldung, CSRF, Bandschnitt, Songpflege, Setlist-Inhalt,
+  Auftritte und Abmeldung über nginx.
+- Gate-Schritt `docs-sync` (`scripts/docs-sync.mjs`): Produktänderungen
+  brauchen eine neue Zeile in `CHANGELOG.md` unter `## [Unreleased]`, und
+  `CHANGELOG.md`, `PROGRESS.md` sowie `DECISIONS.md` müssen vorhanden sein.
+  Reine Doku- und Agentenänderungen sind ausgenommen. Ohne Git-Kontext ist
+  der Schritt rot. Die Prüfung läuft als eigener Schritt in der CI; im
+  lokalen Gate nur mit der nicht versionierten Harness-Konfiguration.
 
 ### Changed
+
+- `CONTRIBUTING.md` nennt die Gate-Skripte jetzt korrekt als versioniert und
+  beschreibt im Abschnitt Dokumentation, wann `CHANGELOG.md`, `PROGRESS.md` und
+  `DECISIONS.md` gepflegt werden.
 
 - Lizenz festgelegt: AGPL-3.0 (war als offen notiert, liegt bereits bei).
 - Harness auf den beschlossenen Stack umgestellt:

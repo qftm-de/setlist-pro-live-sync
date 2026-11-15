@@ -26,6 +26,10 @@ jobs:
         run: node scripts/requirements-gate.mjs --check
       - name: Security-Baseline
         run: node scripts/review-constraints.mjs
+      - name: Dokumentation
+        run: node scripts/docs-sync.mjs
+        env:
+          REQUIREMENTS_DIFF_BASE: ${{ github.event.before }}
       - name: Dateigrößen
         run: node scripts/lint-file-size.mjs
       - name: Gitleaks

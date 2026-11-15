@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
+import { bereichAktiv } from "../routing";
 
 const BEREICHE = [
   { pfad: "/", name: "Start" },
   { pfad: "/songs", name: "Songs" },
   { pfad: "/setlists", name: "Setlists" },
+  { pfad: "/gigs", name: "Auftritte" },
 ];
 
 interface AppShellProps {
@@ -35,7 +37,7 @@ export function AppShell({
             <a
               key={bereich.pfad}
               href={bereich.pfad}
-              aria-current={pfad === bereich.pfad ? "page" : undefined}
+              aria-current={bereichAktiv(bereich.pfad, pfad) ? "page" : undefined}
               onClick={(ereignis) => {
                 ereignis.preventDefault();
                 onNavigieren(bereich.pfad);

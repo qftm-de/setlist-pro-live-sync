@@ -1,0 +1,60 @@
+/* Auftritte: Gruppen, Zeilen und gemeinsames Formular. */
+.auftritt-gruppe {
+  margin-top: 1.5rem;
+}
+
+.auftritt-liste {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.auftritt-zeile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: 0.5rem;
+}
+
+.auftritt-datum {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.auftritt-zeit {
+  color: var(--meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.auftritt-titel {
+  font-weight: 600;
+}
+
+.auftritt-ort,
+.auftritt-hinweis {
+  color: var(--meta);
+}
+
+.auftritt-formular {
+  max-width: 40rem;
+  margin: 1rem 0;
+}
+
+.auftritt-setlist-fehler {
+  border: 1px solid var(--warnung);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(245, 158, 11, 0.08);
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .auftritt-zeile {
+    align-items: flex-start;
+  }
+}

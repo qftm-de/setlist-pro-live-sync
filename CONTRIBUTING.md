@@ -43,15 +43,34 @@ Ein Pull Request ändert eine Sache. Zwei Themen gehören in zwei Pull Requests.
 ## Qualität
 
 Dieses Repository wird mit einem lokalen Qualitätssicherungsharness entwickelt.
-Die Gate-Skripte unter `scripts/` sind bewusst nicht Teil des veröffentlichten
-Repos. `REQUIREMENTS.md` und `PROGRESS.md` beschreiben diesen internen Ablauf.
-Für deinen Beitrag zählt, was im Repo ankommt:
+Die Gate-Skripte unter `scripts/` sind versioniert, die Agentenkonfiguration
+bleibt lokal. `REQUIREMENTS.md` und `PROGRESS.md` beschreiben diesen internen
+Ablauf. Für deinen Beitrag zählt, was im Repo ankommt:
 
 - Tests für neue Logik, mindestens ein Fall, der bei Fehlern scheitert.
 - Lint und Format laufen, sobald das Gerüst steht.
 - Keine neuen Abhängigkeiten ohne Begründung im Pull Request.
 - Keine stillen Fehler: Fehlerfälle sichtbar machen, nicht wegschlucken.
 - Rechte werden serverseitig geprüft. Ausgeblendete Knöpfe sind kein Schutz.
+
+## Dokumentation
+
+Jede Änderung am Produktcode bekommt einen Eintrag in `CHANGELOG.md` unter
+`## [Unreleased]`. Format nach Keep a Changelog mit `Added`, `Changed`,
+`Fixed`, `Removed` und `Security`. Nenne die Wirkung, nicht nur die Datei. Gibt
+es eine Anforderung, steht ihre R-Nummer im Eintrag.
+
+`PROGRESS.md` hält den aktuellen Stand fest: was fertig ist, was offen bleibt
+und was als Nächstes kommt. `DECISIONS.md` hält geltende Beschlüsse fest, je
+eine Zeile mit kurzer Begründung. Veraltete Einträge werden gestrichen, nicht
+gesammelt.
+
+Den Eintrag prüft `node scripts/docs-sync.mjs`. Er schlägt fehl, wenn
+Produktcode im Diff liegt und `CHANGELOG.md` fehlt oder unter `## [Unreleased]`
+keine neue Zeile bekommt. Verbindlich läuft der Schritt als eigener Schritt in
+der CI. Im lokalen Gate steht er nur, wenn die Harness-Konfiguration
+`harness/projekt.yaml` vorhanden ist. Ein frischer Clone bringt sie nicht mit
+und prüft deshalb über die CI.
 
 ## Keine echten Daten
 

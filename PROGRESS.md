@@ -30,7 +30,8 @@
   - R1-Verify ist eine echte Prüfung geworden (`scripts/check-repo.mjs`), R1 und R2 sind erneut passing (inklusive Smoke-Test).
   - Das Voll-Gate liest offene Blocker und Major strukturiert aus Befundabschnitten (`## F<n>`), der Review-Skill schreibt dieses Format vor.
   - Regeln entdoppelt: `kilo.jsonc` lädt nur `AGENTS.md`, Projekt-Policy nur einmal, `.kilo/rules` und `.claude/rules` entfallen. Review-Skill verlangt belastbare Evidenz (Kommando bevorzugt, Kontrollfluss sonst, Unsicherheit kennzeichnen). Schreibregeln sind Sprachkonventionen ohne Texter-Rolle.
-  - Struktur-Regel mit Gate-Schritt `lint-file-size`: Code 300 Ziel/500 hart, Doku 500 Ziel/1000 hart, läuft lokal (schnell/voll) und in CI. Aktuell grün mit zwei Hinweisen (`scripts/lib/requirements.mjs`, `scripts/gate.mjs` je über 300, unter 500).
+  - Struktur-Regel mit Gate-Schritt `lint-file-size`: Code 300 Ziel/500 hart, Doku 500 Ziel/1000 hart, läuft lokal (schnell/voll) und in CI. Aktuell grün mit fünf Hinweisen (`scripts/verify-kern.mjs`, `scripts/lib/requirements.mjs`, `scripts/gate.mjs`, `frontend/src/App.gigs-fehler.test.tsx` und `backend/api/test_gigs.py` je über 300, unter 500).
+  - Dokumentations-Regel mit Gate-Schritt `doku-sync`: Produktänderungen brauchen einen neuen Eintrag in `CHANGELOG.md` unter `## [Unreleased]`, und `CHANGELOG.md`, `PROGRESS.md` sowie `DECISIONS.md` bleiben vorhanden. Reine Doku- und Agentenänderungen sind ausgenommen. Der Schritt steht in `harness/projekt.yaml` für `--schnell` und `--voll` und läuft als eigener Schritt in der CI. Die verbindliche Schranke ist der CI-Schritt, weil ein frischer Clone die Harness-Konfiguration nicht mitbringt. Regeltext in `CONTRIBUTING.md`, Abschnitt Dokumentation.
 - Das Gerüst (R2) ist passing, inklusive Smoke-Test über `scripts/geruest-smoke.mjs`. Produktfunktionen sind noch nicht gebaut und kommen als eigene R-Zeilen.
 - Paket 1 umgesetzt und passing (R3 bis R5, 2026-11-14):
   - R3 Backend-Laufzeit: `APP_MODE=core` ist Pflicht, Secret-Key und PostgreSQL sind Pflicht, `/api/config/` liefert nur Modus, Instanzname und validierten Community-Link zur Laufzeit. Health prüft die Datenbank. DRF verlangt Anmeldung und antwortet anonym mit 401. Secure-Cookies, CSRF-Origin-Prüfung, Security-Header und Proxy-Vertrauen sind über Tests abgedeckt.
@@ -52,6 +53,16 @@
   - Song, der in einer Setlist steht, lässt sich nicht löschen (400) bis er dort entfernt wurde.
   - Frontend: Setlist-Liste, Anlegen, Löschen und ein Editor mit Abschnitten, Songwahl, Pausen, Notizen, Hoch/Runter und einem Speicherzustand.
   - `verify-kern.mjs` fährt den ganzen Setlist-Weg über nginx, inklusive doppeltem Song und Löschsperre.
+- Paket 4 umgesetzt (R10, 2026-11-15):
+  - `gigs.Gig` mit Band, Pflicht-Titel, Pflicht-Datum, optionaler Uhrzeit, Ort, Notiz und Setlist-Verweis. Der Verweis ist ein Live-Link mit SET_NULL, kein historischer Snapshot. Setlist-Änderungen wirken deshalb auch bei vergangenen Auftritten.
+  - Die additive Migration läuft im bestehenden Startpfad mit `migrate`. Eine Rückmigration entfernt die Auftrittstabelle samt Daten und ist nur vor der Nutzung oder nach einer Sicherung sinnvoll.
+  - `GET /api/bands/{id}/gigs/` liefert Kommend und Vergangen serverseitig gruppiert. Maßgeblich ist das Berliner Datum über `timezone.localdate()`. Kommend sortiert aufsteigend, Vergangen absteigend. Innerhalb eines Tages gilt Uhrzeit aufsteigend, ohne Uhrzeit zuletzt, danach ID.
+  - Anlegen, Lesen, Ändern und Löschen für alle Bandmitglieder. Fremde Bands und Auftritte sind 404. Unbekannte und bandfremde Setlists liefern dieselbe Feldfehlermeldung mit 400. Ein paralleler Setlist-Löschkonflikt endet kontrolliert als 400.
+  - Frontend: Reiter Auftritte, beide Gruppen mit Leerzuständen, gemeinsames Formular für Anlegen und Bearbeiten, Setlist-Auswahl, bestätigtes Löschen, getrennter Speicher- und Listenabgleich sowie gesperrte Aktionen während Schreibvorgängen.
+  - Setlist-Direktlink unter `/setlists/{bandId}/{setlistId}`. Die URL-Band wird nur aus sichtbaren Mitgliedsbands gewählt, eine fehlende Setlist meldet sich sichtbar. Ein manueller Bandwechsel verlässt den Direktpfad.
+  - `verify-kern.mjs` führt jetzt zusätzlich die Backend-Tests im API-Container und Frontend-Tests samt Build aus. Der HTTP-Smoke für Auftritte liegt in `scripts/lib/verify-gigs.mjs`.
+  - Review-Befunde F1 bis F3 behoben: Ein 401 im Listenabgleich führt jetzt zur Anmeldung, ein Reiterklick aus dem Direktlink erhält den Editor-Entwurf, und eine fehlerhaft kodierte Band-URL meldet eine nicht sichtbare Band statt einer leeren Seite. Für alle drei Fälle gibt es Tests.
+  - Sichtprüfung auf schmalem Mobilformat und Desktop steht aus, weil in dieser Umgebung kein laufendes Browserwerkzeug verfügbar war. Die Prüfung bleibt offen.
 
 ## Offen
 
@@ -60,11 +71,12 @@
 - Support- und Release-Rhythmus festlegen, inklusive Reaktionszeit auf Sicherheitsmeldungen. Dazu SUPPORT.md.
 - Governance festlegen: wer reviewt, wer merged, wer releast. CODEOWNERS, sobald ein Team steht.
 - Gitleaks lokal installieren, damit das Voll-Gate den Schritt prüft statt ihn als optional zu überspringen (in CI läuft er bereits).
+- `doku-sync` in die Builtin-Liste der Harness-Quelle aufnehmen, damit `node scripts/gate.mjs --schnell` auch ohne lokale Harness-Konfiguration prüft. Bis dahin prüft der CI-Schritt.
 - Namen „Setlist Pro“ vor öffentlicher Veröffentlichung prüfen.
 
 ## Als Nächstes
 
-1. Auftritte: Termin, Ort, Setlist-Verknüpfung, Vergangenheit und Zukunft getrennt.
+1. Sichtprüfung der Auftritte auf Mobilformat und Desktop nachholen.
 2. Danach PDFs und Annotationen, Echtzeit-Abgleich, Bühnenmodus und Export als eigene R-Zeilen.
 3. Paket 10 und 11: Betrieb, private Auslieferung, Pilot-Abnahme.
 4. Erst danach der Hub als eigene Instanz.

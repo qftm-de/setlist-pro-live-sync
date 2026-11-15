@@ -54,6 +54,29 @@ if (!gate) {
   if (!enthaelt(text, "node scripts/review-constraints.mjs")) {
     fehler.push("Gate prüft die Sicherheits-Baseline nicht.");
   }
+  if (!enthaelt(text, "node scripts/docs-sync.mjs")) {
+    fehler.push("Gate prüft die Dokumentation nicht.");
+  } else {
+    const docsStep = (gate.steps || []).find((step) =>
+      String(step?.run || "").includes("node scripts/docs-sync.mjs"),
+    );
+    const basis = String(docsStep?.env?.REQUIREMENTS_DIFF_BASE ?? "");
+    if (!basis.includes("github.event.before")) {
+      fehler.push(
+        "Doku-Schritt braucht REQUIREMENTS_DIFF_BASE aus github.event.before, sonst prüft ein Push nach main nichts.",
+      );
+    }
+  }
+  const checkout = (gate.steps || []).find((step) =>
+    String(step?.uses || "").startsWith("actions/checkout"),
+  );
+  if (!checkout) {
+    fehler.push("Gate-Job hat keinen Checkout-Schritt.");
+  } else if (String(checkout.with?.["fetch-depth"] ?? "") !== "0") {
+    fehler.push(
+      "Gate-Job braucht fetch-depth: 0, sonst fehlt der Diff-Basisstand für docs-sync und requirements-gate.",
+    );
+  }
 }
 
 if (!frontend) {

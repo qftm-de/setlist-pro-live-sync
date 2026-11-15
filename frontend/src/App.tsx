@@ -3,11 +3,15 @@ import { appName } from "./app-info";
 import { ladeKonfiguration, type LaufzeitKonfiguration } from "./api/config";
 import { fehlerText, istApiFehler } from "./api/client";
 import { apiBands, type Band, type BandAdapter } from "./bands/bands";
+import { useAktiveBand } from "./bands/useAktiveBand";
 import { useBandDaten } from "./bands/useBandDaten";
+import { apiGigs, type GigAdapter } from "./gigs/gigs";
+import { parseRoute } from "./routing";
 import { apiSitzung, type SessionAdapter } from "./session/session";
 import { apiSetlists, type SetlistAdapter } from "./setlists/setlists";
 import { AnmeldeFormular } from "./ui/AnmeldeFormular";
 import { AppShell } from "./ui/AppShell";
+import { Auftritte } from "./ui/Auftritte";
 import { BandFormular } from "./ui/BandFormular";
 import { FehlerAnzeige } from "./ui/FehlerAnzeige";
 import { Setlists } from "./ui/Setlists";
@@ -19,6 +23,7 @@ interface AppProps {
   sessionAdapter?: SessionAdapter;
   bandAdapter?: BandAdapter;
   setlistAdapter?: SetlistAdapter;
+  gigAdapter?: GigAdapter;
 }
 
 type KonfigurationZustand =
@@ -42,6 +47,7 @@ export function App({
   sessionAdapter = apiSitzung,
   bandAdapter = apiBands,
   setlistAdapter = apiSetlists,
+  gigAdapter = apiGigs,
 }: AppProps) {
   const [pfad, setPfad] = useState(() => window.location.pathname);
   const [versuch, setVersuch] = useState(0);
@@ -50,6 +56,7 @@ export function App({
   const [bands, setBands] = useState<BandsZustand>({ status: "laedt" });
   const [bandId, setBandId] = useState<string | null>(null);
   const [datenVersion, setDatenVersion] = useState(0);
+  const route = parseRoute(pfad);
 
   useEffect(() => {
     const beiZurueck = () => setPfad(window.location.pathname);
@@ -124,6 +131,9 @@ export function App({
       aktiv = false;
     };
   }, [bandAdapter, konfiguration.status, sessionAdapter, versuch]);
+
+  const aktiveBands = bands.status === "fertig" ? bands.bands : null;
+  const { direktFehler, bandWechseln } = useAktiveBand(aktiveBands, route, bandId, setBandId, navigiere);
 
   const bandDaten = useBandDaten(bandAdapter, bandId, datenVersion);
 
@@ -203,6 +213,7 @@ export function App({
     inhalt = (
       <>
         {kontoZeile}
+        {direktFehler ? <FehlerAnzeige text={direktFehler} /> : null}
         <p>Noch keine Band. Lege die erste an.</p>
         <BandFormular onAnlegen={bandAnlegen} onSitzungAbgelaufen={sitzungAbgelaufen} />
       </>
@@ -215,8 +226,9 @@ export function App({
           Band
           <select
             value={bandId ?? ""}
-            onChange={(ereignis) => setBandId(ereignis.target.value)}
+            onChange={(ereignis) => bandWechseln(ereignis.target.value)}
           >
+            {bandId === null ? <option value="">Keine Band</option> : null}
             {bands.bands.map((band) => (
               <option key={band.id} value={band.id}>
                 {band.name}
@@ -225,6 +237,7 @@ export function App({
           </select>
         </label>
         {kontoZeile}
+        {direktFehler ? <FehlerAnzeige text={direktFehler} /> : null}
         {bandDaten.status === "laedt" ? <StatusAnzeige zustand="laedt" /> : null}
         {bandDaten.status === "fehler" ? (
           <FehlerAnzeige text={bandDaten.fehler} onWiederholen={erneutVersuchen} />
@@ -235,12 +248,22 @@ export function App({
             <p className="band-id" data-band-id={bandDaten.daten.bandId}>
               Bereich {pfad}
             </p>
-            {pfad.startsWith("/setlists") ? (
+            {route.bereich === "setlists" ? (
               <Setlists
                 key={bandDaten.daten.bandId}
                 bandId={bandDaten.daten.bandId}
                 songs={bandDaten.daten.songs}
                 adapter={setlistAdapter}
+                initialSetlistId={route.setlistId}
+                onSitzungAbgelaufen={sitzungAbgelaufen}
+              />
+            ) : route.bereich === "gigs" ? (
+              <Auftritte
+                key={bandDaten.daten.bandId}
+                bandId={bandDaten.daten.bandId}
+                adapter={gigAdapter}
+                setlistAdapter={setlistAdapter}
+                onNavigieren={navigiere}
                 onSitzungAbgelaufen={sitzungAbgelaufen}
               />
             ) : (

@@ -37,7 +37,7 @@ describe("App", () => {
     fireEvent.change(screen.getByLabelText("Neue Setlist"), {
       target: { value: "Hauptset" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Setlist anlegen" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Setlist anlegen" }));
     fireEvent.click(await screen.findByRole("button", { name: "Set hinzufügen" }));
     fireEvent.click(screen.getByRole("button", { name: "Song in Abschnitt 1" }));
     expect(
@@ -93,7 +93,7 @@ describe("App", () => {
     fireEvent.change(await screen.findByLabelText("Neue Setlist"), {
       target: { value: "Hauptset" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Setlist anlegen" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Setlist anlegen" }));
     fireEvent.click(await screen.findByRole("button", { name: "Set hinzufügen" }));
     expect(
       await screen.findByRole("option", { name: "Abrissbirne" }),
@@ -120,7 +120,7 @@ describe("App", () => {
     fireEvent.change(await screen.findByLabelText("Neue Setlist"), {
       target: { value: "Hauptset" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Setlist anlegen" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Setlist anlegen" }));
     expect(screen.getByRole("button", { name: "Legt an …" })).toBeDisabled();
   });
 

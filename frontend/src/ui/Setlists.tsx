@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { behandleFehler } from "../api/client";
+import { useEffect, useRef, useState } from "react";
+import { behandleFehler, istApiFehler } from "../api/client";
 import "../setlists/setlists.css";
 import type { Song } from "../bands/bands";
 import type { Setlist, SetlistAdapter, SetlistKurz } from "../setlists/setlists";
@@ -10,19 +10,39 @@ interface SetlistsProps {
   bandId: string;
   songs: Song[];
   adapter: SetlistAdapter;
+  initialSetlistId?: number | null;
   onSitzungAbgelaufen?: () => void;
 }
 
-export function Setlists({ bandId, songs, adapter, onSitzungAbgelaufen }: SetlistsProps) {
+export function Setlists({
+  bandId,
+  songs,
+  adapter,
+  initialSetlistId = null,
+  onSitzungAbgelaufen,
+}: SetlistsProps) {
   const [liste, setListe] = useState<SetlistKurz[] | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [laeuft, setLaeuft] = useState(false);
   const [gewaehlt, setGewaehlt] = useState<number | null>(null);
   const [detail, setDetail] = useState<Setlist | null>(null);
+  const initialRef = useRef(initialSetlistId);
+  const listeGeladen = useRef(false);
 
   useEffect(() => {
+    const vorher = initialRef.current;
+    initialRef.current = initialSetlistId;
+    if (
+      vorher !== null &&
+      initialSetlistId === null &&
+      listeGeladen.current
+    ) {
+      // Reiterklick aus dem Direktlink: Auswahl und Entwurf behalten.
+      return;
+    }
     let aktiv = true;
+    listeGeladen.current = false;
     setListe(null);
     setFehler(null);
     setGewaehlt(null);
@@ -33,8 +53,16 @@ export function Setlists({ bandId, songs, adapter, onSitzungAbgelaufen }: Setlis
         if (!aktiv) {
           return;
         }
+        listeGeladen.current = true;
         setListe(geladen);
-        setGewaehlt(geladen[0]?.id ?? null);
+        if (initialSetlistId === null) {
+          setGewaehlt(geladen[0]?.id ?? null);
+        } else if (geladen.some((setlist) => setlist.id === initialSetlistId)) {
+          setGewaehlt(initialSetlistId);
+        } else {
+          setGewaehlt(null);
+          setFehler("Diese Setlist existiert nicht.");
+        }
       })
       .catch((ursache: unknown) => {
         if (aktiv) {
@@ -44,7 +72,7 @@ export function Setlists({ bandId, songs, adapter, onSitzungAbgelaufen }: Setlis
     return () => {
       aktiv = false;
     };
-  }, [adapter, bandId, onSitzungAbgelaufen]);
+  }, [adapter, bandId, initialSetlistId, onSitzungAbgelaufen]);
 
   useEffect(() => {
     if (gewaehlt === null) {
@@ -66,7 +94,11 @@ export function Setlists({ bandId, songs, adapter, onSitzungAbgelaufen }: Setlis
         }
         const text = behandleFehler(ursache, onSitzungAbgelaufen);
         if (text) {
-          setFehler(text);
+          setFehler(
+            istApiFehler(ursache) && ursache.code === "not_found"
+              ? "Diese Setlist existiert nicht."
+              : text,
+          );
         }
       });
     return () => {
@@ -133,7 +165,10 @@ export function Setlists({ bandId, songs, adapter, onSitzungAbgelaufen }: Setlis
                 type="button"
                 className="setlist-wahl"
                 aria-pressed={gewaehlt === setlist.id}
-                onClick={() => setGewaehlt(setlist.id)}
+                onClick={() => {
+                  setFehler(null);
+                  setGewaehlt(setlist.id);
+                }}
               >
                 {setlist.name}
               </button>
