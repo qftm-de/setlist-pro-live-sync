@@ -63,6 +63,12 @@ class AnmeldungTest(TestCase):
         self.assertEqual(self.anmelden().status_code, 400)
         self.assertEqual(self.client.get("/api/session/").status_code, 401)
 
+    def test_konto_ohne_email_wird_abgelehnt(self):
+        from django.db import IntegrityError, transaction
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            User.objects.create_user(username="ohne-mail", email="", password="geheim-1234")
+
     def test_passwort_liegt_als_argon2_hash(self):
         self.benutzer.refresh_from_db()
         self.assertTrue(self.benutzer.password.startswith("argon2$"))

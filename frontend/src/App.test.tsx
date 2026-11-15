@@ -2,34 +2,10 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { ApiFehler } from "./api/client";
-import { erstelleTestAdapter, type Band, type BandDaten, type Song } from "./bands/bands";
+import { erstelleTestAdapter, type Band, type BandDaten } from "./bands/bands";
+import { erstelleSetlistTestAdapter } from "./setlists/setlists";
 import type { SessionAdapter } from "./session/session";
-
-const KONFIGURATION = {
-  mode: "core" as const,
-  instanceName: "Testinstanz",
-  communityUrl: null,
-};
-
-function verzögert<T>() {
-  let aufloesen!: (wert: T) => void;
-  const promise = new Promise<T>((resolve) => {
-    aufloesen = resolve;
-  });
-  return { promise, aufloesen };
-}
-
-function sitzungAdapter(angemeldet = true, benutzername = "anna"): SessionAdapter {
-  return {
-    ladeSitzung: async () => ({ angemeldet, benutzername }),
-    anmelden: async () => ({ angemeldet: true, benutzername }),
-    abmelden: async () => {},
-  };
-}
-
-function song(titel: string, zusatz: Partial<Song> = {}): Song {
-  return { id: 1, title: titel, ...zusatz };
-}
+import { KONFIGURATION, sitzungAdapter, song, verzögert } from "./test-helfer";
 
 beforeEach(() => {
   window.history.replaceState({}, "", "/");
@@ -200,27 +176,6 @@ describe("App", () => {
     );
   });
 
-  it("zeigt den Speicherzustand am Songformular", async () => {
-    const adapter = erstelleTestAdapter([{ id: "a", name: "Band A" }], async (bandId) => ({
-      bandId,
-      songs: [],
-    }));
-    render(
-      <App
-        konfigurationLaden={vi.fn().mockResolvedValue(KONFIGURATION)}
-        sessionAdapter={sitzungAdapter()}
-        bandAdapter={adapter}
-      />,
-    );
-    fireEvent.change(await screen.findByLabelText("Titel"), {
-      target: { value: "Abrissbirne" },
-    });
-    expect(screen.getByRole("status")).toHaveAttribute("data-zustand", "entwurf");
-    fireEvent.click(screen.getByRole("button", { name: "Song hinzufügen" }));
-    expect(await screen.findByText("Gespeichert")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveAttribute("data-zustand", "gespeichert");
-  });
-
   it("zeigt Verbindungsverlust getrennt vom Serverfehler", async () => {
     const adapter = erstelleTestAdapter([{ id: "a", name: "Band A" }], async () => {
       throw new ApiFehler(0, "network");
@@ -306,100 +261,32 @@ describe("App", () => {
     expect(await screen.findByRole("option", { name: "Neue Band" })).toBeInTheDocument();
   });
 
-  it("legt einen Song an und zeigt ihn ohne Neuladen", async () => {
-    const adapter = erstelleTestAdapter([{ id: "a", name: "Band A" }], async (bandId) => ({
-      bandId,
-      songs: [],
-    }));
+  it("hält die Notizfelder je Abschnitt getrennt", async () => {
+    const setlistAdapter = erstelleSetlistTestAdapter([]);
     render(
       <App
         konfigurationLaden={vi.fn().mockResolvedValue(KONFIGURATION)}
         sessionAdapter={sitzungAdapter()}
-        bandAdapter={adapter}
+        bandAdapter={erstelleTestAdapter([{ id: "a", name: "Band A" }], async (bandId) => ({
+          bandId,
+          songs: [song("Abrissbirne")],
+        }))}
+        setlistAdapter={setlistAdapter}
       />,
     );
-    expect(await screen.findByText("Keine Songs in dieser Band.")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Titel"), { target: { value: "Abrissbirne" } });
-    fireEvent.change(screen.getByLabelText("BPM"), { target: { value: "128" } });
-    fireEvent.change(screen.getByLabelText("Notiz"), {
-      target: { value: "Capo 2" },
+    await screen.findByText("Abrissbirne");
+    fireEvent.click(screen.getByRole("link", { name: "Setlists" }));
+    fireEvent.change(await screen.findByLabelText("Neue Setlist"), {
+      target: { value: "Hauptset" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Song hinzufügen" }));
-    expect(await screen.findByText("Abrissbirne")).toBeInTheDocument();
-    expect(screen.getByText("128 BPM")).toBeInTheDocument();
-    expect(screen.getByText("Capo 2")).toBeInTheDocument();
-  });
+    fireEvent.click(screen.getByRole("button", { name: "Setlist anlegen" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Set hinzufügen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Set hinzufügen" }));
 
-  it("führt bei abgelaufener Session im Songformular zur Anmeldung", async () => {
-    const adapter = erstelleTestAdapter(
-      [{ id: "a", name: "Band A" }],
-      async (bandId) => ({ bandId, songs: [] }),
-      {
-        erstelleSong: async () => {
-          throw new ApiFehler(401, "unauthenticated");
-        },
-      },
-    );
-    render(
-      <App
-        konfigurationLaden={vi.fn().mockResolvedValue(KONFIGURATION)}
-        sessionAdapter={sitzungAdapter()}
-        bandAdapter={adapter}
-      />,
-    );
-    fireEvent.change(await screen.findByLabelText("Titel"), {
-      target: { value: "Abrissbirne" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Song hinzufügen" }));
-    expect(await screen.findByText("Anmeldung erforderlich")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Song hinzufügen" })).not.toBeInTheDocument();
-  });
-
-  it("ändert einen Song ohne Neuladen", async () => {
-    const adapter = erstelleTestAdapter([{ id: "a", name: "Band A" }], async (bandId) => ({
-      bandId,
-      songs: [song("Abrissbirne")],
-    }));
-    render(
-      <App
-        konfigurationLaden={vi.fn().mockResolvedValue(KONFIGURATION)}
-        sessionAdapter={sitzungAdapter()}
-        bandAdapter={adapter}
-      />,
-    );
-    fireEvent.click(await screen.findByRole("button", { name: "Abrissbirne ändern" }));
-    fireEvent.change(screen.getByLabelText("Titel (ändern)"), {
-      target: { value: "Abrissbirne (neu)" },
-    });
-    fireEvent.change(screen.getByLabelText("BPM (ändern)"), { target: { value: "120" } });
-    fireEvent.click(screen.getByRole("button", { name: "Änderung speichern" }));
-    expect(await screen.findByText("Abrissbirne (neu)")).toBeInTheDocument();
-    expect(screen.getByText("120 BPM")).toBeInTheDocument();
-  });
-
-  it("zeigt einen abgelehnten Song als Fehler am Formular", async () => {
-    const adapter = erstelleTestAdapter(
-      [{ id: "a", name: "Band A" }],
-      async (bandId) => ({ bandId, songs: [] }),
-      {
-        erstelleSong: async () => {
-          throw new ApiFehler(400, "bad_request");
-        },
-      },
-    );
-    render(
-      <App
-        konfigurationLaden={vi.fn().mockResolvedValue(KONFIGURATION)}
-        sessionAdapter={sitzungAdapter()}
-        bandAdapter={adapter}
-      />,
-    );
-    fireEvent.change(await screen.findByLabelText("Titel"), {
-      target: { value: "Abrissbirne" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Song hinzufügen" }));
-    expect(
-      await screen.findByText("Die Anfrage wurde abgelehnt. Bitte Eingaben prüfen."),
-    ).toBeInTheDocument();
+    const erstesFeld = screen.getByLabelText("Notiz für Abschnitt 1 (leer ergibt Pause)");
+    const zweitesFeld = screen.getByLabelText("Notiz für Abschnitt 2 (leer ergibt Pause)");
+    fireEvent.change(erstesFeld, { target: { value: "Capo 2" } });
+    expect(erstesFeld).toHaveValue("Capo 2");
+    expect(zweitesFeld).toHaveValue("");
   });
 });

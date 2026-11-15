@@ -20,12 +20,15 @@ const TEXTE: Record<ApiFehlerCode, string> = {
 export class ApiFehler extends Error {
   readonly status: number;
   readonly code: ApiFehlerCode;
+  /** Klartext des Servers, falls er einen mitschickt (nur 4xx). */
+  readonly meldung?: string;
 
-  constructor(status: number, code: ApiFehlerCode) {
+  constructor(status: number, code: ApiFehlerCode, meldung?: string) {
     super(TEXTE[code]);
     this.name = "ApiFehler";
     this.status = status;
     this.code = code;
+    this.meldung = meldung;
   }
 }
 
@@ -34,7 +37,48 @@ export function istApiFehler(fehler: unknown): fehler is ApiFehler {
 }
 
 export function fehlerText(fehler: unknown): string {
-  return istApiFehler(fehler) ? fehler.message : TEXTE.invalid_response;
+  if (!istApiFehler(fehler)) {
+    return TEXTE.invalid_response;
+  }
+  return fehler.meldung || fehler.message;
+}
+
+/** Erste Klartextmeldung aus einer DRF-Fehlerantwort, ohne interne Details. */
+function serverMeldung(text: string): string | undefined {
+  if (!text) {
+    return undefined;
+  }
+  let daten: unknown;
+  try {
+    daten = JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+  const suche = (wert: unknown): string | undefined => {
+    if (typeof wert === "string") {
+      return wert.trim() || undefined;
+    }
+    if (Array.isArray(wert)) {
+      for (const eintrag of wert) {
+        const treffer = suche(eintrag);
+        if (treffer) {
+          return treffer;
+        }
+      }
+      return undefined;
+    }
+    if (wert && typeof wert === "object") {
+      for (const eintrag of Object.values(wert)) {
+        const treffer = suche(eintrag);
+        if (treffer) {
+          return treffer;
+        }
+      }
+    }
+    return undefined;
+  };
+  const meldung = suche(daten);
+  return meldung && meldung.length <= 200 ? meldung : undefined;
 }
 
 /**
@@ -113,7 +157,13 @@ export async function apiFetch<T>(pfad: string, init: RequestInit = {}): Promise
     if (antwort.status >= 500) {
       throw new ApiFehler(antwort.status, "server");
     }
-    throw new ApiFehler(antwort.status, "bad_request");
+    let text = "";
+    try {
+      text = await antwort.text();
+    } catch {
+      text = "";
+    }
+    throw new ApiFehler(antwort.status, "bad_request", serverMeldung(text));
   }
 
   if (antwort.status === 204 || antwort.status === 205) {

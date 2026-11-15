@@ -38,8 +38,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   am Songformular und Rückführung zur Anmeldung bei abgelaufener Session.
 - Paketprüfungen: `scripts/verify-foundation.mjs`,
   `scripts/verify-ui-foundation.mjs` und `scripts/verify-ci.mjs`.
-- Konten und Sitzung (R6): eigene Kontoentität mit eindeutiger E-Mail und
-  Anzeigename, Anmeldung und Abmeldung als Django-Views mit CSRF-Schutz,
+- Konten und Sitzung (R6): eigene Kontoentität mit eindeutiger, nicht
+  leerer E-Mail (Datenbank-Constraint) und Anzeigename, Anmeldung und
+  Abmeldung als Django-Views mit CSRF-Schutz,
   Anmeldeformular im Frontend. Gleiche Fehlerantwort für unbekanntes Konto
   und falsches Passwort. Erster Betreiber per `createsuperuser`.
 - Bands und Rechte (R7): Band mit Owner-Mitgliedschaft, Liste und Detail
@@ -49,9 +50,15 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   und Löschen mit Prüfung der BPM-Grenzen. Songliste ohne Neuladen.
 - Bands umbenennen (R7) ist serverseitig auf Mitglieder beschränkt und
   geprüft; fremde Band bleibt 404.
+- Setlists (R9): Abschnitte (Set, Pause, Zugabe) und Einträge (Song,
+  Pause, Notiz) mit Positionen je Ebene. Der Inhalt wird als Ganzes in
+  einer Transaktion ersetzt, ungültige Eingaben lassen den alten Stand
+  stehen. Ein Song, der in einer Setlist steht, ist gegen Löschen
+  geschützt. Frontend mit Setlist-Liste und Editor (Songwahl, Pausen,
+  Notizen, Hoch/Runter, Speicherzustand).
 - Kern-Smoke `scripts/verify-kern.mjs`: baut den Core, legt zwei Konten
-  an und prüft Anmeldung, CSRF, Bandschnitt, Songpflege und Abmeldung
-  über nginx.
+  an und prüft Anmeldung, CSRF, Bandschnitt, Songpflege, Setlist-Inhalt
+  und Abmeldung über nginx.
 
 ### Changed
 

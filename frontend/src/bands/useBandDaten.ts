@@ -10,6 +10,7 @@ export type BandDatenZustand =
 export function useBandDaten(
   adapter: BandAdapter,
   bandId: string | null,
+  version = 0,
 ): BandDatenZustand | { bandId: null; status: "leer" } {
   const [zustand, setZustand] = useState<BandDatenZustand | { bandId: null; status: "leer" }>(
     bandId ? { bandId, status: "laedt" } : { bandId: null, status: "leer" },
@@ -22,7 +23,13 @@ export function useBandDaten(
       setZustand({ bandId: null, status: "leer" });
       return;
     }
-    setZustand({ bandId, status: "laedt" });
+    // Gleiche Band: alte Daten stehen lassen, damit die Ansicht beim
+    // Nachladen nicht unmountet und Formulareingaben erhalten bleiben.
+    setZustand((vorher) =>
+      vorher.status === "fertig" && vorher.bandId === bandId
+        ? vorher
+        : { bandId, status: "laedt" },
+    );
     adapter
       .ladeBandDaten(bandId)
       .then((daten) => {
@@ -31,19 +38,27 @@ export function useBandDaten(
         }
       })
       .catch((fehler: unknown) => {
-        if (token === lauf.current) {
-          setZustand({
-            bandId,
-            status: "fehler",
-            fehler: fehlerText(fehler),
-            code: istApiFehler(fehler) ? fehler.code : "invalid_response",
-          });
+        if (token !== lauf.current) {
+          return;
         }
+        // Ein Fehlschlag beim Nachladen behält den alten Stand, damit die
+        // Ansicht montiert bleibt. Der nächste Wechsel oder ein erneutes
+        // Speichern versucht es wieder.
+        setZustand((vorher) =>
+          vorher.status === "fertig" && vorher.bandId === bandId
+            ? vorher
+            : {
+                bandId,
+                status: "fehler",
+                fehler: fehlerText(fehler),
+                code: istApiFehler(fehler) ? fehler.code : "invalid_response",
+              },
+        );
       });
     return () => {
       lauf.current += 1;
     };
-  }, [adapter, bandId]);
+  }, [adapter, bandId, version]);
 
   if (bandId === null) {
     return { bandId: null, status: "leer" };

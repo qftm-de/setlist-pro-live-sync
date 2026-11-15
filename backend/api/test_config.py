@@ -209,7 +209,7 @@ class SitzungTest(TestCase):
 
     def test_angemeldete_sitzung_liefert_konto(self):
         konto = get_user_model().objects.create_user(
-            username="betreiber", password="testpasswort-mit-laenge"
+            username="betreiber", email="betreiber@example.test", password="testpasswort-mit-laenge"
         )
         self.client.force_login(konto)
         response = self.client.get("/api/session/")

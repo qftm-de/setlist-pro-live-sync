@@ -10,5 +10,12 @@ class User(AbstractUser):
 
     REQUIRED_FIELDS = ["email"]
 
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=~models.Q(email=""), name="konto_email_pflicht"
+            )
+        ]
+
     def __str__(self) -> str:
         return self.display_name or self.get_username()

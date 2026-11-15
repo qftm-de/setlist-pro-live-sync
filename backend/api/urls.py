@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import bands, session, songs, views
+from . import bands, session, setlists, songs, views
 
 urlpatterns = [
     path("health/", views.health),
@@ -12,4 +12,10 @@ urlpatterns = [
     path("bands/<int:band_id>/", bands.BandDetail.as_view()),
     path("bands/<int:band_id>/songs/", songs.SongListe.as_view()),
     path("bands/<int:band_id>/songs/<int:song_id>/", songs.SongDetail.as_view()),
+    path("bands/<int:band_id>/setlists/", setlists.SetlistListe.as_view()),
+    path("bands/<int:band_id>/setlists/<int:setlist_id>/", setlists.SetlistDetail.as_view()),
+    path(
+        "bands/<int:band_id>/setlists/<int:setlist_id>/content/",
+        setlists.SetlistInhalt.as_view(),
+    ),
 ]

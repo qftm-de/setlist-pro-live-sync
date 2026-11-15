@@ -39,12 +39,19 @@
   - Basis-Images und Manifeste auf dem Stand aus `docs/planung/versionen.md`. Die falsche allauth-Zeile ist korrigiert: headless auch im Core.
   - Verify-Wrapper: `verify-foundation.mjs`, `verify-ui-foundation.mjs`, `verify-ci.mjs`. CI ruft die Tests direkt auf, nicht die Wrapper.
 - Paket 2 umgesetzt und passing (R6 bis R8, 2026-11-14):
-  - R6 Konten und Sitzung: eigene Kontoentität `accounts.User` (E-Mail eindeutig, Anzeigename), Anmeldung und Abmeldung als Django-Views mit CSRF-Schutz, Anmeldeformular im Frontend, Anmeldeversuche über nginx begrenzt. Erster Betreiber per `createsuperuser --noinput`.
+  - R6 Konten und Sitzung: eigene Kontoentität `accounts.User` (E-Mail eindeutig und nicht leer per Constraint, Anzeigename), Anmeldung und Abmeldung als Django-Views mit CSRF-Schutz, Anmeldeformular im Frontend, Anmeldeversuche über nginx begrenzt. Erster Betreiber per `createsuperuser --noinput`.
   - R7 Bands und Rechte: `bands.Band` und `bands.Membership`, Ersteller wird Owner, Liste und Detail nur für Mitglieder, fremde Band ist 404.
   - R8 Songs: `library.Song` mit Titel, Interpret, Tonart, BPM und Notiz; Anlegen, Ändern und Löschen, BPM zwischen 20 und 400.
   - Frontend verdrahtet: Anmeldung, Band anlegen, Songs anlegen und löschen, jeweils ohne Neuladen der Seite.
   - Neuer Kern-Smoke `scripts/verify-kern.mjs`: baut den Core, legt zwei Konten an und prüft den ganzen Weg über nginx (CSRF, Anmeldung, Bandschnitt, Songpflege, Abmeldung).
   - Vorabversion ist damit lokal testbar. Start in `README.md`, Abschnitt „Lokal starten".
+- Paket 3 umgesetzt (R9, 2026-11-14):
+  - `setlists.Setlist`, `Section` (Set, Pause, Zugabe) und `Entry` (Song, Pause, Notiz) mit Positionen je Ebene und eindeutigen Namen je Band.
+  - Inhalt wird als Ganzes per `PUT /api/bands/{id}/setlists/{id}/content/` in einer Transaktion ersetzt. Positionen folgen der Reihenfolge der Eingabe.
+  - Fremde Bands 404, Songs aus fremder Band 400, ungültige Eingaben 400 und der alte Inhalt bleibt stehen.
+  - Song, der in einer Setlist steht, lässt sich nicht löschen (400) bis er dort entfernt wurde.
+  - Frontend: Setlist-Liste, Anlegen, Löschen und ein Editor mit Abschnitten, Songwahl, Pausen, Notizen, Hoch/Runter und einem Speicherzustand.
+  - `verify-kern.mjs` fährt den ganzen Setlist-Weg über nginx, inklusive doppeltem Song und Löschsperre.
 
 ## Offen
 
@@ -57,7 +64,7 @@
 
 ## Als Nächstes
 
-1. Paket 3: Setlists und Auftritte mit Abschnitten, Pausen, Zugaben und stabiler Reihenfolge.
+1. Auftritte: Termin, Ort, Setlist-Verknüpfung, Vergangenheit und Zukunft getrennt.
 2. Danach PDFs und Annotationen, Echtzeit-Abgleich, Bühnenmodus und Export als eigene R-Zeilen.
 3. Paket 10 und 11: Betrieb, private Auslieferung, Pilot-Abnahme.
 4. Erst danach der Hub als eigene Instanz.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Kern-Smoke für R6 bis R8: baut den Core, legt Konten an und fährt den
+ * Kern-Smoke für R6 bis R9: baut den Core, legt Konten an und fährt den
  * echten Weg über nginx und die API. Kein Mock, keine Testdatenbank.
  */
 import { spawnSync } from "node:child_process";
@@ -45,12 +45,20 @@ function abbruch(text, detail = "") {
   process.exit(1);
 }
 
-function schritt(args, text) {
-  const ergebnis = compose(args);
-  if ((ergebnis.status ?? 1) !== 0) {
-    abbruch(text, `${ergebnis.stdout || ""}${ergebnis.stderr || ""}`);
+function schritt(args, text, versuche = 1) {
+  let ergebnis = null;
+  for (let lauf = 0; lauf < versuche; lauf += 1) {
+    ergebnis = compose(args);
+    if ((ergebnis.status ?? 1) === 0) {
+      return ergebnis;
+    }
+    // Docker raeumt nach einem down gelegentlich noch Container weg, dann
+    // scheitert das Recreate. Ein zweiter Anlauf nach down -v reicht.
+    if (lauf + 1 < versuche) {
+      aufraeumen();
+    }
   }
-  return ergebnis;
+  abbruch(text, `${ergebnis.stdout || ""}${ergebnis.stderr || ""}`);
 }
 
 function ausgabe(args, text) {
@@ -136,7 +144,7 @@ function kontoAnlegen(name) {
 try {
   schritt(["config", "-q"], "Compose-Konfiguration");
   schritt(["build"], "Images bauen");
-  schritt(["up", "-d", "--wait"], "Core starten");
+  schritt(["up", "-d", "--wait"], "Core starten", 2);
   kontoAnlegen("pilot");
   kontoAnlegen("pilot2");
 
@@ -223,6 +231,59 @@ try {
     "Ungültige Änderung wird akzeptiert",
   );
 
+  const setlist = await erste.ruf(`/api/bands/${bandId}/setlists/`, {
+    methode: "POST",
+    koerper: { name: "Hauptset" },
+  });
+  pruefe(setlist.status === 201 && Array.isArray(setlist.daten?.sections), "Setlist anlegen scheitert");
+  const setlistId = setlist.daten.id;
+  const setlistPfad = `/api/bands/${bandId}/setlists/${setlistId}`;
+
+  const inhalt = await erste.ruf(`${setlistPfad}/content/`, {
+    methode: "PUT",
+    koerper: {
+      sections: [
+        {
+          name: "Set 1",
+          kind: "set",
+          entries: [
+            { entry_type: "song", song_id: song.daten.id },
+            { entry_type: "song", song_id: song.daten.id },
+          ],
+        },
+        { name: "Pause", kind: "pause", entries: [{ entry_type: "pause" }] },
+      ],
+    },
+  });
+  pruefe(inhalt.status === 200, "Setlist-Inhalt speichern scheitert");
+  const bereiche = inhalt.daten?.sections ?? [];
+  pruefe(bereiche.length === 2, "Setlist hat nicht zwei Abschnitte");
+  pruefe(
+    bereiche[0]?.entries?.length === 2 &&
+      bereiche[0].entries[0].position === 1 &&
+      bereiche[0].entries[1].position === 2,
+    "Doppelter Song oder Positionen stimmen nicht",
+  );
+  pruefe(bereiche[1]?.entries?.[0]?.label === "Pause", "Pause ohne Bezeichnung");
+
+  pruefe(
+    (await erste.ruf(`/api/bands/${bandId}/songs/${song.daten.id}/`, { methode: "DELETE" })).status === 400,
+    "Song in einer Setlist lässt sich löschen",
+  );
+
+  const umsortiert = await erste.ruf(`${setlistPfad}/content/`, {
+    methode: "PUT",
+    koerper: {
+      sections: [
+        { name: "Zugabe", kind: "zugabe", entries: [{ entry_type: "notiz", label: "Zugabe offen" }] },
+      ],
+    },
+  });
+  pruefe(
+    umsortiert.status === 200 && umsortiert.daten?.sections?.[0]?.position === 1,
+    "Umsortieren scheitert",
+  );
+
   const zweite = new Sitzung();
   await zweite.ruf("/api/config/");
   pruefe(
@@ -232,10 +293,12 @@ try {
   pruefe((await zweite.ruf("/api/bands/")).daten?.length === 0, "Zweites Konto sieht fremde Bands");
   pruefe((await zweite.ruf(`/api/bands/${bandId}/`)).status === 404, "Fremde Band ist nicht 404");
   pruefe((await zweite.ruf(`/api/bands/${bandId}/songs/`)).status === 404, "Fremde Songs sind nicht 404");
+  pruefe((await zweite.ruf(`/api/bands/${bandId}/setlists/`)).status === 404, "Fremde Setlists sind nicht 404");
+  pruefe((await zweite.ruf(`${setlistPfad}/`)).status === 404, "Fremde Setlist ist nicht 404");
 
   pruefe(
     (await erste.ruf(`/api/bands/${bandId}/songs/${song.daten.id}/`, { methode: "DELETE" })).status === 204,
-    "Song löschen scheitert",
+    "Song löschen nach dem Entfernen aus der Setlist scheitert",
   );
   pruefe((await erste.ruf(`/api/bands/${bandId}/`)).daten?.songs?.length === 0, "Gelöschter Song bleibt");
 

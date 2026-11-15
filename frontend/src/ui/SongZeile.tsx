@@ -33,6 +33,16 @@ export function SongZeile({
   const [notiz, setNotiz] = useState(song.notes ?? "");
   const [fehler, setFehler] = useState<string | null>(null);
 
+  function bearbeitenOeffnen() {
+    setTitel(song.title);
+    setInterpret(song.artist ?? "");
+    setTonart(song.key ?? "");
+    setBpm(song.bpm ? String(song.bpm) : "");
+    setNotiz(song.notes ?? "");
+    setFehler(null);
+    setBearbeiten(true);
+  }
+
   async function speichern(ereignis: React.FormEvent) {
     ereignis.preventDefault();
     const sauber = titel.trim();
@@ -139,7 +149,7 @@ export function SongZeile({
       {song.key ? <span className="songmeta">Tonart {song.key}</span> : null}
       {song.bpm ? <span className="songmeta">{song.bpm} BPM</span> : null}
       {song.notes ? <span className="songmeta">{song.notes}</span> : null}
-      <button type="button" disabled={gesperrt} onClick={() => setBearbeiten(true)}>
+      <button type="button" disabled={gesperrt} onClick={bearbeitenOeffnen}>
         {`${song.title} ändern`}
       </button>
       <button type="button" disabled={gesperrt} onClick={() => onLoeschen(song)}>

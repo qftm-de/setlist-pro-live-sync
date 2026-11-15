@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "accounts",
     "bands",
     "library",
+    "setlists",
     "api",
 ]
 

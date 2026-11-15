@@ -82,4 +82,11 @@ describe("lokale Ressourcen", () => {
       expect(block).toContain(header);
     }
   });
+
+  it("reicht den Host samt Port an die API weiter", () => {
+    const nginx = fs.readFileSync(path.resolve(process.cwd(), "nginx.conf"), "utf8");
+    expect(nginx).toContain("map $http_host $ziel_host");
+    expect(nginx).toContain("proxy_set_header Host $ziel_host");
+    expect(nginx).toContain("proxy_set_header X-Forwarded-Host $ziel_host");
+  });
 });

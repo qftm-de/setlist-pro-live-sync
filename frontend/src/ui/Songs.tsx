@@ -8,11 +8,17 @@ interface SongsProps {
   bandId: string;
   adapter: BandAdapter;
   songs: Song[];
+  onGeaendert?: () => void;
   onSitzungAbgelaufen?: () => void;
 }
 
-export function Songs({ bandId, adapter, songs, onSitzungAbgelaufen }: SongsProps) {
-  const [liste, setListe] = useState<Song[]>(songs);
+export function Songs({
+  bandId,
+  adapter,
+  songs,
+  onGeaendert,
+  onSitzungAbgelaufen,
+}: SongsProps) {
   const [titel, setTitel] = useState("");
   const [interpret, setInterpret] = useState("");
   const [tonart, setTonart] = useState("");
@@ -36,14 +42,14 @@ export function Songs({ bandId, adapter, songs, onSitzungAbgelaufen }: SongsProp
     setZustand("speichert");
     setFehler(null);
     try {
-      const song = await adapter.erstelleSong(bandId, {
+      await adapter.erstelleSong(bandId, {
         title: sauber,
         artist: interpret.trim(),
         key: tonart.trim(),
         bpm: zahl,
         notes: notiz.trim(),
       });
-      setListe((vorher) => [...vorher, song]);
+      onGeaendert?.();
       setTitel("");
       setInterpret("");
       setTonart("");
@@ -61,7 +67,7 @@ export function Songs({ bandId, adapter, songs, onSitzungAbgelaufen }: SongsProp
     setFehler(null);
     try {
       await adapter.loescheSong(bandId, song.id);
-      setListe((vorher) => vorher.filter((eintrag) => eintrag.id !== song.id));
+      onGeaendert?.();
       setZustand("entwurf");
     } catch (ursache) {
       setFehler(behandleFehler(ursache, onSitzungAbgelaufen));
@@ -69,27 +75,21 @@ export function Songs({ bandId, adapter, songs, onSitzungAbgelaufen }: SongsProp
     }
   }
 
-  function ersetzen(geaendert: Song) {
-    setListe((vorher) =>
-      vorher.map((eintrag) => (eintrag.id === geaendert.id ? geaendert : eintrag)),
-    );
-  }
-
   return (
     <section className="songs" aria-labelledby="songs-titel">
       <h2 id="songs-titel">Songs</h2>
-      {liste.length === 0 ? (
+      {songs.length === 0 ? (
         <p>Keine Songs in dieser Band.</p>
       ) : (
         <ul className="songliste">
-          {liste.map((song) => (
+          {songs.map((song) => (
             <SongZeile
               key={song.id}
               bandId={bandId}
               song={song}
               adapter={adapter}
               gesperrt={zustand === "speichert"}
-              onAendern={ersetzen}
+              onAendern={() => onGeaendert?.()}
               onLoeschen={loeschen}
               onSitzungAbgelaufen={onSitzungAbgelaufen}
             />

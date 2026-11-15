@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { appName } from "./app-info";
 import { ladeKonfiguration, type LaufzeitKonfiguration } from "./api/config";
 import { fehlerText, istApiFehler } from "./api/client";
 import { apiBands, type Band, type BandAdapter } from "./bands/bands";
 import { useBandDaten } from "./bands/useBandDaten";
 import { apiSitzung, type SessionAdapter } from "./session/session";
+import { apiSetlists, type SetlistAdapter } from "./setlists/setlists";
 import { AnmeldeFormular } from "./ui/AnmeldeFormular";
 import { AppShell } from "./ui/AppShell";
 import { BandFormular } from "./ui/BandFormular";
 import { FehlerAnzeige } from "./ui/FehlerAnzeige";
+import { Setlists } from "./ui/Setlists";
 import { Songs } from "./ui/Songs";
 import { StatusAnzeige } from "./ui/StatusAnzeige";
 
@@ -16,6 +18,7 @@ interface AppProps {
   konfigurationLaden?: () => Promise<LaufzeitKonfiguration>;
   sessionAdapter?: SessionAdapter;
   bandAdapter?: BandAdapter;
+  setlistAdapter?: SetlistAdapter;
 }
 
 type KonfigurationZustand =
@@ -38,6 +41,7 @@ export function App({
   konfigurationLaden = ladeKonfiguration,
   sessionAdapter = apiSitzung,
   bandAdapter = apiBands,
+  setlistAdapter = apiSetlists,
 }: AppProps) {
   const [pfad, setPfad] = useState(() => window.location.pathname);
   const [versuch, setVersuch] = useState(0);
@@ -45,6 +49,7 @@ export function App({
   const [sitzung, setSitzung] = useState<SitzungZustand>({ status: "laedt" });
   const [bands, setBands] = useState<BandsZustand>({ status: "laedt" });
   const [bandId, setBandId] = useState<string | null>(null);
+  const [datenVersion, setDatenVersion] = useState(0);
 
   useEffect(() => {
     const beiZurueck = () => setPfad(window.location.pathname);
@@ -120,7 +125,7 @@ export function App({
     };
   }, [bandAdapter, konfiguration.status, sessionAdapter, versuch]);
 
-  const bandDaten = useBandDaten(bandAdapter, bandId);
+  const bandDaten = useBandDaten(bandAdapter, bandId, datenVersion);
 
   useEffect(() => {
     if (bandDaten.status === "fehler" && bandDaten.code === "unauthenticated") {
@@ -140,7 +145,7 @@ export function App({
     setVersuch((wert) => wert + 1);
   }
 
-  const sitzungAbgelaufen = () => setSitzung({ status: "anonym" });
+  const sitzungAbgelaufen = useCallback(() => setSitzung({ status: "anonym" }), []);
 
   async function anmelden(benutzer: string, passwort: string) {
     await sessionAdapter.anmelden(benutzer, passwort);
@@ -188,7 +193,12 @@ export function App({
   } else if (bands.status === "laedt") {
     inhalt = <StatusAnzeige zustand="laedt" />;
   } else if (bands.status === "fehler") {
-    inhalt = <FehlerAnzeige text={bands.fehler} onWiederholen={erneutVersuchen} />;
+    inhalt = (
+      <>
+        {kontoZeile}
+        <FehlerAnzeige text={bands.fehler} onWiederholen={erneutVersuchen} />
+      </>
+    );
   } else if (bands.bands.length === 0) {
     inhalt = (
       <>
@@ -225,13 +235,24 @@ export function App({
             <p className="band-id" data-band-id={bandDaten.daten.bandId}>
               Bereich {pfad}
             </p>
-            <Songs
-              key={bandDaten.daten.bandId}
-              bandId={bandDaten.daten.bandId}
-              adapter={bandAdapter}
-              songs={bandDaten.daten.songs}
-              onSitzungAbgelaufen={sitzungAbgelaufen}
-            />
+            {pfad.startsWith("/setlists") ? (
+              <Setlists
+                key={bandDaten.daten.bandId}
+                bandId={bandDaten.daten.bandId}
+                songs={bandDaten.daten.songs}
+                adapter={setlistAdapter}
+                onSitzungAbgelaufen={sitzungAbgelaufen}
+              />
+            ) : (
+              <Songs
+                key={bandDaten.daten.bandId}
+                bandId={bandDaten.daten.bandId}
+                adapter={bandAdapter}
+                songs={bandDaten.daten.songs}
+                onGeaendert={() => setDatenVersion((wert) => wert + 1)}
+                onSitzungAbgelaufen={sitzungAbgelaufen}
+              />
+            )}
           </section>
         ) : null}
       </>

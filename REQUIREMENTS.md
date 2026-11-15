@@ -42,13 +42,13 @@ R5 | Behavior: Die versionierte CI prüft vor Integration Requirements und Siche
    | State:   passing
 
 R6 | Behavior: Im Core melden sich lokale Konten mit Benutzername und Passwort an einer Session an und wieder ab.
-   |  Das Konto hat eine eindeutige E-Mail und einen Anzeigenamen. Anmeldung und Abmeldung verlangen ein CSRF-Token,
+   |  Das Konto hat eine eindeutige, nicht leere E-Mail und einen Anzeigenamen. Anmeldung und Abmeldung verlangen ein CSRF-Token,
    |  falsche Zugangsdaten antworten ohne Hinweis auf vorhandene Konten, und ohne Session bleibt jeder geschützte Aufruf bei 401.
    |  Es gibt keine öffentliche Registrierung; der erste Betreiber wird per Kommando angelegt.
    | Verify:  node scripts/verify-kern.mjs
    | Scope:   backend/accounts, backend/api/session.py, backend/api/test_session.py, backend/api/urls.py, backend/core/settings.py, backend/core/urls.py, frontend/src/session, frontend/src/ui/AnmeldeFormular.tsx, frontend/src/App.tsx, frontend/src/api/client.ts, docker-compose.yml, frontend/nginx.conf, scripts/verify-kern.mjs
    | Risk:    hoch
-   | Cases:   R6-P: Anmeldung mit gültigem Konto setzt Session, /api/session/ liefert Anzeigenamen, Abmeldung beendet sie; R6-N: falsches Passwort 400 ohne Konto-Hinweis, Anmeldung ohne CSRF-Token 403, geschützte Aufrufe ohne Session 401, Nutzernamen werden nicht durch zeitgleiche Anmeldung getauscht; R6-G: Session-Cookie HttpOnly und SameSite, Passwort wird als Argon2-Hash gespeichert, Anmeldung bei gesperrtem Konto scheitert.
+   | Cases:   R6-P: Anmeldung mit gültigem Konto setzt Session, /api/session/ liefert Anzeigenamen, Abmeldung beendet sie; R6-N: falsches Passwort 400 ohne Konto-Hinweis, Anmeldung ohne CSRF-Token 403, geschützte Aufrufe ohne Session 401, Nutzernamen werden nicht durch zeitgleiche Anmeldung getauscht; R6-G: Session-Cookie HttpOnly und SameSite, Passwort wird als Argon2-Hash gespeichert, Anmeldung bei gesperrtem Konto scheitert, ein Konto ohne E-Mail wird von der Datenbank abgelehnt.
    | State:   passing
 
 R7 | Behavior: Angemeldete Nutzer legen Bands an und sehen ausschließlich Bands, in denen sie Mitglied sind.
@@ -67,4 +67,14 @@ R8 | Behavior: Songs hängen an einer Band. Mitglieder legen Songs mit Titel, In
    | Scope:   backend/library, backend/api/songs.py, backend/api/test_songs.py, backend/api/serializers.py, backend/api/urls.py, frontend/src/bands, frontend/src/ui/Songs.tsx, frontend/src/ui/SongZeile.tsx, scripts/verify-kern.mjs
    | Risk:    mittel
    | Cases:   R8-P: Anlegen, Ändern und Löschen eines Songs als Mitglied wirkt auf die Bandliste; R8-N: leerer Titel und BPM außerhalb der Grenzen werden abgelehnt, Song einer Fremdband liefert 404; R8-G: Reihenfolge bleibt nach Änderung stabil, Songs einer gelöschten Band sind nicht erreichbar.
+   | State:   passing
+
+R9 | Behavior: Bands führen Setlists mit Abschnitten (Set, Pause, Zugabe) und Einträgen (Song, Pause, Notiz).
+   |  Ein Eintrag ist ein Song derselben Band, eine Pause oder eine freie Notiz; doppelte Songs sind erlaubt.
+   |  Der Inhalt wird als Ganzes in einer Transaktion gespeichert, Positionen folgen der Reihenfolge der Eingabe.
+   |  Ein Song, der in einer Setlist steht, lässt sich nicht löschen, bevor er dort entfernt wurde.
+   | Verify:  node scripts/verify-kern.mjs
+   | Scope:   backend/setlists, backend/api/setlists.py, backend/api/test_setlists.py, backend/api/serializers.py, backend/api/songs.py, backend/api/urls.py, frontend/src/setlists, frontend/src/ui/Setlists.tsx, frontend/src/ui/SetlistEditor.tsx, frontend/src/App.tsx, scripts/verify-kern.mjs
+   | Risk:    hoch
+   | Cases:   R9-P: Setlist anlegen, Abschnitte und Einträge speichern und wieder lesen, Positionen 1..n je Ebene, doppelter Song erlaubt; R9-N: fremde Band 404, Song aus fremder Band 400, unbekannte Abschnittsart 400, leerer Inhalt 400, Song löschen mit Setlist-Eintrag 400, fehlerhafter Inhalt lässt alten Inhalt unverändert; R9-G: Reihenfolge bleibt nach dem Umsortieren stabil, Ersetzen läuft atomar, Pausen ohne Song werden mit Bezeichnung gespeichert.
    | State:   passing

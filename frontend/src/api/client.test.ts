@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiFehler, apiFetch } from "./client";
+import { ApiFehler, apiFetch, fehlerText } from "./client";
 
 function antwort(status: number, koerper: unknown = {}): Response {
   const text = koerper === undefined ? "" : JSON.stringify(koerper);
@@ -117,5 +117,48 @@ describe("apiFetch", () => {
     await expect(apiFetch("/api/config/")).rejects.toMatchObject({
       code: "invalid_response",
     });
+  });
+
+  it("zeigt die Klartextmeldung des Servers bei 400", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        antwort(400, { detail: "Song steht in einer Setlist. Erst dort entfernen." }),
+      ),
+    );
+    let fehler: unknown;
+    try {
+      await apiFetch("/api/bands/1/songs/2/", { method: "DELETE" });
+    } catch (ursache) {
+      fehler = ursache;
+    }
+    expect(fehler).toBeInstanceOf(ApiFehler);
+    expect((fehler as ApiFehler).code).toBe("bad_request");
+    expect(fehlerText(fehler)).toBe("Song steht in einer Setlist. Erst dort entfernen.");
+  });
+
+  it("bleibt bei fehlender Meldung beim allgemeinen Text", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => antwort(400, {})));
+    let fehler: unknown;
+    try {
+      await apiFetch("/api/bands/", { method: "POST" });
+    } catch (ursache) {
+      fehler = ursache;
+    }
+    expect(fehlerText(fehler)).toBe("Die Anfrage wurde abgelehnt. Bitte Eingaben prüfen.");
+  });
+
+  it("zeigt keine internen Details bei 500", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => antwort(500, { detail: "Traceback intern" })),
+    );
+    let fehler: unknown;
+    try {
+      await apiFetch("/api/bands/");
+    } catch (ursache) {
+      fehler = ursache;
+    }
+    expect(fehlerText(fehler)).toBe("Serverfehler. Bitte erneut versuchen.");
   });
 });

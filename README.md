@@ -21,8 +21,8 @@ Serverbestätigung als gespeichert angezeigt.
 
 **Vorabversion des Kerns.** Frontend, Backend, Compose und CI stehen. Umgesetzt
 sind Laufzeitkonfiguration, gleiche Origin über nginx, lokale Anmeldung mit
-Session, Bands und Songs. Konten legt der Betreiber an, eine öffentliche
-Registrierung gibt es im Core nicht. Die nächsten Schritte stehen in
+Session, Bands, Songs und Setlists mit Abschnitten, Pausen und Zugaben. Konten
+legt der Betreiber an, eine öffentliche Registrierung gibt es im Core nicht. Die nächsten Schritte stehen in
 [`PROGRESS.md`](PROGRESS.md), die geltenden Entscheidungen in
 [`DECISIONS.md`](DECISIONS.md).
 

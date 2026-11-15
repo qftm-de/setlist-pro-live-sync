@@ -1,12 +1,25 @@
+/*
+ * Palette nach docs/brand/01-brand.md: Grund fast schwarz, Fläche dunkel,
+ * Orange als Signal. Weiß bleibt der Bühnenansicht vorbehalten.
+ */
 :root {
-  color-scheme: light;
-  --papier: #f4efe4;
-  --tinte: #1c1a17;
-  --orange: #d9611f;
-  --linie: #cbbfa8;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: var(--papier);
-  color: var(--tinte);
+  color-scheme: dark;
+  --grund: #09090b;
+  --flaeche: #18181b;
+  --flaeche-hoch: #27272a;
+  --linie: #3f3f46;
+  --signal: #ff6a00;
+  --signal-text: #09090b;
+  --text: #fafafa;
+  --meta: #d4d4d8;
+  --sekundaer: #a1a1aa;
+  --warnung: #f59e0b;
+  --live: #ef4444;
+  --erfolg: #34d399;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--grund);
+  color: var(--text);
+  accent-color: var(--signal);
 }
 
 * {
@@ -16,6 +29,22 @@
 body {
   margin: 0;
   min-height: 100vh;
+  background: var(--grund);
+  color: var(--text);
+}
+
+h1,
+h2 {
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--signal);
+}
+
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
 }
 
 .huelle {
@@ -31,8 +60,8 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  border-bottom: 2px solid var(--tinte);
-  background: var(--papier);
+  border-bottom: 1px solid var(--linie);
+  background: var(--flaeche);
 }
 
 .kopf nav {
@@ -46,20 +75,26 @@ body {
   display: inline-flex;
   align-items: center;
   padding: 0 0.75rem;
-  color: var(--tinte);
+  color: var(--text);
   text-decoration: none;
   border: 1px solid var(--linie);
   border-radius: 0.5rem;
+  background: var(--grund);
+}
+
+.kopf a:hover {
+  border-color: var(--signal);
 }
 
 .kopf a.community {
-  border-color: var(--tinte);
+  border-color: var(--signal);
+  color: var(--signal);
 }
 
 .kopf a[aria-current="page"] {
-  border-color: var(--orange);
-  background: var(--orange);
-  color: #fff;
+  border-color: var(--signal);
+  background: var(--signal);
+  color: var(--signal-text);
 }
 
 .inhalt {
@@ -75,35 +110,67 @@ body {
   font-weight: 600;
 }
 
-.bandwechsel select,
-button {
+button,
+.bandwechsel select {
   min-height: 44px;
   min-width: 44px;
   font: inherit;
   padding: 0 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--linie);
+  background: var(--flaeche);
+  color: var(--text);
+  cursor: pointer;
 }
 
+button:hover:not(:disabled) {
+  border-color: var(--signal);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button[type="submit"],
+.setlist-speichern {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: var(--signal-text);
+  font-weight: 700;
+}
+
+button[type="submit"]:hover:not(:disabled),
+.setlist-speichern:hover:not(:disabled) {
+  background: #ff7d1f;
+  border-color: #ff7d1f;
+}
+
+.fehlanzeige,
 .fehler {
-  border: 2px solid var(--orange);
+  border: 1px solid var(--warnung);
   border-radius: 0.5rem;
   padding: 1rem;
-  background: #fff8f0;
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--text);
 }
 
 .status {
   font-weight: 600;
+  color: var(--meta);
 }
 
 .status-fehler {
-  color: #a3230f;
+  color: var(--warnung);
 }
 
 .status-gespeichert {
-  color: #2f6b2f;
+  color: var(--erfolg);
 }
 
 .anmeldung {
   max-width: 32rem;
+  margin-top: 2rem;
 }
 
 form label {
@@ -112,14 +179,27 @@ form label {
   margin-bottom: 0.75rem;
 }
 
-form input {
+form input,
+form textarea,
+.bandwechsel select {
   display: block;
   width: 100%;
   margin-top: 0.25rem;
   padding: 0.5rem;
   font: inherit;
+  color: var(--text);
+  background: var(--grund);
   border: 1px solid var(--linie);
   border-radius: 0.5rem;
+}
+
+form textarea {
+  min-height: 3.5rem;
+}
+
+form input::placeholder,
+form textarea::placeholder {
+  color: var(--sekundaer);
 }
 
 .konto {
@@ -127,6 +207,7 @@ form input {
   flex-wrap: wrap;
   gap: 0.75rem;
   align-items: center;
+  color: var(--meta);
 }
 
 .songliste {
@@ -141,8 +222,10 @@ form input {
   flex-wrap: wrap;
   gap: 0.75rem;
   align-items: center;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--linie);
+  padding: 0.5rem 0.75rem;
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: 0.5rem;
 }
 
 .songtitel {
@@ -150,22 +233,21 @@ form input {
 }
 
 .songmeta {
-  color: #5a5348;
+  color: var(--meta);
 }
 
 .songformular,
 .bandformular {
   max-width: 40rem;
+  margin-top: 1.5rem;
 }
 
-form textarea {
-  display: block;
-  width: 100%;
-  min-height: 3.5rem;
-  margin-top: 0.25rem;
-  padding: 0.5rem;
-  font: inherit;
-  border: 1px solid var(--linie);
-  border-radius: 0.5rem;
+@media (prefers-reduced-motion: no-preference) {
+  button,
+  .kopf a {
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      color 120ms ease;
+  }
 }
-

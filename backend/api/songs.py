@@ -1,5 +1,7 @@
+from django.db.models.deletion import ProtectedError
 from django.http import Http404
-from rest_framework import generics
+from rest_framework import generics, status
+from rest_framework.response import Response
 
 from library.models import Song
 
@@ -28,3 +30,12 @@ class SongDetail(generics.RetrieveUpdateDestroyAPIView):
             return Song.objects.get(id=self.kwargs["song_id"], band=band)
         except Song.DoesNotExist as fehler:
             raise Http404 from fehler
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {"detail": "Song steht in einer Setlist. Erst dort entfernen."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )

@@ -4,7 +4,6 @@ const BEREICHE = [
   { pfad: "/", name: "Start" },
   { pfad: "/songs", name: "Songs" },
   { pfad: "/setlists", name: "Setlists" },
-  { pfad: "/auftritte", name: "Auftritte" },
 ];
 
 interface AppShellProps {

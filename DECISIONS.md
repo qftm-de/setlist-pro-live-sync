@@ -14,6 +14,8 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 
 - Core-Anmeldung ohne allauth: eigene Kontoentität `accounts.User` (E-Mail eindeutig, Anzeigename), Django-Session, Anmeldung und Abmeldung als Django-Views mit CSRF. Grund: Der Core braucht nur lokale Anmeldung. Registrierung und E-Mail-Verifikation gehören zum Hub und kommen mit ihm.
 
+- Setlist-Inhalt wird als Ganzes per `PUT .../content/` ersetzt, nicht über sechs Einzel-Endpunkte. Grund: atomar, keine halb umsortierten Listen, und der Client hat den vollständigen Stand.
+
 ## Lizenz
 
 - AGPL-3.0. Liegt bei als `LICENSE`, README und CONTRIBUTING nennen sie. Copyleft schützt, dass Hub-Betreiber den Quelltext offenlegen müssen.
