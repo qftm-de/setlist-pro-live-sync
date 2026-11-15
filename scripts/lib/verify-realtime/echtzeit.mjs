@@ -240,7 +240,6 @@ export async function pruefeLast({ basis, erste, bandIds, pruefe }) {
     zaehler.push(runde[0].bereit.counters.band);
   }
 
-  const gemessen = [];
   try {
     for (let runde = 0; runde < 20; runde += 1) {
       const latenzen = await Promise.all(
@@ -263,20 +262,14 @@ export async function pruefeLast({ basis, erste, bandIds, pruefe }) {
           return Date.now() - ende;
         }),
       );
-      // Einzelne Spitzen schwanken, wenn auf der Maschine parallel andere
-      // Stacks laufen (1007 ms bei 1000 ms Grenze). Der Median trägt die
-      // Aussage, ein harter Deckel fängt echte Ausreißer.
-      gemessen.push(...latenzen);
+      const groesste = Math.max(...latenzen);
+      pruefe(
+        groesste < 1000,
+        `Lastlauf: ein Ereignis braucht ${groesste} ms bis zum Gerät`,
+      );
       await sleep(1000);
     }
   } finally {
-    if (gemessen.length > 0) {
-      const sortiert = [...gemessen].sort((a, b) => a - b);
-      const median = sortiert[Math.floor(sortiert.length / 2)];
-      const groesste = sortiert[sortiert.length - 1];
-      pruefe(median < 1000, `Lastlauf: Median ${median} ms bis zum Gerät`);
-      pruefe(groesste < 3000, `Lastlauf: Ausreißer ${groesste} ms bis zum Gerät`);
-    }
     for (const runde of verbindungen) {
       for (const verbindung of runde) {
         verbindung.schliessen();
