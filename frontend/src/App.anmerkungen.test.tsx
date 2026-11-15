@@ -187,7 +187,7 @@ describe("Anmerkungen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Text platzieren" }));
     fireEvent.click(await screen.findByRole("button", { name: "Version 2 ansehen" }));
     expect(
-      screen.getByRole("dialog", { name: "Ungespeicherter Entwurf" }),
+      await screen.findByRole("dialog", { name: "Ungespeicherter Entwurf" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Wechsel abbrechen" }));
     expect(
@@ -211,14 +211,14 @@ describe("Anmerkungen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Text platzieren" }));
     fireEvent.click(screen.getByRole("link", { name: "Setlists" }));
     expect(
-      screen.getByRole("dialog", { name: "Ungespeicherter Entwurf" }),
+      await screen.findByRole("dialog", { name: "Ungespeicherter Entwurf" }),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/songs/a/1/pdf");
     fireEvent.click(screen.getByRole("button", { name: "Wechsel abbrechen" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Nächste Seite versuchen" }));
     expect(
-      screen.getByRole("dialog", { name: "Ungespeicherter Entwurf" }),
+      await screen.findByRole("dialog", { name: "Ungespeicherter Entwurf" }),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "Entwurf verwerfen und wechseln" }),
@@ -226,6 +226,26 @@ describe("Anmerkungen", () => {
     expect(
       screen.queryByRole("dialog", { name: "Ungespeicherter Entwurf" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("fängt Browser-Zurück bei offenem Entwurf ab", async () => {
+    app();
+    await screen.findByTestId("pdf-viewer");
+    fireEvent.click(screen.getByRole("button", { name: "Neue Textanmerkung" }));
+    fireEvent.change(await screen.findByLabelText("Text"), {
+      target: { value: "Nicht verlieren" },
+    });
+    const vorher = window.location.pathname;
+    window.history.pushState({}, "", "/setlists");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(
+      await screen.findByRole("dialog", { name: "Ungespeicherter Entwurf" }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe(vorher);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Entwurf verwerfen und wechseln" }),
+    );
+    await waitFor(() => expect(window.location.pathname).toBe("/setlists"));
   });
 
   it("leitet bei 401 beim Laden der Anmerkungen zur Anmeldung", async () => {

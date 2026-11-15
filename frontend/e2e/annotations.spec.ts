@@ -268,6 +268,25 @@ test("Anmerkungen: Marker, Text, Teilen, Ebenen, Entwuerfe und Rotation", async 
     0.2,
   );
 
+  await page.getByRole("button", { name: "An Breite anpassen" }).click();
+  await expect(page.locator(".pdf-werkzeuge .songmeta")).toHaveText("Breite");
+  await werkzeug(page, "Text setzen");
+  await klicke(page, 0.8, 0.8);
+  await page.locator(".anmerkung-formular textarea").fill("Browser-Zurueck");
+  const entwurfAdresse = page.url();
+  await page.evaluate(() => {
+    window.history.pushState({}, "", "/songs");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.getByRole("dialog", { name: "Ungespeicherter Entwurf" })).toBeVisible();
+  await expect(page).toHaveURL(entwurfAdresse);
+  await page.getByRole("button", { name: "Wechsel abbrechen" }).click();
+  await expect(page).toHaveURL(entwurfAdresse);
+  await page
+    .locator(".anmerkung-formular")
+    .getByRole("button", { name: "Abbrechen" })
+    .click();
+
   await context.clearCookies();
   await page.goto(`/songs/${bandId}/${songId}/pdf/versions/${version1}`);
   await expect(page.getByLabel("Benutzername")).toBeVisible();

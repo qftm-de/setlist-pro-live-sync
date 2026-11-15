@@ -1,4 +1,5 @@
 import math
+from collections.abc import Mapping
 
 from rest_framework import serializers
 
@@ -107,6 +108,8 @@ class AnnotationAnlageSerializer(serializers.Serializer):
     font_size = serializers.FloatField(required=False, allow_null=True, default=None)
 
     def to_internal_value(self, data):
+        if not isinstance(data, Mapping):
+            raise serializers.ValidationError({"detail": "JSON-Objekt erwartet."})
         for gesperrt in ("author", "author_id", "document_version"):
             if gesperrt in data:
                 raise serializers.ValidationError(
@@ -153,6 +156,8 @@ class AnnotationAenderungSerializer(serializers.Serializer):
     font_size = serializers.FloatField(required=False, allow_null=True)
 
     def to_internal_value(self, data):
+        if not isinstance(data, Mapping):
+            raise serializers.ValidationError({"detail": "JSON-Objekt erwartet."})
         for gesperrt in ("author", "author_id", "document_version", "uuid"):
             if gesperrt in data:
                 raise serializers.ValidationError(

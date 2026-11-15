@@ -9,14 +9,21 @@ export function useNavigationsWaechter(weiterGehen: (ziel: string) => void) {
     waechter.current = neu;
   }, []);
 
-  function navigiere(ziel: string) {
-    const weiter = () => weiterGehen(ziel);
-    if (waechter.current) {
-      waechter.current(weiter);
-    } else {
-      weiter();
+  const mitWaechter = useCallback((weiter: () => void) => {
+    const aktiv = waechter.current;
+    if (aktiv) {
+      aktiv(weiter);
+      return true;
     }
+    weiter();
+    return false;
+  }, []);
+
+  const istGeschuetzt = useCallback(() => waechter.current !== null, []);
+
+  function navigiere(ziel: string) {
+    mitWaechter(() => weiterGehen(ziel));
   }
 
-  return { navigiere, registriereWaechter };
+  return { navigiere, registriereWaechter, mitWaechter, istGeschuetzt };
 }

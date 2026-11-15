@@ -124,6 +124,50 @@ class AnnotationCrudTest(AnnotationTestBasis):
         self.assertEqual(antwort.status_code, 409)
         self.assertEqual(Annotation.objects.count(), 1)
 
+    def test_skalare_json_koerper_werden_abgelehnt(self):
+        for koerper in ([], 5, None, "x"):
+            with self.subTest(koerper=koerper):
+                antwort = self.client.post(
+                    self.pfad(),
+                    data=json.dumps(koerper),
+                    content_type="application/json",
+                )
+                self.assertEqual(antwort.status_code, 400)
+        angelegt = self.erstelle().json()
+        for koerper in ([], 5, None, "x"):
+            with self.subTest(patch=koerper):
+                antwort = self.client.patch(
+                    self.pfad(annotation_id=angelegt["id"]),
+                    data=json.dumps(koerper),
+                    content_type="application/json",
+                )
+                self.assertEqual(antwort.status_code, 400)
+
+    def test_verschwundene_anmerkung_ist_404(self):
+        angelegt = self.erstelle().json()
+
+        class Leer:
+            def filter(self, *args, **kwargs):
+                return self
+
+            def first(self):
+                return None
+
+        with mock.patch(
+            "api.annotations.Annotation.objects.select_for_update",
+            return_value=Leer(),
+        ):
+            aendern = self.client.patch(
+                self.pfad(annotation_id=angelegt["id"]),
+                data={"revision": 0, "text": "Neu"},
+                content_type="application/json",
+            )
+            loeschen = self.client.delete(
+                f"{self.pfad(annotation_id=angelegt['id'])}?revision=0"
+            )
+        self.assertEqual(aendern.status_code, 404)
+        self.assertEqual(loeschen.status_code, 404)
+
     def test_revision_schuetzt_vor_altem_stand(self):
         angelegt = self.erstelle().json()
         erste = self.client.patch(

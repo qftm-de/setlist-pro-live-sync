@@ -74,6 +74,7 @@
   - `verify-kern.mjs` prüft zusätzlich PDF- und Anmerkungs-HTTP-Wege und startet echte Chromium-Smokes. Die Browser-Tests decken echtes PDF.js-Rendering, Zoom, Rotation, CropBox, Direktlink, Setlist-Entwurf, Touch, Pointer-Abbruch und die Anmerkungsgeometrie über vier Drehungen ab. CI hat dafür einen eigenen Job mit `playwright install --with-deps chromium`.
   - Review-Befunde F1 bis F3 behoben: Nebenläufige Anmerkungs-UUIDs liefern kontrolliert 200 oder 409, die Proxy-Grenze ist mit 413 und dem Limit-0-Fall im Smoke belegt, und ein PDF mit AcroForm und Anhang wird im Browser ohne Formular-DOM, Anhangsaktion oder Navigation gerendert.
   - Zweitreview F1 bis F4 behoben: UUID-Fallback ohne feste Kennung, aktive Proxy-Grenze mit 256-KiB-Stack exakt geprüft, Song-Löschung während des Uploads als 404 und IntegrityError-Pfad der Anmerkungsanlage mit 200 und 409 getestet.
+  - Drittreview F1 bis F3 behoben: skalare JSON-Körper liefern 400, verschwundene Anmerkungen bei PATCH und DELETE 404, und der Browser-Zurück-Weg nutzt denselben Entwurfswächter wie die übrigen Wechsel.
 
 ## Offen
 

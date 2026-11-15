@@ -46,17 +46,32 @@ export function App({
   const [bands, setBands] = useState<BandsZustand>({ status: "laedt" });
   const [bandId, setBandId] = useState<string | null>(null);
   const [datenVersion, setDatenVersion] = useState(0);
-  const { navigiere, registriereWaechter } = useNavigationsWaechter((ziel) => {
-    window.history.pushState({}, "", ziel);
-    setPfad(ziel);
-  });
+  const { navigiere, registriereWaechter, mitWaechter, istGeschuetzt } =
+    useNavigationsWaechter((ziel) => {
+      window.history.pushState({}, "", ziel);
+      setPfad(ziel);
+    });
   const route = parseRoute(pfad);
 
   useEffect(() => {
-    const beiZurueck = () => setPfad(window.location.pathname);
+    const beiZurueck = () => {
+      const ziel = window.location.pathname;
+      let ausgefuehrt = false;
+      const geschuetzt = istGeschuetzt();
+      mitWaechter(() => {
+        ausgefuehrt = true;
+        if (window.location.pathname !== ziel) {
+          window.history.pushState({}, "", ziel);
+        }
+        setPfad(ziel);
+      });
+      if (geschuetzt && !ausgefuehrt) {
+        window.history.pushState({}, "", pfad);
+      }
+    };
     window.addEventListener("popstate", beiZurueck);
     return () => window.removeEventListener("popstate", beiZurueck);
-  }, []);
+  }, [istGeschuetzt, mitWaechter, pfad]);
 
   useEffect(() => {
     let aktiv = true;

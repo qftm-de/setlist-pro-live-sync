@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.http import Http404
@@ -144,6 +146,11 @@ class AnnotationDetail(APIView):
         )
         if annotation.author_id != request.user.id:
             raise PermissionDenied("Nur der Autor darf diese Anmerkung ändern.")
+        if not isinstance(request.data, Mapping):
+            return Response(
+                {"detail": "JSON-Objekt erwartet."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             erwartet = revision_aus(request.data.get("revision"))
         except (TypeError, ValueError):
@@ -152,7 +159,9 @@ class AnnotationDetail(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         with transaction.atomic():
-            gesperrt = Annotation.objects.select_for_update().get(id=annotation.id)
+            gesperrt = Annotation.objects.select_for_update().filter(id=annotation.id).first()
+            if gesperrt is None:
+                raise Http404
             if gesperrt.revision != erwartet:
                 return Response(
                     {"detail": "Die Anmerkung wurde inzwischen geändert."},
@@ -189,7 +198,9 @@ class AnnotationDetail(APIView):
         if not darf:
             raise PermissionDenied("Diese Anmerkung darf nicht gelöscht werden.")
         with transaction.atomic():
-            gesperrt = Annotation.objects.select_for_update().get(id=annotation.id)
+            gesperrt = Annotation.objects.select_for_update().filter(id=annotation.id).first()
+            if gesperrt is None:
+                raise Http404
             if gesperrt.revision != erwartet:
                 return Response(
                     {"detail": "Die Anmerkung wurde inzwischen geändert."},

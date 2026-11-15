@@ -125,6 +125,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   API mit 404 statt 500; Datei und Datenbank bleiben konsistent.
 - Zweitreview F4: der IntegrityError-Pfad der Anmerkungsanlage ist mit
   simuliertem Constraint-Fehler und beiden Ausgängen 200 und 409 getestet.
+- Drittreview F1: skalare JSON-Körper auf Anmerkungs-POST und PATCH liefern
+  400 statt 500. Tests decken Liste, Zahl, null und String ab.
+- Drittreview F2: verschwindet eine Anmerkung zwischen Lesen und Sperren,
+  antworten PATCH und DELETE mit 404 statt 500.
+- Drittreview F3: der Browser-Zurück-Weg läuft durch denselben
+  Entwurfswächter wie Links und Bandwechsel. Der Dialog bietet Speichern,
+  Verwerfen oder Abbrechen, die URL bleibt bis zur Entscheidung stehen.
 
 ### Changed
 
