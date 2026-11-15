@@ -193,7 +193,9 @@ describe("Anmerkungen", () => {
     expect(
       screen.queryByRole("dialog", { name: "Ungespeicherter Entwurf" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Version 1 ansehen", pressed: true })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Version 1 ansehen", pressed: true }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Version 2 ansehen" }));
     fireEvent.click(

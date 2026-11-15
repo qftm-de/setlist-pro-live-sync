@@ -37,6 +37,7 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 - pypdf läuft in einem Unterprozess mit Zeit- und Speichergrenze. Grund: Ein fehlerhaftes PDF darf weder den API-Prozess blockieren noch unbegrenzt Speicher belegen.
 - Anmerkungen sind standardmäßig persönlich, bandweit nur nach ausdrücklicher Freigabe. Rechte kommen vom Server. Grund: Owner sollen persönliche Texte nicht lesen, bandweite Inhalte aber moderieren können.
 - Anmerkungsgeometrie liegt normalisiert im kanonischen Seitenraum und wird über PDF.js-Viewports umgerechnet. Grund: CropBox, eingebaute Drehung und Viewer-Zoom dürfen die Position nicht verschieben.
+- Browser-Zurück mit ungespeichertem Entwurf stellt die URL per `pushState` wieder her und akzeptiert einen zusätzlichen History-Eintrag. Grund: `replaceState` würde das eigentliche Rücksprungziel verwerfen; der Entwurf hat Vorrang vor einem perfekten Stack.
 
 ## GitHub
 

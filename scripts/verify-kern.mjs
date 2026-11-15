@@ -17,8 +17,11 @@ import { pruefeDokumente } from "./lib/verify-documents.mjs";
 import { pruefeGigs } from "./lib/verify-gigs.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const projekt = "setlist-kern";
-const port = process.env.WEB_PORT || "18081";
+// Eigener Projektname und Port je Lauf. Zwei gleichzeitige Gates würden sonst
+// dieselben Container und denselben Port benutzen und sich gegenseitig
+// wegräumen (Fehlerbild: "No such container" beim Recreate).
+const projekt = `setlist-kern-${process.pid}`;
+const port = process.env.WEB_PORT || String(18081 + (process.pid % 400));
 const basis = `http://127.0.0.1:${port}`;
 const passwort = `pilot-${randomUUID()}`;
 const env = {

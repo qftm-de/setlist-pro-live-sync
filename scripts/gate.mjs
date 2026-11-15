@@ -187,17 +187,28 @@ function schrittVerify(mode) {
     return;
   }
   const lines = (listed.stdout || "").split(/\r?\n/).filter(Boolean);
+  // Mehrere R-Zeilen können denselben Befehl teilen (etwa R6 bis R9 mit
+  // verify-kern). Jeden Befehl nur einmal starten, Kennungen sammeln.
+  const befehle = new Map();
   for (const line of lines) {
     const tab = line.indexOf("\t");
     const id = tab === -1 ? "?" : line.slice(0, tab);
     const cmd = tab === -1 ? line : line.slice(tab + 1);
+    const bekannt = befehle.get(cmd);
+    if (bekannt) {
+      bekannt.push(id);
+    } else {
+      befehle.set(cmd, [id]);
+    }
+  }
+  for (const [cmd, ids] of befehle) {
     const r = runShell(cmd, root);
     if ((r.status ?? 1) !== 0) {
-      mark(name, "rot", `${id}: ${kurz(r.stderr || r.stdout)}`);
+      mark(name, "rot", `${ids.join(", ")}: ${kurz(r.stderr || r.stdout)}`);
       return;
     }
   }
-  mark(name, "grün", `${lines.length} Kommando(s)`);
+  mark(name, "grün", `${befehle.size} Kommando(s) für ${lines.length} Zeile(n)`);
 }
 
 function schrittHarness() {

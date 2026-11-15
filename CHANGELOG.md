@@ -135,6 +135,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- Browser-Zurück mit ungespeichertem Entwurf hält die aktuelle URL stabil und
+  fragt nach Speichern, Verwerfen oder Abbrechen. Der zusätzliche
+  History-Eintrag ist als Kompromiss dokumentiert (Review F2).
+
 - `CONTRIBUTING.md` nennt die Gate-Skripte jetzt korrekt als versioniert und
   beschreibt im Abschnitt Dokumentation, wann `CHANGELOG.md`, `PROGRESS.md` und
   `DECISIONS.md` gepflegt werden.

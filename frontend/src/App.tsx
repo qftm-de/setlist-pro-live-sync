@@ -66,6 +66,8 @@ export function App({
         setPfad(ziel);
       });
       if (geschuetzt && !ausgefuehrt) {
+        // Bewusster Kompromiss: Der zusätzliche Eintrag hält die URL bis zur
+        // Entscheidung stabil. Ein replaceState würde das Ziel verwerfen.
         window.history.pushState({}, "", pfad);
       }
     };

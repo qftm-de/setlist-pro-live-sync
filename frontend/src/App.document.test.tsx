@@ -87,10 +87,14 @@ describe("Song-PDF", () => {
     app(adapter);
     fireEvent.click(await screen.findByRole("button", { name: "Version 2 ansehen" }));
     expect(
-      screen.getByRole("button", { name: "Version 2 ansehen", pressed: true }),
+      await screen.findByRole("button", { name: "Version 2 ansehen", pressed: true }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Version 1 ist aktiv" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Version 2 aktivieren" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Version 1 ist aktiv" }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Version 2 aktivieren" }),
+    ).toBeInTheDocument();
   });
 
   it("meldet eine unbekannte Direktversion sichtbar und zeigt eine verfügbare", async () => {
