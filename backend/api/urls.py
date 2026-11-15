@@ -1,6 +1,16 @@
 from django.urls import path
 
-from . import bands, gigs, session, setlists, songs, views
+from . import (
+    annotations,
+    bands,
+    document_datei,
+    documents,
+    gigs,
+    session,
+    setlists,
+    songs,
+    views,
+)
 
 urlpatterns = [
     path("health/", views.health),
@@ -12,6 +22,26 @@ urlpatterns = [
     path("bands/<int:band_id>/", bands.BandDetail.as_view()),
     path("bands/<int:band_id>/songs/", songs.SongListe.as_view()),
     path("bands/<int:band_id>/songs/<int:song_id>/", songs.SongDetail.as_view()),
+    path(
+        "bands/<int:band_id>/songs/<int:song_id>/document/",
+        documents.DokumentDetail.as_view(),
+    ),
+    path(
+        "bands/<int:band_id>/songs/<int:song_id>/document/versions/",
+        documents.DokumentVersionen.as_view(),
+    ),
+    path(
+        "bands/<int:band_id>/songs/<int:song_id>/document/versions/<int:version_id>/file/",
+        document_datei.DokumentDatei.as_view(),
+    ),
+    path(
+        "bands/<int:band_id>/songs/<int:song_id>/document/versions/<int:version_id>/annotations/",
+        annotations.AnnotationListe.as_view(),
+    ),
+    path(
+        "bands/<int:band_id>/songs/<int:song_id>/document/versions/<int:version_id>/annotations/<int:annotation_id>/",
+        annotations.AnnotationDetail.as_view(),
+    ),
     path("bands/<int:band_id>/setlists/", setlists.SetlistListe.as_view()),
     path("bands/<int:band_id>/setlists/<int:setlist_id>/", setlists.SetlistDetail.as_view()),
     path(

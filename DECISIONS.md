@@ -31,4 +31,16 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 - CI führt Requirements-Gate, Security-Baseline, Datei-Größen und Gitleaks als technische Schranke vor der Integration. Grund: Lokale Regeln gelten für alle, nur wenn sie in CI verlangt werden.
 - Datei-Größen begrenzt: Code 300 Ziel/500 hart, Doku 500 Ziel/1000 hart, geprüft mit `lint-file-size` im Gate und in CI. Grund: Ausufernde Dateien brechen Review, Navigation und Merge-Konflikte. Generierte und normative Dateien sind exempt.
 - Sicherheits-Baseline: `scripts/review-constraints.mjs` läuft im Gate und blockt Secrets, Zugangsdaten, private IPs, eingebettete Dateien und unsichere Code-Muster (innerHTML, eval, csrf_exempt, DEBUG, verify=False, shell=True, Token im localStorage). Ein Treffer ist ein Stopp, kein Hinweis. Gitleaks ergänzt als etablierter Secret-Scanner.
-- Keine echten Daten im Repo: keine Bandcodes, Projekt-IDs, API-Keys, Nutzernamen oder Server-Adressen in Dateien, Docs und Tests. Das Projekt ist privat und soll offen werden.
+- Keine echten Daten im Repo: keine Bandcodes, Projekt-IDs, API-Keys, Nutzernamen oder Server-Adressen in Dateien, Docs und Tests. Das Repo ist öffentlich, echte Daten bleiben draußen.
+- PDF-Ablage privat unter `DOCUMENTS_ROOT`, Auslieferung nur über die API nach Bandmitgliedschaft. Grund: Dateischlüssel im Webroot wären ein zweiter, ungeprüfter Zugriffspfad.
+- PDF-Versionen sind unveränderlich, die aktive Version wird nur per PATCH mit Revision gewechselt. Grund: Ein Upload darf eine geprobte Fassung nicht still ersetzen.
+- pypdf läuft in einem Unterprozess mit Zeit- und Speichergrenze. Grund: Ein fehlerhaftes PDF darf weder den API-Prozess blockieren noch unbegrenzt Speicher belegen.
+- Anmerkungen sind standardmäßig persönlich, bandweit nur nach ausdrücklicher Freigabe. Rechte kommen vom Server. Grund: Owner sollen persönliche Texte nicht lesen, bandweite Inhalte aber moderieren können.
+- Anmerkungsgeometrie liegt normalisiert im kanonischen Seitenraum und wird über PDF.js-Viewports umgerechnet. Grund: CropBox, eingebaute Drehung und Viewer-Zoom dürfen die Position nicht verschieben.
+
+## GitHub
+
+- `main` ist geschützt: Force-Push und Löschen sind aus, Pflicht-Checks sind `gate`, `frontend` und `backend`. Admins kommen im Notfall vorbei, damit eine Reparatur nicht an der Regel scheitert.
+- Secret Scanning mit Push Protection, Dependabot-Alerts samt Security-Updates und die private Schwachstellenmeldung sind an. Ein versehentlich gepushter Key soll vor dem Push stoppen, nicht danach auffallen.
+- Code Scanning läuft als CodeQL-Default-Setup für Python, TypeScript und die Workflows.
+- Non-Provider-Patterns und Validity Checks bleiben aus. GitHub ignoriert die beiden Schalter ohne Fehlermeldung, vermutlich wegen der Lizenzstufe.

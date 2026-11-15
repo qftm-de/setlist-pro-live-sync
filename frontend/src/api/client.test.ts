@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiFehler, apiFetch, fehlerText } from "./client";
+import { ApiFehler, apiFetch, apiFetchDatei, fehlerText } from "./client";
 
 function antwort(status: number, koerper: unknown = {}): Response {
   const text = koerper === undefined ? "" : JSON.stringify(koerper);
@@ -160,5 +160,29 @@ describe("apiFetch", () => {
       fehler = ursache;
     }
     expect(fehlerText(fehler)).toBe("Serverfehler. Bitte erneut versuchen.");
+  });
+
+  it("meldet Konflikt und zu große Dateien getrennt", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => antwort(409, {})));
+    await expect(apiFetch("/api/bands/1/")).rejects.toMatchObject({ code: "conflict" });
+    vi.stubGlobal("fetch", vi.fn(async () => antwort(413, {})));
+    await expect(apiFetch("/api/bands/1/")).rejects.toMatchObject({ code: "too_large" });
+  });
+
+  it("lädt private Dateien als Binärdaten und meldet 401", async () => {
+    const daten = new Uint8Array([1, 2, 3]).buffer;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => daten,
+      }) as Response),
+    );
+    await expect(apiFetchDatei("/api/datei/")).resolves.toBe(daten);
+    vi.stubGlobal("fetch", vi.fn(async () => antwort(401)));
+    await expect(apiFetchDatei("/api/datei/")).rejects.toMatchObject({
+      code: "unauthenticated",
+    });
   });
 });

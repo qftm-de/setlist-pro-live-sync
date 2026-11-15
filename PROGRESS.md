@@ -63,6 +63,17 @@
   - `verify-kern.mjs` führt jetzt zusätzlich die Backend-Tests im API-Container und Frontend-Tests samt Build aus. Der HTTP-Smoke für Auftritte liegt in `scripts/lib/verify-gigs.mjs`.
   - Review-Befunde F1 bis F3 behoben: Ein 401 im Listenabgleich führt jetzt zur Anmeldung, ein Reiterklick aus dem Direktlink erhält den Editor-Entwurf, und eine fehlerhaft kodierte Band-URL meldet eine nicht sichtbare Band statt einer leeren Seite. Für alle drei Fälle gibt es Tests.
   - Sichtprüfung auf schmalem Mobilformat und Desktop steht aus, weil in dieser Umgebung kein laufendes Browserwerkzeug verfügbar war. Die Prüfung bleibt offen.
+- Paket 5 umgesetzt (R11 und R12, 2026-11-15):
+  - PDF-Ablage liegt privat unter `DOCUMENTS_ROOT` in einem eigenen Volume. nginx liefert sie nie direkt aus; jede Datei geht durch die API und die aktuelle Bandmitgliedschaft.
+  - `documents.Document` und `DocumentVersion` speichern unveränderliche Fassungen mit Nummer, UUID des Uploads, SHA-256, Originalname und Seitenzahl. `active_version` wird nur per PATCH mit Revision geändert. Uploads prüfen pypdf in einem Unterprozess mit Zeit- und Speichergrenze.
+  - Byte- und Seitenlimits kommen aus `PDF_MAX_UPLOAD_BYTES` und `PDF_MAX_PAGES`, 0 deaktiviert das jeweilige Limit. Der Web-Container leitet seine `client_max_body_size` aus demselben Wert plus 65.536 Byte Multipart-Spielraum ab. `manage.py bereinige_dokumente` entfernt nur alte, nicht referenzierte Dateireste.
+  - Dateiauslieferung mit 200 und 206, geschlossenen, offenen und Suffix-Ranges, 416 mit `bytes */Größe`, `application/pdf`, nosniff, `private, no-store` und bereinigtem Downloadnamen. Songs mit PDF-Versionen liefern beim Löschen 400 und bleiben vollständig.
+  - Frontend: PDF.js-Worker, CMaps, Standardfonts und WASM lokal über Vite. Seite als Canvas ohne Formular- oder Anhangsebene, Zoom 50 bis 300 Prozent, Drehen, Breite anpassen, Originaldownload. Direktlink `/songs/{band}/{song}/pdf[/versions/{id}]`; aus der Setlist öffnet der Link einen neuen Tab. Upload, Abgleich über UUID, Aktivierung und Versionswechsel sind getrennt.
+  - `annotations.Annotation` speichert Text oder Marker mit normalisierter Geometrie, Farbe, Schriftgröße, Autor, Revision und Sichtbarkeit `private` oder `band`. Persönliche Inhalte sieht nur der Autor; bandweite sieht die Band. `can_edit` und `can_delete` kommen vom Server, der aktuelle Owner löscht bandweite Anmerkungen.
+  - Anmerkungsoberfläche mit Lesen, Textsetzen, Markerzeichnen per Maus, Touch und synthetischen Pointer-Events, Tastaturformular, Farben, drei Schriftgrößen und getrennten Ebenen. Ein Dialog schützt ungespeicherte Entwürfe vor Versions-, Seiten-, Song- und Bandwechsel und bietet Speichern, Verwerfen oder Abbrechen. Konflikte liefern 409, behalten den Entwurf und bieten den Serverstand an.
+  - `verify-kern.mjs` prüft zusätzlich PDF- und Anmerkungs-HTTP-Wege und startet echte Chromium-Smokes. Die Browser-Tests decken echtes PDF.js-Rendering, Zoom, Rotation, CropBox, Direktlink, Setlist-Entwurf, Touch, Pointer-Abbruch und die Anmerkungsgeometrie über vier Drehungen ab. CI hat dafür einen eigenen Job mit `playwright install --with-deps chromium`.
+  - Review-Befunde F1 bis F3 behoben: Nebenläufige Anmerkungs-UUIDs liefern kontrolliert 200 oder 409, die Proxy-Grenze ist mit 413 und dem Limit-0-Fall im Smoke belegt, und ein PDF mit AcroForm und Anhang wird im Browser ohne Formular-DOM, Anhangsaktion oder Navigation gerendert.
+  - Zweitreview F1 bis F4 behoben: UUID-Fallback ohne feste Kennung, aktive Proxy-Grenze mit 256-KiB-Stack exakt geprüft, Song-Löschung während des Uploads als 404 und IntegrityError-Pfad der Anmerkungsanlage mit 200 und 409 getestet.
 
 ## Offen
 
@@ -76,8 +87,8 @@
 
 ## Als Nächstes
 
-1. Sichtprüfung der Auftritte auf Mobilformat und Desktop nachholen.
-2. Danach PDFs und Annotationen, Echtzeit-Abgleich, Bühnenmodus und Export als eigene R-Zeilen.
+1. Sichtprüfung der Auftritte und PDFs auf Mobilformat und Desktop nachholen; die Chromium-Smokes prüfen die Funktion, nicht die Gestaltung.
+2. Danach Echtzeit-Abgleich, Bühnenmodus und Export als eigene R-Zeilen.
 3. Paket 10 und 11: Betrieb, private Auslieferung, Pilot-Abnahme.
 4. Erst danach der Hub als eigene Instanz.
 

@@ -103,6 +103,19 @@ a {
   padding: 1rem;
 }
 
+.fuss {
+  margin-top: auto;
+  padding: 1rem;
+  border-top: 1px solid var(--linie);
+  color: var(--sekundaer);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.fuss a {
+  color: var(--meta);
+}
+
 .bandwechsel {
   display: inline-flex;
   gap: 0.5rem;

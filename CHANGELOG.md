@@ -71,6 +71,60 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   Reine Doku- und Agentenänderungen sind ausgenommen. Ohne Git-Kontext ist
   der Schritt rot. Die Prüfung läuft als eigener Schritt in der CI; im
   lokalen Gate nur mit der nicht versionierten Harness-Konfiguration.
+- Fuß in der App-Hülle mit dem Betreiber-Link „Powered by QFTM.de" (R4).
+  Der Ressourcen-Test erlaubt genau diesen Anker und verbietet weiter alle
+  externen Schriften und Hub-Aufrufe.
+- Song-PDFs (R11): private Ablage außerhalb des Webroots, serverseitige
+  Prüfung mit pypdf in einem begrenzten Unterprozess, unveränderliche
+  Versionen mit zufälligen Dateischlüsseln, aktive Version über einen
+  separaten Schritt mit Revision. Byte- und Seitenlimits sind
+  konfigurierbar; 0 schaltet das jeweilige Limit ab. nginx leitet seine
+  Grenze aus demselben Betreiberwert ab.
+- PDF-Auslieferung (R11): Download und Ansicht nur über die API nach
+  Bandmitgliedschaft, mit Byte-Ranges, exakten Range-Headern, nosniff und
+  `private, no-store`. Dateischlüssel und Speicherpfad erscheinen nie in
+  Antworten. Ein Song mit PDF-Versionen bleibt gegen Löschen geschützt.
+- PDF-Ansicht (R11): lokaler PDF.js-Worker samt CMaps, Standardfonts und
+  WASM über Vite, Seitenrendering ohne Formular- oder Anhangsebene,
+  Tastatursteuerung, Zoom 50 bis 300 Prozent, Drehen, Originaldownload.
+  Direktlink auf Song und Version, neuer Tab aus der Setlist.
+- Anmerkungen (R12): Text und Marker an einer PDF-Version mit kanonischer
+  Rechteckgeometrie, Autor, Revision, persönlicher oder bandweiter
+  Sichtbarkeit. Der Server berechnet `can_edit` und `can_delete`; fremde
+  persönliche Inhalte bleiben auch für Owner unsichtbar. Bandweite
+  Anmerkungen darf der aktuelle Owner löschen, ändern nur der Autor.
+- Anmerkungsoberfläche (R12): Lesen, Textsetzen und Markerzeichnen mit
+  Maus, Touch und Tastatur, Farben und drei Schriftgrößen, getrennte
+  Ebenen, Liste und Formular für Position und Größe. Konflikte erhalten den
+  Entwurf und bieten den Serverstand an. Vor Versions-, Seiten-, Song- und
+  Bandwechsel schützt ein Dialog mit Speichern, Verwerfen oder Abbrechen.
+- Kern-Smoke erweitert (R11/R12): HTTP-Prüfungen für Upload, Limits,
+  Rechte, Ranges, Konflikte und Löschschutz, dazu echte Browser-Smokes mit
+  Chromium für PDF.js, Zoom, Rotation, CropBox, Touch, Entwürfe und
+  Anmerkungsgeometrie. CI baut den Kern und installiert Chromium.
+
+### Fixed
+
+- Nebenläufige Anlage derselben Anmerkungs-UUID endet kontrolliert: gleiche
+  Daten liefern die vorhandene Anmerkung, abweichende Daten 409. Vorher
+  konnte der Unique-Constraint als 500 durchschlagen (Review F1).
+- Proxy- und API-Grenze für PDFs sind im Smoke belegt: knapp über dem
+  Dateilimit antwortet die API 413, über Dateilimit plus 65.536 Byte der
+  Proxy 413, und bei Limit 0 passiert ein 24-MB-Upload beide Schichten
+  (Review F2).
+- Der Browser-Smoke lädt eine PDF mit AcroForm und eingebettetem Anhang und
+  prüft, dass die Ansicht nur Seiten rendert: kein Formular-DOM, keine
+  Anhangsaktion und keine Navigation (Review F3).
+- Zweitreview F1: UUID-Fallback nutzt `crypto.getRandomValues` statt einer
+  festen Kennung. Uploads und Anmerkungen bleiben auch ohne
+  `crypto.randomUUID` eindeutig.
+- Zweitreview F2: ein eigener Stack mit 256 KiB Limit belegt die exakte
+  Grenze: Datei am Limit erreicht die API, ein Byte mehr liefert 413, ein
+  Byte über Limit plus 65.536 liefert 413 vom Proxy.
+- Zweitreview F3: Wird der Song während des Uploads gelöscht, antwortet die
+  API mit 404 statt 500; Datei und Datenbank bleiben konsistent.
+- Zweitreview F4: der IntegrityError-Pfad der Anmerkungsanlage ist mit
+  simuliertem Constraint-Fehler und beiden Ausgängen 200 und 409 getestet.
 
 ### Changed
 

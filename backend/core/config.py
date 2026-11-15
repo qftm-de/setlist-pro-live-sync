@@ -11,6 +11,10 @@ from django.core.exceptions import ImproperlyConfigured
 
 ERLAUBTE_MODI = ("core",)
 MIN_SECRET_LAENGE = 32
+PDF_STANDARD_BYTES = 20 * 1024 * 1024
+PDF_STANDARD_SEITEN = 100
+PDF_STANDARD_ZEITSEKUNDEN = 30
+PDF_STANDARD_SPEICHER_MB = 512
 
 
 @dataclass(frozen=True)
@@ -28,6 +32,11 @@ class LaufzeitKonfiguration:
     db_password: str
     db_host: str
     db_port: str
+    documents_root: str
+    pdf_max_upload_bytes: int
+    pdf_max_pages: int
+    pdf_check_timeout_seconds: int
+    pdf_check_memory_mb: int
 
 
 def _wert(environ: Mapping[str, str], name: str) -> str:
@@ -106,6 +115,23 @@ def _trust_proxy(environ: Mapping[str, str]) -> bool:
     return wert == "true"
 
 
+def _ganzzahl(
+    environ: Mapping[str, str], name: str, standard: int, minimum: int = 0
+) -> int:
+    roh = _wert(environ, name)
+    if not roh:
+        return standard
+    try:
+        zahl = int(roh)
+    except ValueError as fehler:
+        raise ImproperlyConfigured(
+            f"{name} muss eine ganze Zahl sein, nicht {roh!r}."
+        ) from fehler
+    if zahl < minimum:
+        raise ImproperlyConfigured(f"{name} darf nicht kleiner als {minimum} sein.")
+    return zahl
+
+
 def load_runtime_config(environ: Mapping[str, str] | None = None) -> LaufzeitKonfiguration:
     env = os.environ if environ is None else environ
     modus = _modus(env)
@@ -134,4 +160,15 @@ def load_runtime_config(environ: Mapping[str, str] | None = None) -> LaufzeitKon
         db_password=_pflicht(env, "POSTGRES_PASSWORD"),
         db_host=db_host,
         db_port=_wert(env, "POSTGRES_PORT") or "5432",
+        documents_root=_wert(env, "DOCUMENTS_ROOT"),
+        pdf_max_upload_bytes=_ganzzahl(
+            env, "PDF_MAX_UPLOAD_BYTES", PDF_STANDARD_BYTES
+        ),
+        pdf_max_pages=_ganzzahl(env, "PDF_MAX_PAGES", PDF_STANDARD_SEITEN),
+        pdf_check_timeout_seconds=_ganzzahl(
+            env, "PDF_CHECK_TIMEOUT_SECONDS", PDF_STANDARD_ZEITSEKUNDEN, 1
+        ),
+        pdf_check_memory_mb=_ganzzahl(
+            env, "PDF_CHECK_MEMORY_MB", PDF_STANDARD_SPEICHER_MB, 1
+        ),
     )

@@ -1,0 +1,94 @@
+.anmerkungs-bereich {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.anmerkung-werkzeuge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.anmerkung-werkzeuge [role="group"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.anmerkung-werkzeuge button,
+.anmerkung-werkzeuge select,
+.anmerkung-werkzeuge input[type="checkbox"],
+.anmerkung-formular button,
+.anmerkung-formular input,
+.anmerkung-formular select,
+.anmerkung-liste button,
+.anmerkung-wechsel button,
+.anmerkung-konflikt button {
+  min-height: 44px;
+}
+
+.anmerkung-werkzeuge button[aria-pressed="true"],
+.anmerkung-liste button[aria-pressed="true"] {
+  outline: 3px solid #111;
+  outline-offset: 1px;
+  font-weight: 700;
+}
+
+.anmerkung-liste ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.anmerkung-liste li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.anmerkung-formular {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 0.75rem;
+}
+
+.anmerkung-formular label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.anmerkung-geometrie {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.5rem;
+}
+
+.anmerkung-aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.anmerkung-hinweis {
+  background: rgba(244, 178, 106, 0.25);
+  padding: 0.5rem;
+}
+
+.anmerkung-wechsel,
+.anmerkung-konflikt {
+  border: 2px solid #111;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}

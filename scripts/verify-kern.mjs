@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Kern-Smoke für R6 bis R10: baut den Core, legt Konten an und fährt den
+ * Kern-Smoke für R6 bis R12: baut den Core, legt Konten an und fährt den
  * echten Weg über nginx und die API. Kein Mock, keine Testdatenbank.
- * Auftritte prüft scripts/lib/verify-gigs.mjs im selben Lauf.
+ * PDFs und Anmerkungen prüfen eigene Smoke-Module samt Chromium im selben Lauf.
  */
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -10,6 +10,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { Sitzung } from "./lib/verify-session.mjs";
+import { pruefeAktivesLimit, pruefeOhneLimit } from "./lib/verify-pdf-limits.mjs";
+import { pruefeAnmerkungen } from "./lib/verify-annotations.mjs";
+import { pruefeDokumente } from "./lib/verify-documents.mjs";
 import { pruefeGigs } from "./lib/verify-gigs.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -26,12 +30,14 @@ const env = {
   TRUST_PROXY_HEADERS: "false",
   POSTGRES_PASSWORD: `kern-${randomUUID()}`,
   WEB_PORT: port,
+  PDF_MAX_UPLOAD_BYTES: "20971520",
+  PDF_MAX_PAGES: "100",
 };
 
-function compose(args) {
+function compose(args, umgebung = env) {
   return spawnSync("docker", ["compose", "-p", projekt, ...args], {
     cwd: root,
-    env,
+    env: umgebung,
     encoding: "utf8",
   });
 }
@@ -49,10 +55,10 @@ function abbruch(text, detail = "") {
   process.exit(1);
 }
 
-function schritt(args, text, versuche = 1) {
+function schritt(args, text, versuche = 1, umgebung = env) {
   let ergebnis = null;
   for (let lauf = 0; lauf < versuche; lauf += 1) {
-    ergebnis = compose(args);
+    ergebnis = compose(args, umgebung);
     if ((ergebnis.status ?? 1) === 0) {
       return ergebnis;
     }
@@ -69,53 +75,6 @@ function ausgabe(args, text) {
   return (schritt(args, text).stdout || "").trim();
 }
 
-class Sitzung {
-  constructor() {
-    this.cookies = new Map();
-  }
-
-  merke(antwort) {
-    for (const eintrag of antwort.headers.getSetCookie()) {
-      const paar = eintrag.split(";")[0];
-      const trenner = paar.indexOf("=");
-      this.cookies.set(paar.slice(0, trenner), paar.slice(trenner + 1));
-    }
-  }
-
-  token() {
-    return this.cookies.get("csrftoken") || "";
-  }
-
-  async ruf(pfad, { methode = "GET", koerper } = {}) {
-    const kopfzeilen = { Accept: "application/json" };
-    if (this.cookies.size) {
-      kopfzeilen.Cookie = [...this.cookies]
-        .map(([name, wert]) => `${name}=${wert}`)
-        .join("; ");
-    }
-    if (methode !== "GET" && this.token()) {
-      kopfzeilen["X-CSRFToken"] = this.token();
-    }
-    if (koerper !== undefined) {
-      kopfzeilen["Content-Type"] = "application/json";
-    }
-    const antwort = await fetch(`${basis}${pfad}`, {
-      method: methode,
-      headers: kopfzeilen,
-      body: koerper === undefined ? undefined : JSON.stringify(koerper),
-      redirect: "manual",
-    });
-    this.merke(antwort);
-    const text = await antwort.text();
-    let daten = null;
-    try {
-      daten = text ? JSON.parse(text) : null;
-    } catch {
-      daten = text;
-    }
-    return { status: antwort.status, daten };
-  }
-}
 
 function pruefe(bedingung, text) {
   if (!bedingung) {
@@ -180,13 +139,14 @@ try {
       "library",
       "setlists",
       "gigs",
+      "annotations",
     ],
     "Backend-Tests",
   );
   kontoAnlegen("pilot");
   kontoAnlegen("pilot2");
 
-  const gesund = await new Sitzung().ruf("/api/health/");
+  const gesund = await new Sitzung(basis).ruf("/api/health/");
   pruefe(gesund.status === 200 && gesund.daten?.status === "ok", "Health antwortet nicht ok");
 
   const admin = await fetch(`${basis}/admin/login/`);
@@ -195,7 +155,7 @@ try {
   pruefe(adminHtml.includes('"/static/admin/'), "Admin-Assets zeigen nicht auf /static/");
   pruefe((await fetch(`${basis}/static/admin/css/base.css`)).status === 200, "Admin-Stylesheet fehlt");
 
-  const anonym = new Sitzung();
+  const anonym = new Sitzung(basis);
   const konfiguration = await anonym.ruf("/api/config/");
   pruefe(konfiguration.daten?.mode === "core", "Konfiguration meldet nicht core");
   pruefe((await anonym.ruf("/api/session/")).status === 401, "Session ohne Anmeldung ist nicht 401");
@@ -214,7 +174,7 @@ try {
   });
   pruefe(falsch.status === 400 && !JSON.stringify(falsch.daten).includes("pilot"), "Falsches Passwort verrät das Konto");
 
-  const erste = new Sitzung();
+  const erste = new Sitzung(basis);
   await erste.ruf("/api/config/");
   const anmeldung = await erste.ruf("/api/anmeldung/", {
     methode: "POST",
@@ -322,7 +282,7 @@ try {
     "Umsortieren scheitert",
   );
 
-  const zweite = new Sitzung();
+  const zweite = new Sitzung(basis);
   await zweite.ruf("/api/config/");
   pruefe(
     (await zweite.ruf("/api/anmeldung/", { methode: "POST", koerper: { username: "pilot2", password: passwort } })).status === 200,
@@ -341,6 +301,47 @@ try {
     "Song löschen nach dem Entfernen aus der Setlist scheitert",
   );
   pruefe((await erste.ruf(`/api/bands/${bandId}/`)).daten?.songs?.length === 0, "Gelöschter Song bleibt");
+
+  await pruefeDokumente({
+    erste,
+    zweite,
+    bandId,
+    pruefe,
+    basis,
+    benutzer: "pilot",
+    passwort,
+  });
+
+  await pruefeAnmerkungen({
+    erste,
+    zweite,
+    bandId,
+    pruefe,
+    basis,
+    benutzer: "pilot",
+    passwort,
+  });
+
+  const starteMitPdfLimits = (werte) =>
+    schritt(
+      ["up", "-d", "--wait", "api", "web"],
+      "Core mit neuen PDF-Limits starten",
+      2,
+      { ...env, ...werte },
+    );
+  await pruefeAktivesLimit({
+    erste,
+    bandId,
+    pruefe,
+    starteStack: starteMitPdfLimits,
+  });
+  await pruefeOhneLimit({
+    erste,
+    bandId,
+    pruefe,
+    starteStack: () =>
+      starteMitPdfLimits({ PDF_MAX_UPLOAD_BYTES: "0", PDF_MAX_PAGES: "0" }),
+  });
 
   pruefe((await erste.ruf("/api/abmeldung/", { methode: "POST" })).status === 200, "Abmelden scheitert");
   pruefe((await erste.ruf("/api/session/")).status === 401, "Session lebt nach dem Abmelden weiter");

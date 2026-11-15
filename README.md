@@ -74,7 +74,8 @@ Dieser muss `X-Forwarded-Proto` selbst setzen und eingehende Werte
 HTTP ohne TLS `false`. Für den Proxy zusätzlich `ALLOWED_HOSTS` auf den
 Pilot-Host und `CSRF_TRUSTED_ORIGINS` auf die HTTPS-Origin setzen.
 `APP_MODE=core` ist fest gesetzt; `hub` und fehlende Pflichtwerte verhindern
-den Start.
+den Start. PDFs liegen privat im Volume `documents`; Grenzen und Bereinigung
+stehen in [docs/betrieb.md](docs/betrieb.md).
 
 ## Review vor Push
 
@@ -90,6 +91,7 @@ Befunddatei selbst an. Der Kopf braucht `HEAD` und `DIFF` aus
 |---|---|
 | [docs/planung/hybrid-modell.md](docs/planung/hybrid-modell.md) | Architektur, Datenmodell, API, Phasen, Sicherheit |
 | [docs/planung/versionen.md](docs/planung/versionen.md) | Fremdpakete, Basis-Images, Kompatibilität |
+| [docs/betrieb.md](docs/betrieb.md) | PDF-Ablage, Uploadgrenzen, Sicherung und Bereinigung |
 | [docs/analyse/00-ueberblick.md](docs/analyse/00-ueberblick.md) | Analyse der Alt-App |
 | [docs/brand/01-brand.md](docs/brand/01-brand.md) | Marke, Sprache, Farben, Namen |
 | [PROGRESS.md](PROGRESS.md) | aktueller Stand und nächster Schritt |
@@ -109,6 +111,14 @@ Bandcodes, Projekt-IDs, API-Keys, Nutzernamen oder Server-Adressen.
 
 Sicherheitslücken bitte nicht als öffentliches Issue melden. Der Weg steht in
 [SECURITY.md](SECURITY.md).
+
+## Herkunft und Betrieb
+
+Die Idee und die erste Fassung der App stammen von P. Beuster. Die Urapp liegt
+nicht im Repo. Sie war die Vorlage für die Analyse unter [`docs/analyse/`](docs/analyse/00-ueberblick.md).
+Der Neubau ist eine eigenständige Implementierung.
+
+Powered by [QFTM.de](https://qftm.de).
 
 ## Lizenz
 

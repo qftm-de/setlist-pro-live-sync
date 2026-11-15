@@ -124,6 +124,30 @@ class LaufzeitKonfigurationTest(SimpleTestCase):
         zweit = load_runtime_config(env())
         self.assertEqual(erst.secret_key, zweit.secret_key)
 
+    def test_pdf_grenzen_werden_validiert(self):
+        for name in (
+            "PDF_MAX_UPLOAD_BYTES",
+            "PDF_MAX_PAGES",
+            "PDF_CHECK_TIMEOUT_SECONDS",
+            "PDF_CHECK_MEMORY_MB",
+        ):
+            for wert in ("-1", "viele", "1.5"):
+                with self.subTest(name=name, wert=wert):
+                    with self.assertRaises(ImproperlyConfigured):
+                        load_runtime_config(env(**{name: wert}))
+        for name in ("PDF_CHECK_TIMEOUT_SECONDS", "PDF_CHECK_MEMORY_MB"):
+            with self.subTest(name=name):
+                with self.assertRaises(ImproperlyConfigured):
+                    load_runtime_config(env(**{name: "0"}))
+
+    def test_pdf_grenzen_null_und_standard(self):
+        standard = load_runtime_config(env())
+        self.assertEqual(standard.pdf_max_upload_bytes, 20 * 1024 * 1024)
+        self.assertEqual(standard.pdf_max_pages, 100)
+        aus = load_runtime_config(env(PDF_MAX_UPLOAD_BYTES="0", PDF_MAX_PAGES="0"))
+        self.assertEqual(aus.pdf_max_upload_bytes, 0)
+        self.assertEqual(aus.pdf_max_pages, 0)
+
 
 class KonfigurationsEndpunktTest(TestCase):
     def test_liefert_nur_erlaubte_felder(self):

@@ -9,6 +9,7 @@ interface SongsProps {
   adapter: BandAdapter;
   songs: Song[];
   onGeaendert?: () => void;
+  onNavigieren?: (pfad: string) => void;
   onSitzungAbgelaufen?: () => void;
 }
 
@@ -17,6 +18,7 @@ export function Songs({
   adapter,
   songs,
   onGeaendert,
+  onNavigieren,
   onSitzungAbgelaufen,
 }: SongsProps) {
   const [titel, setTitel] = useState("");
@@ -91,6 +93,7 @@ export function Songs({
               gesperrt={zustand === "speichert"}
               onAendern={() => onGeaendert?.()}
               onLoeschen={loeschen}
+              onOeffnen={onNavigieren}
               onSitzungAbgelaufen={onSitzungAbgelaufen}
             />
           ))}

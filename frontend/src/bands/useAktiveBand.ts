@@ -38,7 +38,7 @@ export function useAktiveBand(
 
   function bandWechseln(wert: string) {
     if (route.bandId !== null || route.bandFehler) {
-      navigiere("/setlists");
+      navigiere(route.bereich === "document" ? "/songs" : "/setlists");
     }
     setBandId(wert);
   }

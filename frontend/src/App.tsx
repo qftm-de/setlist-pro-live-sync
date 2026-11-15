@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { appName } from "./app-info";
-import { ladeKonfiguration, type LaufzeitKonfiguration } from "./api/config";
+import { ladeKonfiguration } from "./api/config";
 import { fehlerText, istApiFehler } from "./api/client";
-import { apiBands, type Band, type BandAdapter } from "./bands/bands";
+import { apiBands } from "./bands/bands";
 import { useAktiveBand } from "./bands/useAktiveBand";
+import { useNavigationsWaechter } from "./useNavigationsWaechter";
 import { useBandDaten } from "./bands/useBandDaten";
-import { apiGigs, type GigAdapter } from "./gigs/gigs";
+import { apiAnmerkungen } from "./annotations/annotations";
+import { DokumentRoute } from "./documents/DokumentRoute";
+import { apiDokumente } from "./documents/documents";
+import { apiGigs } from "./gigs/gigs";
 import { parseRoute } from "./routing";
-import { apiSitzung, type SessionAdapter } from "./session/session";
-import { apiSetlists, type SetlistAdapter } from "./setlists/setlists";
+import { apiSitzung } from "./session/session";
+import { apiSetlists } from "./setlists/setlists";
 import { AnmeldeFormular } from "./ui/AnmeldeFormular";
 import { AppShell } from "./ui/AppShell";
 import { Auftritte } from "./ui/Auftritte";
@@ -18,29 +22,12 @@ import { Setlists } from "./ui/Setlists";
 import { Songs } from "./ui/Songs";
 import { StatusAnzeige } from "./ui/StatusAnzeige";
 
-interface AppProps {
-  konfigurationLaden?: () => Promise<LaufzeitKonfiguration>;
-  sessionAdapter?: SessionAdapter;
-  bandAdapter?: BandAdapter;
-  setlistAdapter?: SetlistAdapter;
-  gigAdapter?: GigAdapter;
-}
-
-type KonfigurationZustand =
-  | { status: "laedt" }
-  | { status: "fehler"; fehler: string }
-  | { status: "fertig"; konfiguration: LaufzeitKonfiguration };
-
-type SitzungZustand =
-  | { status: "laedt" }
-  | { status: "fehler"; fehler: string }
-  | { status: "anonym" }
-  | { status: "angemeldet"; benutzername: string };
-
-type BandsZustand =
-  | { status: "laedt" }
-  | { status: "fehler"; fehler: string }
-  | { status: "fertig"; bands: Band[] };
+import type {
+  AppProps,
+  BandsZustand,
+  KonfigurationZustand,
+  SitzungZustand,
+} from "./App.types";
 
 export function App({
   konfigurationLaden = ladeKonfiguration,
@@ -48,6 +35,9 @@ export function App({
   bandAdapter = apiBands,
   setlistAdapter = apiSetlists,
   gigAdapter = apiGigs,
+  dokumentAdapter = apiDokumente,
+  anmerkungAdapter = apiAnmerkungen,
+  dokumentViewer,
 }: AppProps) {
   const [pfad, setPfad] = useState(() => window.location.pathname);
   const [versuch, setVersuch] = useState(0);
@@ -56,6 +46,10 @@ export function App({
   const [bands, setBands] = useState<BandsZustand>({ status: "laedt" });
   const [bandId, setBandId] = useState<string | null>(null);
   const [datenVersion, setDatenVersion] = useState(0);
+  const { navigiere, registriereWaechter } = useNavigationsWaechter((ziel) => {
+    window.history.pushState({}, "", ziel);
+    setPfad(ziel);
+  });
   const route = parseRoute(pfad);
 
   useEffect(() => {
@@ -145,11 +139,6 @@ export function App({
 
   const titel =
     konfiguration.status === "fertig" ? konfiguration.konfiguration.instanceName : appName;
-
-  function navigiere(ziel: string) {
-    window.history.pushState({}, "", ziel);
-    setPfad(ziel);
-  }
 
   function erneutVersuchen() {
     setVersuch((wert) => wert + 1);
@@ -266,12 +255,25 @@ export function App({
                 onNavigieren={navigiere}
                 onSitzungAbgelaufen={sitzungAbgelaufen}
               />
+            ) : route.bereich === "document" ? (
+              <DokumentRoute
+                bandId={bandDaten.daten.bandId}
+                songId={route.songId}
+                versionId={route.versionId}
+                songs={bandDaten.daten.songs}
+                adapter={dokumentAdapter}
+                anmerkungAdapter={anmerkungAdapter}
+                viewer={dokumentViewer}
+                registriereWaechter={registriereWaechter}
+                onSitzungAbgelaufen={sitzungAbgelaufen}
+              />
             ) : (
               <Songs
                 key={bandDaten.daten.bandId}
                 bandId={bandDaten.daten.bandId}
                 adapter={bandAdapter}
                 songs={bandDaten.daten.songs}
+                onNavigieren={navigiere}
                 onGeaendert={() => setDatenVersion((wert) => wert + 1)}
                 onSitzungAbgelaufen={sitzungAbgelaufen}
               />

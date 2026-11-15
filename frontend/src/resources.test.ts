@@ -20,11 +20,24 @@ function quelldateien(verzeichnis: string): string[] {
   return dateien;
 }
 
+// Keine fremden Ressourcen laden: keine externen Schriften, Bilder oder
+// Hub-Aufrufe. Erlaubt ist nur der Betreiber-Link im Fuß, ein Anker lädt nichts.
+const ERLAUBTE_LINKS = ["https://qftm.de"];
+
 describe("lokale Ressourcen", () => {
   it("lädt im Quellcode keine externen Schriften oder Hub-Ressourcen", () => {
-    const treffer = quelldateien(path.resolve(process.cwd(), "src")).filter((datei) =>
-      /https?:\/\//.test(fs.readFileSync(datei, "utf8")),
-    );
+    const treffer = quelldateien(path.resolve(process.cwd(), "src")).flatMap((datei) => {
+      const text = fs.readFileSync(datei, "utf8");
+      return [...text.matchAll(/https?:\/\/[^\s"'`)]+/g)]
+        .map((fund) => fund[0])
+        .filter(
+          (url) =>
+            !ERLAUBTE_LINKS.some(
+              (erlaubt) => url === erlaubt || url.startsWith(`${erlaubt}/`),
+            ),
+        )
+        .map((url) => `${datei}: ${url}`);
+    });
     expect(treffer).toEqual([]);
   });
 

@@ -41,3 +41,6 @@ kilo.json
 AGENTS.md
 CLAUDE.md
 kilo.jsonc
+# Playwright-Spuren und Berichte
+frontend/test-results/
+frontend/playwright-report/

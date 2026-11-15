@@ -178,6 +178,15 @@ export function SetlistEditor({
                 <li key={zeile.schluessel}>
                   <span className="songtitel">{zeile.titel}</span>
                   <span className="songmeta">{zeile.art}</span>
+                  {zeile.art === "song" && zeile.songId ? (
+                    <a
+                      href={`/songs/${encodeURIComponent(bandId)}/${zeile.songId}/pdf`}
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      {`${zeile.titel} PDF in neuem Tab öffnen`}
+                    </a>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => zeileVerschieben(block, zeilenIndex, -1)}

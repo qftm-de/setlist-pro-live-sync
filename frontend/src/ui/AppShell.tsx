@@ -49,6 +49,12 @@ export function AppShell({
         </nav>
       </header>
       <main className="inhalt">{children}</main>
+      <footer className="fuss">
+        Powered by{" "}
+        <a href="https://qftm.de" target="_blank" rel="noreferrer">
+          QFTM.de
+        </a>
+      </footer>
     </div>
   );
 }

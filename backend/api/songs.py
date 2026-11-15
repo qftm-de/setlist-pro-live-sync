@@ -3,6 +3,7 @@ from django.http import Http404
 from rest_framework import generics, status
 from rest_framework.response import Response
 
+from documents.models import Document
 from library.models import Song
 
 from .bands import band_fuer
@@ -32,9 +33,15 @@ class SongDetail(generics.RetrieveUpdateDestroyAPIView):
             raise Http404 from fehler
 
     def destroy(self, request, *args, **kwargs):
+        song = self.get_object()
         try:
             return super().destroy(request, *args, **kwargs)
         except ProtectedError:
+            if Document.objects.filter(song=song).exists():
+                return Response(
+                    {"detail": "Song hat PDF-Versionen und kann nicht gelöscht werden."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             return Response(
                 {"detail": "Song steht in einer Setlist. Erst dort entfernen."},
                 status=status.HTTP_400_BAD_REQUEST,

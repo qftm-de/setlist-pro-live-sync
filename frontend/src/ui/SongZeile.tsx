@@ -9,6 +9,7 @@ interface SongZeileProps {
   gesperrt?: boolean;
   onAendern: (song: Song) => void;
   onLoeschen: (song: Song) => void;
+  onOeffnen?: (pfad: string) => void;
   onSitzungAbgelaufen?: () => void;
 }
 
@@ -23,6 +24,7 @@ export function SongZeile({
   gesperrt = false,
   onAendern,
   onLoeschen,
+  onOeffnen,
   onSitzungAbgelaufen,
 }: SongZeileProps) {
   const [bearbeiten, setBearbeiten] = useState(false);
@@ -149,6 +151,19 @@ export function SongZeile({
       {song.key ? <span className="songmeta">Tonart {song.key}</span> : null}
       {song.bpm ? <span className="songmeta">{song.bpm} BPM</span> : null}
       {song.notes ? <span className="songmeta">{song.notes}</span> : null}
+      <a
+        className="song-pdf"
+        href={`/songs/${encodeURIComponent(bandId)}/${song.id}/pdf`}
+        onClick={(ereignis) => {
+          if (!onOeffnen) {
+            return;
+          }
+          ereignis.preventDefault();
+          onOeffnen(`/songs/${encodeURIComponent(bandId)}/${song.id}/pdf`);
+        }}
+      >
+        {`${song.title} PDF öffnen`}
+      </a>
       <button type="button" disabled={gesperrt} onClick={bearbeitenOeffnen}>
         {`${song.title} ändern`}
       </button>

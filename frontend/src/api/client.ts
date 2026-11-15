@@ -5,6 +5,8 @@ export type ApiFehlerCode =
   | "server"
   | "network"
   | "bad_request"
+  | "conflict"
+  | "too_large"
   | "invalid_response";
 
 const TEXTE: Record<ApiFehlerCode, string> = {
@@ -14,6 +16,8 @@ const TEXTE: Record<ApiFehlerCode, string> = {
   server: "Serverfehler. Bitte erneut versuchen.",
   network: "Keine Verbindung zum Server.",
   bad_request: "Die Anfrage wurde abgelehnt. Bitte Eingaben prüfen.",
+  conflict: "Der Stand wurde inzwischen geändert. Bitte neu laden.",
+  too_large: "Die Datei ist zu groß.",
   invalid_response: "Unerwartete Antwort des Servers.",
 };
 
@@ -108,10 +112,42 @@ function csrfToken(): string | null {
   return null;
 }
 
-export async function apiFetch<T>(pfad: string, init: RequestInit = {}): Promise<T> {
+async function pruefeAntwort(antwort: Response): Promise<never> {
+  if (antwort.status === 401) {
+    throw new ApiFehler(401, "unauthenticated");
+  }
+  if (antwort.status === 403) {
+    throw new ApiFehler(403, "forbidden");
+  }
+  if (antwort.status === 404) {
+    throw new ApiFehler(404, "not_found");
+  }
+  if (antwort.status === 409) {
+    throw new ApiFehler(409, "conflict");
+  }
+  if (antwort.status === 413) {
+    throw new ApiFehler(413, "too_large");
+  }
+  if (antwort.status >= 500) {
+    throw new ApiFehler(antwort.status, "server");
+  }
+  let text = "";
+  try {
+    text = await antwort.text();
+  } catch {
+    text = "";
+  }
+  throw new ApiFehler(antwort.status, "bad_request", serverMeldung(text));
+}
+
+function pruefePfad(pfad: string): void {
   if (!pfad.startsWith("/") || pfad.startsWith("//") || pfad.includes("\\")) {
     throw new Error("API-Pfad muss relativ zur eigenen Origin sein.");
   }
+}
+
+export async function apiFetch<T>(pfad: string, init: RequestInit = {}): Promise<T> {
+  pruefePfad(pfad);
 
   const methode = (init.method ?? "GET").toUpperCase();
   const kopfzeilen = new Headers(init.headers);
@@ -145,25 +181,7 @@ export async function apiFetch<T>(pfad: string, init: RequestInit = {}): Promise
   }
 
   if (!antwort.ok) {
-    if (antwort.status === 401) {
-      throw new ApiFehler(401, "unauthenticated");
-    }
-    if (antwort.status === 403) {
-      throw new ApiFehler(403, "forbidden");
-    }
-    if (antwort.status === 404) {
-      throw new ApiFehler(404, "not_found");
-    }
-    if (antwort.status >= 500) {
-      throw new ApiFehler(antwort.status, "server");
-    }
-    let text = "";
-    try {
-      text = await antwort.text();
-    } catch {
-      text = "";
-    }
-    throw new ApiFehler(antwort.status, "bad_request", serverMeldung(text));
+    await pruefeAntwort(antwort);
   }
 
   if (antwort.status === 204 || antwort.status === 205) {
@@ -177,5 +195,34 @@ export async function apiFetch<T>(pfad: string, init: RequestInit = {}): Promise
     return JSON.parse(text) as T;
   } catch {
     throw new ApiFehler(antwort.status, "invalid_response");
+  }
+}
+
+/** Lädt private Binärdateien über dieselbe Origin und mit denselben Fehlern. */
+export async function apiFetchDatei(pfad: string): Promise<ArrayBuffer> {
+  pruefePfad(pfad);
+  let antwort: Response;
+  try {
+    antwort = await fetch(pfad, {
+      credentials: "same-origin",
+      headers: { Accept: "application/pdf" },
+    });
+  } catch {
+    throw new ApiFehler(0, "network");
+  }
+  if (!antwort.ok) {
+    await pruefeAntwort(antwort);
+  }
+  try {
+    const daten = await antwort.arrayBuffer();
+    if (daten.byteLength === 0) {
+      throw new Error("leer");
+    }
+    return daten;
+  } catch (fehler) {
+    if (fehler instanceof Error && fehler.message === "leer") {
+      throw new ApiFehler(antwort.status, "invalid_response");
+    }
+    throw new ApiFehler(0, "network");
   }
 }

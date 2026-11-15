@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     "library",
     "setlists",
     "gigs",
+    "documents",
+    "annotations",
     "api",
 ]
 
@@ -125,5 +127,15 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+DOCUMENTS_ROOT = (
+    Path(konfiguration.documents_root)
+    if konfiguration.documents_root
+    else BASE_DIR / "documents"
+)
+PDF_MAX_UPLOAD_BYTES = konfiguration.pdf_max_upload_bytes
+PDF_MAX_PAGES = konfiguration.pdf_max_pages
+PDF_CHECK_TIMEOUT_SECONDS = konfiguration.pdf_check_timeout_seconds
+PDF_CHECK_MEMORY_MB = konfiguration.pdf_check_memory_mb
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
