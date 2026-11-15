@@ -121,6 +121,17 @@ class ConsumerTest(TransactionTestCase):
         self.assertEqual(antwort["type"], "pong")
         await communicator.disconnect()
 
+    async def test_nicht_objekt_wird_verworfen(self):
+        communicator = self.bauen()
+        verbunden, _ = await communicator.connect(timeout=5)
+        self.assertTrue(verbunden)
+        await communicator.receive_json_from()
+        await communicator.send_json_to([1, 2, 3])
+        await communicator.send_json_to({"type": "ping"})
+        antwort = await communicator.receive_json_from()
+        self.assertEqual(antwort["type"], "pong")
+        await communicator.disconnect()
+
     async def test_ohne_mitgliedschaft_abgelehnt(self):
         await database_sync_to_async(
             Membership.objects.filter(band=self.band, user=self.benutzer).delete

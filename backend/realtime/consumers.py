@@ -103,7 +103,7 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4403)
 
     async def receive_json(self, content, **kwargs) -> None:
-        if content.get("type") != "ping":
+        if not isinstance(content, dict) or content.get("type") != "ping":
             return
         jetzt = asyncio.get_running_loop().time()
         if self.letzter_ping and jetzt - self.letzter_ping < settings.REALTIME_MIN_PING_SECONDS:
