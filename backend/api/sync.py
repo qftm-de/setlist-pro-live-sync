@@ -20,6 +20,12 @@ from realtime.services import zaehler
 class BandAbgleich(APIView):
     def get(self, request, band_id: int):
         band = band_fuer(request.user, band_id)
+        if request.query_params.get("nur_zaehler"):
+            with transaction.atomic():
+                zahlen = zaehler(band.id, request.user.id)
+            return Response(
+                {"counters": zahlen, "server_time": timezone.now().isoformat()}
+            )
         if connection.in_atomic_block:
             # Tests und aufrufende Transaktionen erlauben keine neue Isolationsstufe.
             return Response(self._daten(band, request.user))

@@ -17,11 +17,16 @@ class Command(BaseCommand):
 
     def handle(self, *args, **optionen):
         letzte_aufraeumung = 0.0
+        letzte_meldung = 0.0
         while True:
             veroeffentlicht, offen = verarbeite_offene(optionen["grenze"])
-            if veroeffentlicht or offen:
-                self.stdout.write(f"relay: {veroeffentlicht}/{offen} veröffentlicht")
             jetzt = time.monotonic()
+            if veroeffentlicht:
+                self.stdout.write(f"relay: {veroeffentlicht}/{offen} veröffentlicht")
+                letzte_meldung = jetzt
+            elif offen and jetzt - letzte_meldung >= 60:
+                self.stdout.write(f"relay: 0/{offen} offen, warte auf Redis")
+                letzte_meldung = jetzt
             if jetzt - letzte_aufraeumung >= AUFRAEUM_INTERVALL:
                 raeume_auf()
                 letzte_aufraeumung = jetzt

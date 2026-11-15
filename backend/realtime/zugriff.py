@@ -5,6 +5,7 @@ from __future__ import annotations
 from importlib import import_module
 
 from django.conf import settings
+from django.contrib.auth import HASH_SESSION_KEY
 
 def _cookie(scope, name: str) -> str | None:
     for schluessel, wert in scope.get("headers", []):
@@ -36,15 +37,18 @@ def zugriff_gueltig(scope, band_id: int) -> int | None:
     except Exception:
         return None
     konto_id = sitzung.get("_auth_user_id")
-    if not konto_id:
+    hash_wert = sitzung.get(HASH_SESSION_KEY)
+    if not konto_id or not hash_wert:
         return None
     from accounts.models import User
 
-    treffer = (
+    konto = (
         User.objects.filter(
             pk=konto_id, is_active=True, memberships__band_id=band_id
         )
-        .values_list("pk", flat=True)
+        .distinct()
         .first()
     )
-    return int(treffer) if treffer is not None else None
+    if konto is None or konto.get_session_auth_hash() != hash_wert:
+        return None
+    return int(konto.pk)

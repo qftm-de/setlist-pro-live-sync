@@ -181,6 +181,7 @@ export function App({
     bandDaten.status === "fertig" ? bandDaten.daten.bandId : null,
     beiEchtzeitEreignis,
     beiAbgleich,
+    () => setSitzung({ status: "anonym" }),
     sitzung.status === "angemeldet",
   );
 

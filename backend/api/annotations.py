@@ -200,8 +200,10 @@ class AnnotationDetail(APIView):
             band_ereignis(band, "annotation.entfernt", **daten)
             persoenliches_ereignis(band, annotation.author, "annotation.updated", **daten)
         elif not vorher_band and jetzt_band:
-            persoenliches_ereignis(band, annotation.author, "annotation.entfernt", **daten)
+            # Immer Band vor Persönlich sperren, sonst deadlocken zwei
+            # gleichzeitige Sichtbarkeitswechsel.
             band_ereignis(band, "annotation.created", **daten)
+            persoenliches_ereignis(band, annotation.author, "annotation.entfernt", **daten)
         else:
             persoenliches_ereignis(band, annotation.author, "annotation.updated", **daten)
 

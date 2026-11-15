@@ -1,4 +1,2 @@
 #!/bin/sh
-# Schnelles Gate vor dem Push. Das volle Gate inklusive E2E, Browser-Smokes und
-# Modell-Review läuft in der CI (.github/workflows/ci.yml, Job kern).
-node scripts/gate.mjs --schnell
+node scripts/gate.mjs --voll

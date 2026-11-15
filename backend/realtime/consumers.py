@@ -8,7 +8,7 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.conf import settings
 
-from .origin import origin_gueltig, schema_aus_scope
+from .origin import host_aus, origin_gueltig, schema_aus_scope
 from .services import bandgruppe, persoenliche_gruppe, zaehler
 from .zugriff import origin_aus, zugriff_gueltig
 
@@ -22,7 +22,9 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
         self.band_id = int(self.scope["url_route"]["kwargs"]["band_id"])
         self.ueberwachung: asyncio.Task | None = None
         if not origin_gueltig(
-            origin_aus(self.scope), schema_aus_scope(self.scope)
+            origin_aus(self.scope),
+            schema_aus_scope(self.scope),
+            host_aus(self.scope),
         ):
             await self.close(code=4403)
             return

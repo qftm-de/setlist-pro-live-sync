@@ -54,6 +54,11 @@ class AbgleichTest(TestCase):
         self.assertEqual(daten["counters"], {"band": 1, "personal": 1})
         self.assertIn("server_time", daten)
 
+    def test_schmaler_abgleich_liefert_nur_zaehler(self):
+        antwort = self.client.get(f"/api/bands/{self.band.id}/sync/?nur_zaehler=1")
+        self.assertEqual(antwort.status_code, 200)
+        self.assertEqual(set(antwort.json()), {"counters", "server_time"})
+
     def test_fremde_band_ist_404(self):
         self.assertEqual(
             self.client.get(f"/api/bands/{self.fremdband.id}/sync/").status_code, 404
