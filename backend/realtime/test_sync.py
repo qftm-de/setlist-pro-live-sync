@@ -1,7 +1,9 @@
 import uuid
 
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.db import connection
+from django.test import Client, TestCase, TransactionTestCase
+from django.test.utils import CaptureQueriesContext
 
 from annotations.models import Annotation
 from bands.models import Band, Membership
@@ -68,6 +70,23 @@ class AbgleichTest(TestCase):
         self.assertEqual(
             Client().get(f"/api/bands/{self.band.id}/sync/").status_code, 401
         )
+
+
+class AbgleichSnapshotTest(TransactionTestCase):
+    def test_abgleich_nutzt_repeatable_read(self):
+        benutzer = konto("snapshot")
+        band = Band.objects.create(name="Snapshotband", created_by=benutzer)
+        Membership.objects.create(band=band, user=benutzer, role="owner")
+        Song.objects.create(band=band, title="Snapshot-Song")
+        client = Client()
+        client.login(username="snapshot", password="geheim-1234")
+        with CaptureQueriesContext(connection) as abfragen:
+            antwort = client.get(f"/api/bands/{band.id}/sync/")
+        self.assertEqual(antwort.status_code, 200)
+        self.assertTrue(
+            any("REPEATABLE READ" in eintrag["sql"].upper() for eintrag in abfragen)
+        )
+        self.assertEqual(antwort.json()["songs"][0]["title"], "Snapshot-Song")
 
 
 class MutationsEreignisTest(TestCase):

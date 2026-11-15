@@ -26,7 +26,7 @@ class SetlistListe(generics.ListCreateAPIView):
 
     def get_queryset(self):
         band = band_fuer(self.request.user, self.kwargs["band_id"])
-        return Setlist.objects.filter(band=band)
+        return Setlist.objects.filter(band=band).order_by("name", "id")
 
     def get_serializer_context(self):
         return {**super().get_serializer_context(), "band": band_fuer(

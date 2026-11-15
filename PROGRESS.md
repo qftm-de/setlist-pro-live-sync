@@ -79,7 +79,7 @@
 - Paket 6 umgesetzt (R13, 2026-11-15):
   - `realtime` speichert je Band und je Band/Konto einen Strom mit eigenem Zähler. Zähler und Ereignis entstehen unter Zeilensperre in derselben Transaktion wie die Fachdaten. Ein Rollback hinterlässt weder Ereignis noch Bestätigung.
   - Der Dienst `relay` veröffentlicht den Ausgangspuffer wiederholt über Redis. Fehlgeschlagene Veröffentlichungen bleiben offen, Duplikate sind erlaubt. Ereignisse bleiben sieben Tage, unveröffentlichte länger.
-  - Daphne/ASGI ersetzt Gunicorn. nginx und Vite proxien `/ws`, der Consumer prüft exakten Origin, Session, aktives Konto und Mitgliedschaft beim Aufbau, alle 20 Sekunden und vor jeder Auslieferung.
+  - Daphne/ASGI ersetzt Gunicorn. nginx und Vite proxien `/ws`, der Consumer prüft exakten Origin, Session, aktives Konto und Mitgliedschaft beim Aufbau, alle 15 Sekunden und vor jeder Auslieferung.
   - Band- und persönliche Ströme sind getrennt. Persönliche Anmerkungen erzeugen nur Ereignisse im persönlichen Strom. Beim Privatisieren erhält der Bandstrom ausschließlich eine Entfernen-Meldung ohne Inhalt.
   - `GET /api/bands/{id}/sync/` liefert Bestandsdaten und Zähler aus einem PostgreSQL-Snapshot. Ein neuer Abgleich läuft nach Wiederverbindung, Lücke oder verlorenem letzten Ereignis.
   - Frontend: stiller Sync-Client mit Heartbeat, Wiederverbindung zwischen 1 und 30 Sekunden, Lückenerkennung, sichtbarem Verbindungszustand und erneutem Versuch. Banddaten, Setlist-Liste und Auftritte laden bei Bandereignissen nach, ohne offene Entwürfe zu ersetzen.

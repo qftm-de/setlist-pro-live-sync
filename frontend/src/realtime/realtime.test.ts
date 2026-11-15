@@ -28,6 +28,7 @@ class TestSocket implements WebSocketLike {
 
   close(): void {
     this.geschlossen = true;
+    this.onclose?.({} as CloseEvent);
   }
 
   oeffnen(): void {

@@ -158,6 +158,7 @@ export class BandSync {
       this.melde("abgleich-fehlgeschlagen");
       const socket = this.socket;
       this.socket = null;
+      this.verbindungsLauf += 1;
       if (socket) {
         try {
           socket.close(1000, "abgleich fehlgeschlagen");
