@@ -2,7 +2,6 @@ import { apiFetch, istApiFehler } from "../api/client";
 
 export interface Sitzung {
   angemeldet: boolean;
-  benutzerId?: number;
   benutzername?: string;
 }
 
@@ -13,17 +12,12 @@ export interface SessionAdapter {
 }
 
 interface SitzungsAntwort {
-  id: number;
   username: string;
   display_name?: string;
 }
 
 function alsSitzung(antwort: SitzungsAntwort): Sitzung {
-  return {
-    angemeldet: true,
-    benutzerId: antwort.id,
-    benutzername: antwort.display_name || antwort.username,
-  };
+  return { angemeldet: true, benutzername: antwort.display_name || antwort.username };
 }
 
 export const apiSitzung: SessionAdapter = {

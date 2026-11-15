@@ -89,8 +89,11 @@ class OriginTest(SimpleTestCase):
         self.assertTrue(
             origin_gueltig("https://band.example", "https", "band.example")
         )
-        self.assertFalse(
+        self.assertTrue(
             origin_gueltig("https://band.example:8443", "https", "band.example:8443")
+        )
+        self.assertFalse(
+            origin_gueltig("https://band.example:8443", "https", "fremd.example:8443")
         )
 
     @override_settings(
@@ -117,6 +120,10 @@ class OriginTest(SimpleTestCase):
             ],
         }
         self.assertEqual(schema_aus_scope(scope), "https")
+
+    def test_websocket_schema_wird_normalisiert(self):
+        self.assertEqual(schema_aus_scope({"scheme": "ws"}), "http")
+        self.assertEqual(schema_aus_scope({"scheme": "wss"}), "https")
 
 
 @override_settings(**SETTINGS)

@@ -63,6 +63,7 @@ interface Aufbau {
   zustaende: Verbindungszustand[];
   abgleiche: number;
   abgleichRueckrufe: number;
+  verluste: number;
   setzeZaehler: (zahlen: Zaehler) => void;
   scheitern: (wert: boolean) => void;
 }
@@ -75,6 +76,7 @@ function baue(zahlen: Zaehler = { band: 0, personal: 0 }): Aufbau {
     scheitern: false,
     abgleiche: 0,
     abgleichRueckrufe: 0,
+    verluste: 0,
   };
   const client = new BandSync({
     bandId: "7",
@@ -90,6 +92,9 @@ function baue(zahlen: Zaehler = { band: 0, personal: 0 }): Aufbau {
     beiAbgleich: () => {
       steuerung.abgleichRueckrufe += 1;
     },
+    beiVerbindungsverlust: () => {
+      steuerung.verluste += 1;
+    },
     socketBauen: (url) => new TestSocket(url),
     zeit: zeitgeber(),
     zufall: () => 0,
@@ -103,6 +108,9 @@ function baue(zahlen: Zaehler = { band: 0, personal: 0 }): Aufbau {
     },
     get abgleichRueckrufe() {
       return steuerung.abgleichRueckrufe;
+    },
+    get verluste() {
+      return steuerung.verluste;
     },
     setzeZaehler: (neu) => {
       steuerung.naechste = neu;
@@ -252,7 +260,8 @@ describe("BandSync", () => {
     const aufbau = baue({ band: 0, personal: 0 });
     const socket = await verbinde(aufbau);
     socket.nachricht({ type: "closed", reason: "unauthorized" });
-    expect(aufbau.zustaende.at(-1)).toBe("unterbrochen");
+    expect(aufbau.zustaende.at(-1)).toBe("abgleich-fehlgeschlagen");
+    expect(aufbau.verluste).toBe(1);
     aufbau.client.erneutVersuchen();
     const neu = TestSocket.letzte as TestSocket;
     expect(neu).not.toBe(socket);

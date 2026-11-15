@@ -55,7 +55,8 @@ def schema_aus_scope(scope) -> str:
                 proto = wert.decode("latin-1").split(",")[0].strip().lower()
                 if proto in ("http", "https"):
                     return proto
-    return scope.get("scheme") or "http"
+    schema = scope.get("scheme") or "http"
+    return {"ws": "http", "wss": "https"}.get(schema, schema)
 
 
 def origin_gueltig(
@@ -76,12 +77,10 @@ def origin_gueltig(
         return False
     if not _host_passt(host):
         return False
-    if settings.CSRF_TRUSTED_ORIGINS:
-        # Ausdrücklich konfigurierte Origins gelten exakt, samt Port.
-        return f"{teile.scheme}://{teile.netloc}" in erlaubte_origins()
+    origin_wert = f"{teile.scheme}://{teile.netloc}"
+    if settings.CSRF_TRUSTED_ORIGINS and origin_wert in erlaubte_origins():
+        return True
     if teile.scheme != (schema or _schema()):
         return False
-    # Wie Djangos CSRF-Prüfung: exakt gegen den Anfragehost, samt Port.
-    return host is not None and f"{teile.scheme}://{teile.netloc}".lower() == (
-        f"{teile.scheme}://{host}".lower()
-    )
+    # Wie Djangos CSRF-Prüfung: derselbe Host ist auch ohne Listeneintrag gültig.
+    return host is not None and origin_wert.lower() == f"{teile.scheme}://{host}".lower()

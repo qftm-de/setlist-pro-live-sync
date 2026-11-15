@@ -47,7 +47,6 @@ class SetlistListe(generics.ListCreateAPIView):
                     serializer.instance.band,
                     "setlist.created",
                     id=serializer.instance.id,
-                    actor_id=self.request.user.id,
                 )
         except IntegrityError:
             # Zwei gleichzeitige Anfragen haben die Prüfung beide passiert.
@@ -82,7 +81,6 @@ class SetlistDetail(generics.RetrieveUpdateDestroyAPIView):
                 setlist.band,
                 "setlist.updated",
                 id=setlist.id,
-                actor_id=self.request.user.id,
             )
 
     def perform_destroy(self, instance):
@@ -94,7 +92,6 @@ class SetlistDetail(generics.RetrieveUpdateDestroyAPIView):
                 band,
                 "setlist.deleted",
                 id=kennung,
-                actor_id=self.request.user.id,
             )
 
     def get_serializer_context(self):
@@ -118,7 +115,6 @@ class SetlistInhalt(generics.GenericAPIView):
                     setlist.band,
                     "setlist.content",
                     id=setlist.id,
-                    actor_id=self.request.user.id,
                 )
         except Setlist.DoesNotExist as fehler:
             # Ein anderes Mitglied hat die Setlist im selben Moment gelöscht.

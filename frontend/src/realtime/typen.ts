@@ -34,10 +34,11 @@ export interface WebSocketLike {
 
 export interface SyncOptionen {
   bandId: string;
-  ladeAbgleich: (bandId: string) => Promise<{ counters: Zaehler }>;
+  ladeAbgleich: (bandId: string) => Promise<{ counters: Zaehler; daten?: unknown }>;
   beiEreignis: (ereignis: Ereignis) => void;
   beiZustand: (zustand: Verbindungszustand) => void;
-  beiAbgleich?: () => void;
+  beiAbgleich?: (daten: unknown) => void;
+  beiVerbindungsverlust?: () => void;
   socketBauen?: (url: string) => WebSocketLike;
   zeit?: Zeitgeber;
   zufall?: () => number;

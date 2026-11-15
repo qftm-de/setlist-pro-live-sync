@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { behandleFehler } from "../api/client";
 import "../gigs/gigs.css";
-import type { Gig, GigAdapter, GigEingabe } from "../gigs/gigs";
+import type { Gig, GigAdapter, GigEingabe, GigGruppen } from "../gigs/gigs";
 import { useGigs } from "../gigs/useGigs";
 import type { SetlistAdapter, SetlistKurz } from "../setlists/setlists";
 import { AuftrittFormular } from "./AuftrittFormular";
@@ -15,6 +15,7 @@ interface AuftritteProps {
   setlistAdapter: SetlistAdapter;
   onNavigieren: (pfad: string) => void;
   aktualisierung?: number;
+  vorgabe?: GigGruppen | null;
   onSitzungAbgelaufen?: () => void;
 }
 
@@ -24,12 +25,14 @@ export function Auftritte({
   setlistAdapter,
   onNavigieren,
   aktualisierung = 0,
+  vorgabe = null,
   onSitzungAbgelaufen,
 }: AuftritteProps) {
   const { zustand, abgleichFehler, ladeNeu } = useGigs(
     adapter,
     bandId,
     onSitzungAbgelaufen,
+    vorgabe,
   );
   const [setlists, setSetlists] = useState<SetlistKurz[] | null>(null);
   const [setlistFehler, setSetlistFehler] = useState<string | null>(null);

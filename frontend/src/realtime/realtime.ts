@@ -118,6 +118,7 @@ export class BandSync {
         return;
       }
       this.melde("unterbrochen");
+      this.optionen.beiVerbindungsverlust?.();
       this.planeNeu(++this.versuch);
     };
   }
@@ -144,7 +145,7 @@ export class BandSync {
       this.zaehler = { ...daten.counters };
       this.abgleichAktiv = false;
       this.versuch = 0;
-      this.optionen.beiAbgleich?.();
+      this.optionen.beiAbgleich?.(daten.daten);
       this.melde("verbunden");
       this.verarbeitePuffer();
       this.startHeartbeat();
@@ -248,7 +249,8 @@ export class BandSync {
     }
     if (nachricht.type === "closed") {
       this.aufgeben = true;
-      this.melde("unterbrochen");
+      this.melde("abgleich-fehlgeschlagen");
+      this.optionen.beiVerbindungsverlust?.();
       this.raeumeZeit();
       const socket = this.socket;
       this.socket = null;

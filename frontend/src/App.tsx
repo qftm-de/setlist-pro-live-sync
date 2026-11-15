@@ -13,6 +13,7 @@ import { apiGigs } from "./gigs/gigs";
 import { useBandSync } from "./realtime/useBandSync";
 import { VerbindungsStatus } from "./realtime/VerbindungsStatus";
 import type { Ereignis } from "./realtime/typen";
+import type { SyncDaten } from "./realtime/daten";
 import { parseRoute } from "./routing";
 import { apiSitzung } from "./session/session";
 import { apiSetlists } from "./setlists/setlists";
@@ -52,6 +53,7 @@ export function App({
   const [ereignisMarke, setEreignisMarke] = useState(0);
   const [dokumentMarke, setDokumentMarke] = useState(0);
   const [setlistMarke, setSetlistMarke] = useState(0);
+  const [syncStand, setSyncStand] = useState<SyncDaten | null>(null);
   const { navigiere, registriereWaechter, mitWaechter, istGeschuetzt } =
     useNavigationsWaechter((ziel) => {
       window.history.pushState({}, "", ziel);
@@ -118,11 +120,7 @@ export function App({
           setSitzung({ status: "anonym" });
           return;
         }
-        setSitzung({
-          status: "angemeldet",
-          benutzername: geladen.benutzername ?? "",
-          benutzerId: geladen.benutzerId,
-        });
+        setSitzung({ status: "angemeldet", benutzername: geladen.benutzername ?? "" });
         bandAdapter
           .ladeBands()
           .then((liste) => {
@@ -158,9 +156,8 @@ export function App({
 
   const bandDaten = useBandDaten(bandAdapter, bandId, datenVersion);
 
-  const benutzerId = sitzung.status === "angemeldet" ? sitzung.benutzerId : undefined;
-
   const beiEchtzeitEreignis = useCallback((ereignis: Ereignis) => {
+    setSyncStand(null);
     setEreignisMarke((wert) => wert + 1);
     if (ereignis.stream === "band") {
       setDatenVersion((wert) => wert + 1);
@@ -171,16 +168,17 @@ export function App({
     ) {
       setDokumentMarke((wert) => wert + 1);
     }
-    if (
-      ereignis.event.startsWith("setlist.") &&
-      ereignis.data.actor_id !== benutzerId
-    ) {
+    if (ereignis.event.startsWith("setlist.")) {
       setSetlistMarke((wert) => wert + 1);
     }
-  }, [benutzerId]);
+  }, []);
 
-  const beiAbgleich = useCallback(() => {
-    setDatenVersion((wert) => wert + 1);
+  const beiAbgleich = useCallback((daten: unknown) => {
+    const stand = daten as SyncDaten | undefined;
+    if (!stand || !stand.band) {
+      return;
+    }
+    setSyncStand(stand);
     setEreignisMarke((wert) => wert + 1);
     setDokumentMarke((wert) => wert + 1);
     setSetlistMarke((wert) => wert + 1);
@@ -195,10 +193,25 @@ export function App({
   );
 
   useEffect(() => {
+    setSyncStand(null);
+  }, [bandId]);
+
+  useEffect(() => {
     if (bandDaten.status === "fehler" && bandDaten.code === "unauthenticated") {
       setSitzung({ status: "anonym" });
     }
   }, [bandDaten]);
+
+  const syncPasst =
+    bandDaten.status === "fertig" &&
+    syncStand !== null &&
+    String(syncStand.band.id) === bandDaten.daten.bandId;
+  const songsFuerListe =
+    syncPasst && syncStand
+      ? syncStand.songs
+      : bandDaten.status === "fertig"
+        ? bandDaten.daten.songs
+        : [];
 
   const titel =
     konfiguration.status === "fertig" ? konfiguration.konfiguration.instanceName : appName;
@@ -308,7 +321,8 @@ export function App({
               <Setlists
                 key={bandDaten.daten.bandId}
                 bandId={bandDaten.daten.bandId}
-                songs={bandDaten.daten.songs}
+                songs={songsFuerListe}
+                vorgabe={syncPasst && syncStand ? syncStand.setlists : null}
                 adapter={setlistAdapter}
                 initialSetlistId={route.setlistId}
                 aktualisierung={setlistMarke}
@@ -321,6 +335,7 @@ export function App({
                 adapter={gigAdapter}
                 setlistAdapter={setlistAdapter}
                 aktualisierung={ereignisMarke}
+                vorgabe={syncPasst && syncStand ? syncStand.gigs : null}
                 onNavigieren={navigiere}
                 onSitzungAbgelaufen={sitzungAbgelaufen}
               />
@@ -342,7 +357,7 @@ export function App({
                 key={bandDaten.daten.bandId}
                 bandId={bandDaten.daten.bandId}
                 adapter={bandAdapter}
-                songs={bandDaten.daten.songs}
+                songs={songsFuerListe}
                 onNavigieren={navigiere}
                 onGeaendert={() => setDatenVersion((wert) => wert + 1)}
                 onSitzungAbgelaufen={sitzungAbgelaufen}

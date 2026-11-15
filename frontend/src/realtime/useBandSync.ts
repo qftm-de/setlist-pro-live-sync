@@ -10,12 +10,13 @@ export interface BandSyncZustand {
 
 interface AbgleichAntwort {
   counters: { band: number; personal: number };
+  [feld: string]: unknown;
 }
 
 export function useBandSync(
   bandId: string | null,
   beiEreignis: (ereignis: Ereignis) => void,
-  beiAbgleich: () => void,
+  beiAbgleich: (daten: unknown) => void,
   beiSitzungAbgelaufen: () => void,
   aktiv = true,
 ): BandSyncZustand {
@@ -28,6 +29,14 @@ export function useBandSync(
   abgleichRef.current = beiAbgleich;
   sitzungRef.current = beiSitzungAbgelaufen;
 
+  const pruefeSitzung = useCallback(() => {
+    void apiFetch("/api/session/").catch((fehler: unknown) => {
+      if (fehler instanceof ApiFehler && fehler.code === "unauthenticated") {
+        sitzungRef.current();
+      }
+    });
+  }, []);
+
   useEffect(() => {
     if (bandId === null || !aktiv) {
       setZustand("verbinden");
@@ -38,9 +47,9 @@ export function useBandSync(
       ladeAbgleich: async (id) => {
         try {
           const antwort = await apiFetch<AbgleichAntwort>(
-            `/api/bands/${encodeURIComponent(id)}/sync/?nur_zaehler=1`,
+            `/api/bands/${encodeURIComponent(id)}/sync/`,
           );
-          return { counters: antwort.counters };
+          return { counters: antwort.counters, daten: antwort };
         } catch (fehler) {
           if (fehler instanceof ApiFehler && fehler.code === "unauthenticated") {
             sitzungRef.current();
@@ -50,7 +59,8 @@ export function useBandSync(
       },
       beiEreignis: (ereignis) => ereignisRef.current(ereignis),
       beiZustand: setZustand,
-      beiAbgleich: () => abgleichRef.current(),
+      beiAbgleich: (daten) => abgleichRef.current(daten),
+      beiVerbindungsverlust: pruefeSitzung,
     });
     clientRef.current = client;
     client.start();
@@ -60,7 +70,7 @@ export function useBandSync(
         clientRef.current = null;
       }
     };
-  }, [aktiv, bandId]);
+  }, [aktiv, bandId, pruefeSitzung]);
 
   const erneutVersuchen = useCallback(() => {
     clientRef.current?.erneutVersuchen();

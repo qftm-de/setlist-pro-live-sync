@@ -12,6 +12,7 @@ interface SetlistsProps {
   adapter: SetlistAdapter;
   initialSetlistId?: number | null;
   aktualisierung?: number;
+  vorgabe?: Array<{ id: number; name: string }> | null;
   onSitzungAbgelaufen?: () => void;
 }
 
@@ -21,6 +22,7 @@ export function Setlists({
   adapter,
   initialSetlistId = null,
   aktualisierung = 0,
+  vorgabe = null,
   onSitzungAbgelaufen,
 }: SetlistsProps) {
   const [liste, setListe] = useState<SetlistKurz[] | null>(null);
@@ -40,6 +42,14 @@ export function Setlists({
   const initialRef = useRef(initialSetlistId);
   const listeGeladen = useRef(false);
   const markeRef = useRef(aktualisierung);
+  const vorgabeRef = useRef(vorgabe);
+  vorgabeRef.current = vorgabe;
+
+  useEffect(() => {
+    if (vorgabe) {
+      setListe(vorgabe);
+    }
+  }, [vorgabe]);
 
   useEffect(() => {
     const vorher = initialRef.current;

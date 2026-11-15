@@ -17,16 +17,29 @@ export function useGigs(
   adapter: GigAdapter,
   bandId: string,
   onSitzungAbgelaufen?: () => void,
+  vorgabe?: GigGruppen | null,
 ): GigsLaden {
   const [zustand, setZustand] = useState<GigsZustand>({ status: "laedt" });
   const [abgleichFehler, setAbgleichFehler] = useState<string | null>(null);
   const lauf = useRef(0);
+  const vorgabeRef = useRef(vorgabe);
+  vorgabeRef.current = vorgabe;
+
+  useEffect(() => {
+    if (vorgabe) {
+      setZustand({ status: "fertig", gruppen: vorgabe });
+      setAbgleichFehler(null);
+    }
+  }, [vorgabe]);
 
   const laden = useCallback(async () => {
     const token = ++lauf.current;
     try {
       const gruppen = await adapter.ladeGigs(bandId);
       if (token !== lauf.current) {
+        return false;
+      }
+      if (vorgabeRef.current) {
         return false;
       }
       setZustand({ status: "fertig", gruppen });
