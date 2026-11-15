@@ -4,6 +4,7 @@
   "description": "Gate-Skripte und Harness für setlist-pro-live-sync. Kein Produktcode.",
   "type": "module",
   "dependencies": {
+    "ws": "^8.23.0",
     "yaml": "^2.8.0"
   }
 }

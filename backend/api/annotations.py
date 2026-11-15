@@ -15,6 +15,7 @@ from rest_framework.views import APIView
 from annotations.models import Annotation
 from bands.models import Membership
 from documents.models import DocumentVersion
+from realtime.services import band_ereignis, persoenliches_ereignis
 
 from .annotation_serializers import (
     AnnotationAenderungSerializer,
@@ -90,6 +91,7 @@ class AnnotationListe(APIView):
                     author=request.user,
                     **eingabe.validated_data,
                 )
+                self._melde(band, version, annotation)
         except IntegrityError:
             bestehend = Annotation.objects.filter(uuid=kennung).first()
             if bestehend is None:
@@ -101,6 +103,13 @@ class AnnotationListe(APIView):
         return Response(
             daten(annotation, request, owner), status=status.HTTP_201_CREATED
         )
+
+    def _melde(self, band, version, annotation: Annotation) -> None:
+        daten = {"id": annotation.id, "version_id": version.id}
+        if annotation.visibility == Annotation.SICHTBAR_BAND:
+            band_ereignis(band, "annotation.created", **daten)
+        else:
+            persoenliches_ereignis(band, annotation.author, "annotation.created", **daten)
 
     def _wiederholung(self, bestehend, eingabe, request, owner, version) -> Response:
         gleich = (
@@ -167,6 +176,7 @@ class AnnotationDetail(APIView):
                     {"detail": "Die Anmerkung wurde inzwischen geändert."},
                     status=status.HTTP_409_CONFLICT,
                 )
+            vorher_band = gesperrt.visibility == Annotation.SICHTBAR_BAND
             eingabe = AnnotationAenderungSerializer(
                 instance=gesperrt,
                 data=request.data,
@@ -178,7 +188,22 @@ class AnnotationDetail(APIView):
                 setattr(gesperrt, feld, wert)
             gesperrt.revision += 1
             gesperrt.save()
+            self._melde_aenderung(band, version, gesperrt, vorher_band)
         return Response(daten(gesperrt, request, ist_owner(band, request.user)))
+
+    def _melde_aenderung(self, band, version, annotation: Annotation, vorher_band: bool) -> None:
+        daten = {"id": annotation.id, "version_id": version.id}
+        jetzt_band = annotation.visibility == Annotation.SICHTBAR_BAND
+        if vorher_band and jetzt_band:
+            band_ereignis(band, "annotation.updated", **daten)
+        elif vorher_band and not jetzt_band:
+            band_ereignis(band, "annotation.entfernt", **daten)
+            persoenliches_ereignis(band, annotation.author, "annotation.updated", **daten)
+        elif not vorher_band and jetzt_band:
+            persoenliches_ereignis(band, annotation.author, "annotation.entfernt", **daten)
+            band_ereignis(band, "annotation.created", **daten)
+        else:
+            persoenliches_ereignis(band, annotation.author, "annotation.updated", **daten)
 
     def delete(self, request, band_id: int, song_id: int, version_id: int, annotation_id: int):
         band, _, annotation = self._objekt(
@@ -205,6 +230,21 @@ class AnnotationDetail(APIView):
                 return Response(
                     {"detail": "Die Anmerkung wurde inzwischen geändert."},
                     status=status.HTTP_409_CONFLICT,
+                )
+            if gesperrt.visibility == Annotation.SICHTBAR_BAND:
+                band_ereignis(
+                    band,
+                    "annotation.entfernt",
+                    id=gesperrt.id,
+                    version_id=version_id,
+                )
+            else:
+                persoenliches_ereignis(
+                    band,
+                    gesperrt.author,
+                    "annotation.entfernt",
+                    id=gesperrt.id,
+                    version_id=version_id,
                 )
             gesperrt.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

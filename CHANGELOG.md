@@ -102,9 +102,38 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   Rechte, Ranges, Konflikte und Löschschutz, dazu echte Browser-Smokes mit
   Chromium für PDF.js, Zoom, Rotation, CropBox, Touch, Entwürfe und
   Anmerkungsgeometrie. CI baut den Kern und installiert Chromium.
+- Echtzeit-Abgleich (R13): authentifizierter WebSocket je Tab und Band
+  unter `/ws/bands/<id>/` mit exaktem Origin, Session- und
+  Mitgliedschaftsprüfung. Band- und persönliche Ereignisse laufen in
+  getrennten Strömen mit eigenen Zählern. Jede Mutation schreibt ihr
+  Ausgangsereignis in derselben PostgreSQL-Transaktion; ein eigener
+  Relay-Dienst veröffentlicht wiederholt über Redis. Abgleich,
+  Heartbeat, Wiederverbindung und Lückenerkennung halten Geräte aktuell.
+  Daphne/ASGI ersetzt Gunicorn, nginx und Vite proxien `/ws`.
+- `scripts/verify-realtime.mjs`: baut den Core, prüft Ausgangspuffer,
+  Relay, Abgleich, Rechte und den Redis-Ausfall im echten Container.
 
 ### Fixed
 
+- Drittreview R13: Entfernte Auftritte und Setlists bleiben im offenen
+  Formular als gelöscht markiert, der Entwurf bleibt erhalten und das
+  Speichern ist gesperrt; vergangene Auftritte behalten dabei ihre Gruppe.
+  Der WebSocket begrenzt Verbindungen je Konto und Band sowie die
+  Ping-Frequenz. Das Relay liest den Ausgangspuffer alle 50 Millisekunden,
+  damit der Lastlauf die 1.000-Millisekunden-Grenze stabil hält. Lokale
+  PDFs unter `docs/` sind ignoriert. Die Frontend-Tests laufen mit
+  begrenzter Worker-Zahl stabiler.
+- Zweitreview R13: Der CI-Job `kern` installiert die Root-Abhängigkeiten
+  (auch `ws`). Anmerkungen behalten die Revision aus dem geöffneten Formular,
+  gelöschte Anmerkungen bleiben als gelöscht markiert samt Entwurf, der
+  Setlist-Hinweis erscheint nur bei Setlist-Ereignissen, und ein manipulierter
+  Origin wird ohne Ausnahme abgelehnt.
+- Review R13: Origin-Vergleich berücksichtigt den Port des Standard-Webs,
+  der Vollabgleich stößt das Nachladen der Oberfläche an, persönliche
+  Ereignisse erreichen die Anmerkungs- und Dokumentansicht, das Relay räumt
+  den Ausgangspuffer im Dauerbetrieb auf, und `verify-realtime.mjs` öffnet
+  echte WebSockets über nginx. Der Lastlauf mit 50 Verbindungen über fünf
+  Bands prüft die 1.000-Millisekunden-Grenze.
 - Nebenläufige Anlage derselben Anmerkungs-UUID endet kontrolliert: gleiche
   Daten liefern die vorhandene Anmerkung, abweichende Daten 409. Vorher
   konnte der Unique-Constraint als 500 durchschlagen (Review F1).

@@ -26,6 +26,7 @@ interface DokumentAnsichtProps {
   adapter: DokumentAdapter;
   anmerkungAdapter?: AnmerkungAdapter;
   viewer?: ComponentType<PdfViewerProps>;
+  aktualisierung?: number;
   registriereWaechter?: (waechter: ((weiter: () => void) => void) | null) => void;
   onSitzungAbgelaufen?: () => void;
 }
@@ -45,6 +46,7 @@ export function DokumentAnsicht({
   adapter,
   anmerkungAdapter = apiAnmerkungen,
   viewer: Viewer = PdfViewer,
+  aktualisierung = 0,
   registriereWaechter,
   onSitzungAbgelaufen,
 }: DokumentAnsichtProps) {
@@ -54,16 +56,32 @@ export function DokumentAnsicht({
   const [laedt, setLaedt] = useState(true);
   const [versionId, setVersionId] = useState<number | null>(null);
   const [versionHinweis, setVersionHinweis] = useState<string | null>(null);
+  const [aktiveVersionHinweis, setAktiveVersionHinweis] = useState<string | null>(null);
   const [datei, setDatei] = useState<{ versionId: number; daten: ArrayBuffer } | null>(null);
   const [dateiZustand, setDateiZustand] = useState<DateiZustand>("leer");
   const [dateiFehler, setDateiFehler] = useState<string | null>(null);
   const [aktionsFehler, setAktionsFehler] = useState<string | null>(null);
   const [beschaeftigt, setBeschaeftigt] = useState(false);
   const [neuLaden, setNeuLaden] = useState(0);
+  const markeRef = useRef(aktualisierung);
+  const letzteAktive = useRef<number | null | undefined>(undefined);
+  const dokumentRef = useRef<Dokument | null>(null);
+  const versionIdRef = useRef<number | null>(versionId);
+  versionIdRef.current = versionId;
+
+  useEffect(() => {
+    if (aktualisierung === markeRef.current) {
+      return;
+    }
+    markeRef.current = aktualisierung;
+    setNeuLaden((wert) => wert + 1);
+  }, [aktualisierung]);
 
   useEffect(() => {
     let aktiv = true;
-    setLaedt(true);
+    if (dokumentRef.current === null) {
+      setLaedt(true);
+    }
     setLadeFehler(null);
     adapter
       .lade(bandId, songId)
@@ -71,6 +89,20 @@ export function DokumentAnsicht({
         if (!aktiv) {
           return;
         }
+        const vorherAktiv = letzteAktive.current;
+        const jetztAktiv = geladen.active_version_id;
+        letzteAktive.current = jetztAktiv;
+        if (
+          vorherAktiv !== undefined &&
+          vorherAktiv !== jetztAktiv &&
+          jetztAktiv !== null &&
+          jetztAktiv !== versionIdRef.current
+        ) {
+          setAktiveVersionHinweis(
+            "Eine neue PDF-Version wurde aktiviert. Die geöffnete Ansicht bleibt.",
+          );
+        }
+        dokumentRef.current = geladen;
         setDokument(geladen);
         setLaedt(false);
       })
@@ -90,6 +122,12 @@ export function DokumentAnsicht({
       aktiv = false;
     };
   }, [adapter, bandId, neuLaden, onSitzungAbgelaufen, songId]);
+
+  useEffect(() => {
+    if (dokument && dokument.active_version_id === versionId) {
+      setAktiveVersionHinweis(null);
+    }
+  }, [dokument, versionId]);
 
   useEffect(() => {
     if (!dokument) {
@@ -235,6 +273,7 @@ export function DokumentAnsicht({
             <p>Für diesen Song ist noch keine PDF hinterlegt.</p>
           ) : null}
           {versionHinweis ? <p role="status">{versionHinweis}</p> : null}
+          {aktiveVersionHinweis ? <p role="status">{aktiveVersionHinweis}</p> : null}
           {aktionsFehler ? <p role="alert">{aktionsFehler}</p> : null}
           <VersionsListe
             versionen={dokument.versions}
@@ -254,6 +293,7 @@ export function DokumentAnsicht({
               {datei && datei.versionId === versionId && dateiZustand === "fertig" && angezeigteVersion ? (
                 <AnmerkungsBereich
                   ref={anmerkungsRef}
+                  aktualisierung={aktualisierung}
                   bandId={bandId}
                   songId={songId}
                   versionId={versionId}

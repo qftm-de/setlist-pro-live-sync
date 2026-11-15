@@ -35,6 +35,7 @@ export interface FormularHandle {
 interface FormularProps {
   art: "neu" | "bearbeiten";
   anmerkung: Anmerkung | null;
+  geloescht?: boolean;
   start: FormularWerte | null;
   seiten: number;
   onSpeichern: (werte: FormularWerte) => Promise<void>;
@@ -48,6 +49,7 @@ function FormularInner(
   {
     art,
     anmerkung,
+    geloescht = false,
     start,
     seiten,
     onSpeichern,
@@ -93,6 +95,9 @@ function FormularInner(
   }
 
   async function speichern(): Promise<boolean> {
+    if (geloescht) {
+      return false;
+    }
     if (!gueltig(geometrie) || seite < 1 || seite > seiten) {
       setFehler("Rechteck und Seite müssen gültig sein.");
       return false;
@@ -134,7 +139,7 @@ function FormularInner(
   }));
 
   async function loeschen() {
-    if (!onLoeschen) {
+    if (geloescht || !onLoeschen) {
       return;
     }
     setSpeichert(true);
@@ -232,9 +237,14 @@ function FormularInner(
         onGeometrie={(neu) => aendern({ geometry: neu })}
         onSeite={(neu) => aendern({ page_number: neu })}
       />
+      {geloescht ? (
+        <p role="alert">
+          Diese Anmerkung wurde inzwischen gelöscht. Dein Entwurf bleibt erhalten.
+        </p>
+      ) : null}
       {fehler ? <p role="alert">{fehler}</p> : null}
       <div className="anmerkung-aktionen">
-        <button type="button" onClick={speichern} disabled={speichert}>
+        <button type="button" onClick={speichern} disabled={speichert || geloescht}>
           {speichert ? "Speichert …" : "Anmerkung speichern"}
         </button>
         <button type="button" onClick={onAbbrechen} disabled={speichert}>
@@ -243,7 +253,7 @@ function FormularInner(
         {onLoeschen ? (
           loeschenBestaetigen ? (
             <>
-              <button type="button" onClick={loeschen} disabled={speichert}>
+              <button type="button" onClick={loeschen} disabled={speichert || geloescht}>
                 Löschen bestätigen
               </button>
               <button type="button" onClick={() => setLoeschenBestaetigen(false)}>
@@ -251,7 +261,11 @@ function FormularInner(
               </button>
             </>
           ) : (
-            <button type="button" onClick={() => setLoeschenBestaetigen(true)}>
+            <button
+              type="button"
+              disabled={geloescht}
+              onClick={() => setLoeschenBestaetigen(true)}
+            >
               Anmerkung löschen
             </button>
           )

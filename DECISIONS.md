@@ -39,6 +39,14 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 - Anmerkungsgeometrie liegt normalisiert im kanonischen Seitenraum und wird über PDF.js-Viewports umgerechnet. Grund: CropBox, eingebaute Drehung und Viewer-Zoom dürfen die Position nicht verschieben.
 - Browser-Zurück mit ungespeichertem Entwurf stellt die URL per `pushState` wieder her und akzeptiert einen zusätzlichen History-Eintrag. Grund: `replaceState` würde das eigentliche Rücksprungziel verwerfen; der Entwurf hat Vorrang vor einem perfekten Stack.
 
+## Echtzeit
+
+- Mutation und Ausgangsereignis liegen in derselben PostgreSQL-Transaktion (Outbox). Grund: Ein Rollback darf weder Ereignis noch Bestätigung hinterlassen, und Redis darf einen erfolgreichen Commit nicht nachträglich zum Fehler machen.
+- Ein eigener Relay-Dienst veröffentlicht den Ausgangspuffer wiederholt und mindestens einmal. Grund: Netzfunktionen gehören nicht in die Fachtransaktion; Redis-Ausfall verzögert nur den Abgleich.
+- Jeder sichtbare Strom hat einen eigenen Zähler, erhöht unter Zeilensperre. Grund: Eine globale Datenbanksequenz erzeugt scheinbare Lücken, sobald persönliche Ereignisse getrennt laufen.
+- Band- und persönliche Ereignisse nutzen getrennte Channels-Gruppen. Bandereignisse tragen keine persönlichen Inhalte oder Kennungen. Grund: Privatisierte Anmerkungen dürfen im Bandstrom nicht nachträglich auftauchen.
+- WebSocket-Aufbau verlangt exakten Origin, aktive Session und Mitgliedschaft; Rechte werden alle 20 Sekunden und vor jeder Auslieferung neu geprüft. Grund: Eine offene Verbindung ist keine dauerhafte Berechtigung.
+
 ## GitHub
 
 - `main` ist geschützt: Force-Push und Löschen sind aus, Pflicht-Checks sind `gate`, `frontend` und `backend`. Admins kommen im Notfall vorbei, damit eine Reparatur nicht an der Regel scheitert.

@@ -76,6 +76,18 @@
   - Zweitreview F1 bis F4 behoben: UUID-Fallback ohne feste Kennung, aktive Proxy-Grenze mit 256-KiB-Stack exakt geprüft, Song-Löschung während des Uploads als 404 und IntegrityError-Pfad der Anmerkungsanlage mit 200 und 409 getestet.
   - Drittreview F1 bis F3 behoben: skalare JSON-Körper liefern 400, verschwundene Anmerkungen bei PATCH und DELETE 404, und der Browser-Zurück-Weg nutzt denselben Entwurfswächter wie die übrigen Wechsel.
 
+- Paket 6 umgesetzt (R13, 2026-11-15):
+  - `realtime` speichert je Band und je Band/Konto einen Strom mit eigenem Zähler. Zähler und Ereignis entstehen unter Zeilensperre in derselben Transaktion wie die Fachdaten. Ein Rollback hinterlässt weder Ereignis noch Bestätigung.
+  - Der Dienst `relay` veröffentlicht den Ausgangspuffer wiederholt über Redis. Fehlgeschlagene Veröffentlichungen bleiben offen, Duplikate sind erlaubt. Ereignisse bleiben sieben Tage, unveröffentlichte länger.
+  - Daphne/ASGI ersetzt Gunicorn. nginx und Vite proxien `/ws`, der Consumer prüft exakten Origin, Session, aktives Konto und Mitgliedschaft beim Aufbau, alle 20 Sekunden und vor jeder Auslieferung.
+  - Band- und persönliche Ströme sind getrennt. Persönliche Anmerkungen erzeugen nur Ereignisse im persönlichen Strom. Beim Privatisieren erhält der Bandstrom ausschließlich eine Entfernen-Meldung ohne Inhalt.
+  - `GET /api/bands/{id}/sync/` liefert Bestandsdaten und Zähler aus einem PostgreSQL-Snapshot. Ein neuer Abgleich läuft nach Wiederverbindung, Lücke oder verlorenem letzten Ereignis.
+  - Frontend: stiller Sync-Client mit Heartbeat, Wiederverbindung zwischen 1 und 30 Sekunden, Lückenerkennung, sichtbarem Verbindungszustand und erneutem Versuch. Banddaten, Setlist-Liste und Auftritte laden bei Bandereignissen nach, ohne offene Entwürfe zu ersetzen.
+  - `scripts/verify-realtime.mjs R13` prüft Backend, Frontend, Abgleich, Rechte, API-Neustart und Redis-Ausfall im Container. Ein echter WebSocket-Client prüft Handshake über nginx, Origin-Ablehnung, zwei Autor-Tabs, Mitgliedsempfang, Entzug, Privatsphäre und die 1.000-Millisekunden-Grenze. Der Lastlauf nutzt 50 Verbindungen über fünf Bands und 100 bestätigte Änderungen.
+  - Review R13 behoben: Port im Origin-Vergleich, Abgleichdaten lösen das Nachladen aus, persönliche Ereignisse aktualisieren Dokument und Anmerkungen, entfernte Songs bleiben im offenen Formular markiert, das Relay räumt stündlich auf.
+  - Drittreview R13 behoben: Löschmarken für entfernte Auftritte und Setlists (vergangene Auftritte bleiben in ihrer Gruppe), Verbindungs- und Ping-Grenzen am WebSocket, schnellere Relay-Abfrage für die Latenzgrenze, lokale PDFs unter `docs/` ignoriert, begrenzte Test-Worker gegen Lastflackern.
+  - Zweitreview R13 behoben: Root-`npm ci` im CI-Job `kern`, eingefrorene Bearbeitungsrevision für Anmerkungen, Löschmarke für entfernte Anmerkungen mit erhaltenem Entwurf, Setlist-Hinweis nur bei `setlist.`-Ereignissen, robuste Origin-Prüfung bei manipulierten Ports. R14 und R15 folgen als eigene Pakete mit eigenen R-Zeilen.
+
 ## Offen
 
 - Firebase und Firestore sind abgekündigt. Der alte Bestand bleibt als lokaler Export in `.tmp/fb/` und ist keine Projektaufgabe mehr. Offen bleibt nur die persönliche Hygiene: ein in der Alt-App sichtbares Passwort bei anderer Gelegenheit rotieren.
@@ -89,9 +101,11 @@
 ## Als Nächstes
 
 1. Sichtprüfung der Auftritte und PDFs auf Mobilformat und Desktop nachholen; die Chromium-Smokes prüfen die Funktion, nicht die Gestaltung.
-2. Danach Echtzeit-Abgleich, Bühnenmodus und Export als eigene R-Zeilen.
-3. Paket 10 und 11: Betrieb, private Auslieferung, Pilot-Abnahme.
-4. Erst danach der Hub als eigene Instanz.
+2. R14 gemeinsame Bearbeitung umsetzen: Setlist-UUIDs, Revision, Einzelbefehle, CRDT-Texte und Anmerkungsrechte.
+3. R15 Bühnensitzung umsetzen: Snapshot, Leitung, Folgen.
+4. Danach Export als eigene R-Zeile.
+5. Paket 10 und 11: Betrieb, private Auslieferung, Pilot-Abnahme.
+6. Erst danach der Hub als eigene Instanz.
 
 ## Hinweis
 

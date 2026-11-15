@@ -44,3 +44,5 @@ kilo.jsonc
 # Playwright-Spuren und Berichte
 frontend/test-results/
 frontend/playwright-report/
+# Lokale Noten und Test-PDFs bleiben außerhalb der Historie
+docs/*.pdf

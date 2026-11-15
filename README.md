@@ -53,7 +53,7 @@ Redis, Docker Compose.
 
 1. `.env` im Repo-Root anlegen. Namen stehen in `backend/.env.example`.
    Pflicht sind ein stabiler `DJANGO_SECRET_KEY` und `POSTGRES_PASSWORD`.
-2. `docker compose up --build` startet Web, API, PostgreSQL und Redis.
+2. `docker compose up --build` startet Web, API, Echtzeit-Relay, PostgreSQL und Redis.
 3. Erstes Konto anlegen, solange die Instanz läuft:
 
    ```bash
@@ -72,7 +72,9 @@ Dieser muss `X-Forwarded-Proto` selbst setzen und eingehende Werte
 überschreiben. API, PostgreSQL und Redis bleiben im Compose-Netz.
 `TRUST_PROXY_HEADERS` ist Pflicht: hinter dem TLS-Proxy `true`, bei lokalem
 HTTP ohne TLS `false`. Für den Proxy zusätzlich `ALLOWED_HOSTS` auf den
-Pilot-Host und `CSRF_TRUSTED_ORIGINS` auf die HTTPS-Origin setzen.
+Pilot-Host und `CSRF_TRUSTED_ORIGINS` auf die HTTPS-Origin setzen. Die
+WebSocket-Verbindung nutzt dieselbe Origin-Prüfung; im Vite-Entwicklungsmodus
+gehört `http://localhost:5173` in `CSRF_TRUSTED_ORIGINS`.
 `APP_MODE=core` ist fest gesetzt; `hub` und fehlende Pflichtwerte verhindern
 den Start. PDFs liegen privat im Volume `documents`; Grenzen und Bereinigung
 stehen in [docs/betrieb.md](docs/betrieb.md).

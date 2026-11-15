@@ -33,6 +33,7 @@ class LaufzeitKonfiguration:
     db_host: str
     db_port: str
     documents_root: str
+    redis_url: str
     pdf_max_upload_bytes: int
     pdf_max_pages: int
     pdf_check_timeout_seconds: int
@@ -115,6 +116,16 @@ def _trust_proxy(environ: Mapping[str, str]) -> bool:
     return wert == "true"
 
 
+def _redis_url(environ: Mapping[str, str]) -> str:
+    roh = _wert(environ, "REDIS_URL") or "redis://cache:6379/0"
+    teile = urlsplit(roh)
+    if teile.scheme not in ("redis", "rediss") or not teile.hostname:
+        raise ImproperlyConfigured(
+            "REDIS_URL braucht redis:// oder rediss:// mit Host."
+        )
+    return roh
+
+
 def _ganzzahl(
     environ: Mapping[str, str], name: str, standard: int, minimum: int = 0
 ) -> int:
@@ -161,6 +172,7 @@ def load_runtime_config(environ: Mapping[str, str] | None = None) -> LaufzeitKon
         db_host=db_host,
         db_port=_wert(env, "POSTGRES_PORT") or "5432",
         documents_root=_wert(env, "DOCUMENTS_ROOT"),
+        redis_url=_redis_url(env),
         pdf_max_upload_bytes=_ganzzahl(
             env, "PDF_MAX_UPLOAD_BYTES", PDF_STANDARD_BYTES
         ),

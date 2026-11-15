@@ -72,10 +72,15 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": "http://localhost:8000",
+      "/ws": {
+        target: "ws://localhost:8000",
+        ws: true,
+      },
     },
   },
   test: {
     environment: "jsdom",
+    maxWorkers: 4,
     setupFiles: ["./src/test-setup.ts"],
     exclude: ["e2e/**", "node_modules/**"],
     testTimeout: 30_000,

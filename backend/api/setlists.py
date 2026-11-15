@@ -3,6 +3,7 @@ from django.http import Http404
 from rest_framework import generics, status
 from rest_framework.response import Response
 
+from realtime.services import band_ereignis
 from setlists.content import ersetze_inhalt
 from setlists.models import NAME_VERGEBEN, Setlist
 
@@ -42,6 +43,11 @@ class SetlistListe(generics.ListCreateAPIView):
         try:
             with transaction.atomic():
                 self.perform_create(serializer)
+                band_ereignis(
+                    serializer.instance.band,
+                    "setlist.created",
+                    id=serializer.instance.id,
+                )
         except IntegrityError:
             # Zwei gleichzeitige Anfragen haben die Prüfung beide passiert.
             return Response(
@@ -68,6 +74,18 @@ class SetlistDetail(generics.RetrieveUpdateDestroyAPIView):
             self.request.user, self.kwargs["band_id"], self.kwargs["setlist_id"]
         )
 
+    def perform_update(self, serializer):
+        with transaction.atomic():
+            setlist = serializer.save()
+            band_ereignis(setlist.band, "setlist.updated", id=setlist.id)
+
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            band = instance.band
+            kennung = instance.id
+            instance.delete()
+            band_ereignis(band, "setlist.deleted", id=kennung)
+
     def get_serializer_context(self):
         return {**super().get_serializer_context(), "band": band_fuer(
             self.request.user, self.kwargs["band_id"]
@@ -83,7 +101,9 @@ class SetlistInhalt(generics.GenericAPIView):
         eingabe = InhaltEingabeSerializer(data=request.data, context={"band": band})
         eingabe.is_valid(raise_exception=True)
         try:
-            ersetze_inhalt(setlist, eingabe.validated_data["sections"])
+            with transaction.atomic():
+                ersetze_inhalt(setlist, eingabe.validated_data["sections"])
+                band_ereignis(setlist.band, "setlist.content", id=setlist.id)
         except Setlist.DoesNotExist as fehler:
             # Ein anderes Mitglied hat die Setlist im selben Moment gelöscht.
             raise Http404 from fehler

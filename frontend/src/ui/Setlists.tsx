@@ -11,6 +11,7 @@ interface SetlistsProps {
   songs: Song[];
   adapter: SetlistAdapter;
   initialSetlistId?: number | null;
+  aktualisierung?: number;
   onSitzungAbgelaufen?: () => void;
 }
 
@@ -19,6 +20,7 @@ export function Setlists({
   songs,
   adapter,
   initialSetlistId = null,
+  aktualisierung = 0,
   onSitzungAbgelaufen,
 }: SetlistsProps) {
   const [liste, setListe] = useState<SetlistKurz[] | null>(null);
@@ -27,8 +29,11 @@ export function Setlists({
   const [laeuft, setLaeuft] = useState(false);
   const [gewaehlt, setGewaehlt] = useState<number | null>(null);
   const [detail, setDetail] = useState<Setlist | null>(null);
+  const [detailHinweis, setDetailHinweis] = useState<string | null>(null);
+  const [detailGeloescht, setDetailGeloescht] = useState(false);
   const initialRef = useRef(initialSetlistId);
   const listeGeladen = useRef(false);
+  const markeRef = useRef(aktualisierung);
 
   useEffect(() => {
     const vorher = initialRef.current;
@@ -73,6 +78,44 @@ export function Setlists({
       aktiv = false;
     };
   }, [adapter, bandId, initialSetlistId, onSitzungAbgelaufen]);
+
+  useEffect(() => {
+    if (aktualisierung === markeRef.current) {
+      return;
+    }
+    markeRef.current = aktualisierung;
+    if (gewaehlt !== null) {
+      setDetailHinweis(
+        "Diese Setlist wurde inzwischen geändert. Dein Entwurf bleibt erhalten.",
+      );
+    }
+    let aktiv = true;
+    adapter
+      .ladeSetlists(bandId)
+      .then((geladen) => {
+        if (!aktiv) {
+          return;
+        }
+        setListe(geladen);
+        if (gewaehlt !== null && !geladen.some((setlist) => setlist.id === gewaehlt)) {
+          setDetailGeloescht(true);
+          setDetailHinweis(null);
+        } else if (gewaehlt !== null) {
+          setDetailGeloescht(false);
+          setDetailHinweis(
+            "Diese Setlist wurde inzwischen geändert. Dein Entwurf bleibt erhalten.",
+          );
+        }
+      })
+      .catch((ursache: unknown) => {
+        if (aktiv) {
+          setFehler(behandleFehler(ursache, onSitzungAbgelaufen));
+        }
+      });
+    return () => {
+      aktiv = false;
+    };
+  }, [adapter, aktualisierung, bandId, gewaehlt, onSitzungAbgelaufen]);
 
   useEffect(() => {
     if (gewaehlt === null) {
@@ -167,6 +210,8 @@ export function Setlists({
                 aria-pressed={gewaehlt === setlist.id}
                 onClick={() => {
                   setFehler(null);
+                  setDetailHinweis(null);
+                  setDetailGeloescht(false);
                   setGewaehlt(setlist.id);
                 }}
               >
@@ -202,6 +247,7 @@ export function Setlists({
       {gewaehlt !== null && detail === null && fehler === null ? (
         <StatusAnzeige zustand="laedt" />
       ) : null}
+      {detailHinweis ? <p role="status">{detailHinweis}</p> : null}
       {detail ? (
         <SetlistEditor
           key={detail.id}
@@ -209,6 +255,7 @@ export function Setlists({
           setlist={detail}
           songs={songs}
           adapter={adapter}
+          geloescht={detailGeloescht}
           onSitzungAbgelaufen={onSitzungAbgelaufen}
         />
       ) : null}

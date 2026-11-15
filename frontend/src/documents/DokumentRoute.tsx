@@ -14,6 +14,7 @@ interface DokumentRouteProps {
   adapter: DokumentAdapter;
   anmerkungAdapter: AnmerkungAdapter;
   viewer?: ComponentType<PdfViewerProps>;
+  aktualisierung?: number;
   registriereWaechter?: (waechter: ((weiter: () => void) => void) | null) => void;
   onSitzungAbgelaufen?: () => void;
 }
@@ -26,6 +27,7 @@ export function DokumentRoute({
   adapter,
   anmerkungAdapter,
   viewer,
+  aktualisierung = 0,
   registriereWaechter,
   onSitzungAbgelaufen,
 }: DokumentRouteProps) {
@@ -42,6 +44,7 @@ export function DokumentRoute({
       adapter={adapter}
       anmerkungAdapter={anmerkungAdapter}
       viewer={viewer}
+      aktualisierung={aktualisierung}
       registriereWaechter={registriereWaechter}
       onSitzungAbgelaufen={onSitzungAbgelaufen}
     />

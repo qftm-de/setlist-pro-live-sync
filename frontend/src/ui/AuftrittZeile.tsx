@@ -11,6 +11,8 @@ interface AuftrittZeileProps {
   setlistFehler: string | null;
   onSetlistsErneutLaden?: () => void;
   gesperrt?: boolean;
+  geloescht?: boolean;
+  onBearbeitung?: (gig: Gig | null) => void;
   onSpeichern: (gig: Gig, eingabe: GigEingabe) => Promise<void>;
   onLoeschen: (gig: Gig) => void;
   onSetlistOeffnen: (setlistId: number) => void;
@@ -24,6 +26,8 @@ export function AuftrittZeile({
   setlistFehler,
   onSetlistsErneutLaden,
   gesperrt = false,
+  geloescht = false,
+  onBearbeitung,
   onSpeichern,
   onLoeschen,
   onSetlistOeffnen,
@@ -42,12 +46,17 @@ export function AuftrittZeile({
           setlists={setlists}
           setlistFehler={setlistFehler}
           onSetlistsErneutLaden={onSetlistsErneutLaden}
-          gesperrt={gesperrt}
+          gesperrt={gesperrt || geloescht}
+          geloescht={geloescht}
           onSpeichern={async (eingabe) => {
             await onSpeichern(gig, eingabe);
             setBearbeiten(false);
+            onBearbeitung?.(null);
           }}
-          onAbbrechen={() => setBearbeiten(false)}
+          onAbbrechen={() => {
+            setBearbeiten(false);
+            onBearbeitung?.(null);
+          }}
           onSitzungAbgelaufen={onSitzungAbgelaufen}
         />
       </li>
@@ -77,7 +86,10 @@ export function AuftrittZeile({
       <button
         type="button"
         disabled={gesperrt}
-        onClick={() => setBearbeiten(true)}
+        onClick={() => {
+          setBearbeiten(true);
+          onBearbeitung?.(gig);
+        }}
       >
         {`${gig.title} ändern`}
       </button>

@@ -11,6 +11,7 @@ import { AnmerkungsFormular, type FormularHandle, type FormularWerte } from "./A
 interface FormulareProps {
   entwurf: Entwurf | null;
   ausgewaehlt: Anmerkung | null;
+  ersatz: Anmerkung | null;
   seiten: number;
   farbe: AnmerkungsFarbe;
   schriftgroesse: Schriftgroesse;
@@ -26,6 +27,7 @@ interface FormulareProps {
 export function AnmerkungsFormulare({
   entwurf,
   ausgewaehlt,
+  ersatz,
   seiten,
   farbe,
   schriftgroesse,
@@ -37,8 +39,9 @@ export function AnmerkungsFormulare({
   onDirtyChange,
   onSitzungAbgelaufen,
 }: FormulareProps) {
-  if (ausgewaehlt && !ausgewaehlt.can_edit) {
-    return <AnmerkungLesen anmerkung={ausgewaehlt} onLoeschen={onLoeschen} />;
+  const angezeigt = ausgewaehlt ?? ersatz;
+  if (angezeigt && !angezeigt.can_edit) {
+    return <AnmerkungLesen anmerkung={angezeigt} onLoeschen={onLoeschen} />;
   }
   if (entwurf) {
     return (
@@ -63,24 +66,27 @@ export function AnmerkungsFormulare({
       />
     );
   }
-  if (ausgewaehlt) {
+  if (angezeigt) {
     return (
       <AnmerkungsFormular
-        key={`edit-${ausgewaehlt.id}`}
+        key={`edit-${angezeigt.id}`}
         ref={formRef}
         art="bearbeiten"
-        anmerkung={ausgewaehlt}
+        anmerkung={angezeigt}
+        geloescht={ausgewaehlt === null}
         start={{
-          page_number: ausgewaehlt.page_number,
-          color: ausgewaehlt.color,
-          visibility: ausgewaehlt.visibility,
-          geometry: ausgewaehlt.geometry,
-          text: ausgewaehlt.text,
-          font_size: ausgewaehlt.font_size ?? 0.0225,
+          page_number: angezeigt.page_number,
+          color: angezeigt.color,
+          visibility: angezeigt.visibility,
+          geometry: angezeigt.geometry,
+          text: angezeigt.text,
+          font_size: angezeigt.font_size ?? 0.0225,
         }}
         seiten={seiten}
         onSpeichern={onSpeichern}
-        onLoeschen={ausgewaehlt.can_delete ? onLoeschen : undefined}
+        onLoeschen={
+          ausgewaehlt && ausgewaehlt.can_delete ? onLoeschen : undefined
+        }
         onAbbrechen={onAbbrechenAuswahl}
         onDirtyChange={onDirtyChange}
         onSitzungAbgelaufen={onSitzungAbgelaufen}

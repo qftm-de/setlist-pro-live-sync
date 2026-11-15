@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { behandleFehler, fehlerText } from "../api/client";
 import type {
   Anmerkung,
@@ -17,7 +17,7 @@ export function useAnmerkungen(
   const [liste, setListe] = useState<Anmerkung[]>([]);
   const [laedt, setLaedt] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
-  const [neuLaden, setNeuLaden] = useState(0);
+  const [ladeMarke, setLadeMarke] = useState(0);
 
   useEffect(() => {
     if (versionId === null) {
@@ -47,7 +47,7 @@ export function useAnmerkungen(
     return () => {
       aktiv = false;
     };
-  }, [adapter, bandId, songId, versionId, neuLaden, onSitzungAbgelaufen]);
+  }, [adapter, bandId, songId, versionId, ladeMarke, onSitzungAbgelaufen]);
 
   async function erstelle(eingabe: AnmerkungEingabe): Promise<Anmerkung> {
     if (versionId === null) {
@@ -81,6 +81,8 @@ export function useAnmerkungen(
     setListe((vorher) => vorher.filter((eintrag) => eintrag.id !== id));
   }
 
+  const neuLaden = useCallback(() => setLadeMarke((wert) => wert + 1), []);
+
   return {
     liste,
     laedt,
@@ -88,7 +90,7 @@ export function useAnmerkungen(
     erstelle,
     aendere,
     loesche,
-    neuLaden: () => setNeuLaden((wert) => wert + 1),
+    neuLaden,
     setListe,
   };
 }

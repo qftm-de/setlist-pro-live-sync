@@ -14,6 +14,7 @@ interface AuftritteProps {
   adapter: GigAdapter;
   setlistAdapter: SetlistAdapter;
   onNavigieren: (pfad: string) => void;
+  aktualisierung?: number;
   onSitzungAbgelaufen?: () => void;
 }
 
@@ -22,6 +23,7 @@ export function Auftritte({
   adapter,
   setlistAdapter,
   onNavigieren,
+  aktualisierung = 0,
   onSitzungAbgelaufen,
 }: AuftritteProps) {
   const { zustand, abgleichFehler, ladeNeu } = useGigs(
@@ -34,8 +36,13 @@ export function Auftritte({
   const [schreibt, setSchreibt] = useState(false);
   const [meldung, setMeldung] = useState(false);
   const [schreibFehler, setSchreibFehler] = useState<string | null>(null);
+  const [offenerGig, setOffenerGig] = useState<{
+    gig: Gig;
+    gruppe: "upcoming" | "past";
+  } | null>(null);
   const setlistLauf = useRef(0);
   const aktiv = useRef(true);
+  const markeRef = useRef(aktualisierung);
 
   useEffect(() => {
     aktiv.current = true;
@@ -43,6 +50,14 @@ export function Auftritte({
       aktiv.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (aktualisierung === markeRef.current) {
+      return;
+    }
+    markeRef.current = aktualisierung;
+    void ladeNeu();
+  }, [aktualisierung, ladeNeu]);
 
   const ladeSetlists = useCallback(async () => {
     const token = ++setlistLauf.current;
@@ -112,6 +127,22 @@ export function Auftritte({
     onNavigieren(`/setlists/${encodeURIComponent(bandId)}/${setlistId}`);
   }
 
+  const alleGigs =
+    zustand.status === "fertig"
+      ? [...zustand.gruppen.upcoming, ...zustand.gruppen.past]
+      : [];
+  const offenEntfernt =
+    offenerGig !== null &&
+    !alleGigs.some((eintrag) => eintrag.id === offenerGig.gig.id);
+
+  function listeMit(gruppe: "upcoming" | "past"): Gig[] {
+    const basis = zustand.status === "fertig" ? zustand.gruppen[gruppe] : [];
+    if (offenerGig?.gruppe === gruppe && offenEntfernt) {
+      return [...basis, offenerGig.gig];
+    }
+    return basis;
+  }
+
   return (
     <section className="auftritte" aria-labelledby="auftritte-titel">
       <h2 id="auftritte-titel">Auftritte</h2>
@@ -126,11 +157,11 @@ export function Auftritte({
         <>
           <div className="auftritt-gruppe">
             <h3>Kommende Auftritte</h3>
-            {zustand.gruppen.upcoming.length === 0 ? (
+            {listeMit("upcoming").length === 0 ? (
               <p>Keine kommenden Auftritte.</p>
             ) : (
               <ul className="auftritt-liste">
-                {zustand.gruppen.upcoming.map((gig) => (
+                {listeMit("upcoming").map((gig) => (
                   <AuftrittZeile
                     key={gig.id}
                     bandId={bandId}
@@ -138,7 +169,13 @@ export function Auftritte({
                     setlists={setlists}
                     setlistFehler={setlistFehler}
                     onSetlistsErneutLaden={() => void ladeSetlists()}
-                    gesperrt={schreibt}
+                    gesperrt={schreibt || offenEntfernt}
+                    geloescht={offenEntfernt && offenerGig?.gig.id === gig.id}
+                    onBearbeitung={(gewaehlt) =>
+                      setOffenerGig(
+                        gewaehlt ? { gig: gewaehlt, gruppe: "upcoming" } : null,
+                      )
+                    }
                     onSpeichern={speichern}
                     onLoeschen={(eintrag) => void loeschen(eintrag)}
                     onSetlistOeffnen={oeffneSetlist}
@@ -150,11 +187,11 @@ export function Auftritte({
           </div>
           <div className="auftritt-gruppe">
             <h3>Vergangene Auftritte</h3>
-            {zustand.gruppen.past.length === 0 ? (
+            {listeMit("past").length === 0 ? (
               <p>Keine vergangenen Auftritte.</p>
             ) : (
               <ul className="auftritt-liste">
-                {zustand.gruppen.past.map((gig) => (
+                {listeMit("past").map((gig) => (
                   <AuftrittZeile
                     key={gig.id}
                     bandId={bandId}
@@ -162,7 +199,13 @@ export function Auftritte({
                     setlists={setlists}
                     setlistFehler={setlistFehler}
                     onSetlistsErneutLaden={() => void ladeSetlists()}
-                    gesperrt={schreibt}
+                    gesperrt={schreibt || offenEntfernt}
+                    geloescht={offenEntfernt && offenerGig?.gig.id === gig.id}
+                    onBearbeitung={(gewaehlt) =>
+                      setOffenerGig(
+                        gewaehlt ? { gig: gewaehlt, gruppe: "past" } : null,
+                      )
+                    }
                     onSpeichern={speichern}
                     onLoeschen={(eintrag) => void loeschen(eintrag)}
                     onSetlistOeffnen={oeffneSetlist}

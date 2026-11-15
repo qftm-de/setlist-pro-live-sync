@@ -123,6 +123,20 @@ function pruefeSchritte(job, name) {
 }
 for (const [name, job] of Object.entries(jobs)) {
   pruefeSchritte(job, name);
+  const text = befehle(job);
+  const nutztNodeSkripte = String(text)
+    .split("\n")
+    .some((zeile) => zeile.trim().startsWith("node scripts/"));
+  const hatRootCi = (job?.steps || []).some(
+    (step) =>
+      String(step?.run || "").includes("npm ci") &&
+      !String(step?.["working-directory"] ?? "").trim(),
+  );
+  if (nutztNodeSkripte && !hatRootCi) {
+    fehler.push(
+      `${name}: Job ruft node scripts/ auf, installiert aber keine Root-Abhängigkeiten (npm ci im Repo-Root).`,
+    );
+  }
 }
 
 if (workflow?.on?.pull_request_target) {

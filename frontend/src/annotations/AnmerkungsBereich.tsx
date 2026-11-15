@@ -21,6 +21,7 @@ interface BereichProps {
   titel: string;
   Viewer: React.ComponentType<import("../documents/PdfViewer").PdfViewerProps>;
   adapter: AnmerkungAdapter;
+  aktualisierung?: number;
   onSitzungAbgelaufen?: () => void;
   registriereWaechter?: (waechter: ((weiter: () => void) => void) | null) => void;
 }
@@ -36,6 +37,7 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
       titel,
       Viewer,
       adapter,
+      aktualisierung = 0,
       onSitzungAbgelaufen,
       registriereWaechter,
     },
@@ -58,7 +60,16 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
     const [sprung, setSprung] = useState<{ ziel: number; token: number } | null>(null);
     const formRef = useRef<FormularHandle>(null);
     const letzteVersion = useRef(versionId);
+    const markeRef = useRef(aktualisierung);
     const hatEntwurf = Boolean(entwurf) || formDirty;
+
+    useEffect(() => {
+      if (aktualisierung === markeRef.current) {
+        return;
+      }
+      markeRef.current = aktualisierung;
+      neuLaden();
+    }, [aktualisierung, neuLaden]);
 
     useEffect(() => {
       if (!hatEntwurf) {
@@ -94,6 +105,26 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
       [ebeneBand, ebeneEigene, liste],
     );
     const ausgewaehlt = liste.find((eintrag) => eintrag.id === ausgewaehltId) ?? null;
+    const [letzteAuswahl, setLetzteAuswahl] = useState<Anmerkung | null>(null);
+    const auswahlRef = useRef<number | null>(null);
+    const revisionRef = useRef<number | null>(null);
+
+    useEffect(() => {
+      if (ausgewaehltId !== auswahlRef.current) {
+        auswahlRef.current = ausgewaehltId;
+        revisionRef.current = ausgewaehlt?.revision ?? null;
+        setLetzteAuswahl(ausgewaehlt ?? null);
+        return;
+      }
+      if (ausgewaehlt) {
+        // Die angezeigte Fassung aktualisiert sich, die Bearbeitungsrevision
+        // bleibt beim Öffnen eingefroren.
+        setLetzteAuswahl(ausgewaehlt);
+      }
+    }, [ausgewaehlt, ausgewaehltId]);
+
+    const ersatz =
+      ausgewaehltId !== null && ausgewaehlt === null ? letzteAuswahl : null;
 
     function pruefeWechsel(weiter: () => void) {
       if (!hatEntwurf) {
@@ -126,7 +157,11 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
           setEntwurf(null);
           setAusgewaehltId(neu.id);
         } else if (ausgewaehlt) {
-          await aendere(ausgewaehlt.id, ausgewaehlt.revision, werte);
+          await aendere(
+            ausgewaehlt.id,
+            revisionRef.current ?? ausgewaehlt.revision,
+            werte,
+          );
           setAusgewaehltId(null);
         }
         setKonflikt(false);
@@ -143,7 +178,10 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
       if (!ausgewaehlt) {
         return;
       }
-      await loesche(ausgewaehlt.id, ausgewaehlt.revision);
+      await loesche(
+        ausgewaehlt.id,
+        revisionRef.current ?? ausgewaehlt.revision,
+      );
       setAusgewaehltId(null);
     }
 
@@ -271,6 +309,7 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
         <AnmerkungsFormulare
           entwurf={entwurf}
           ausgewaehlt={ausgewaehlt}
+          ersatz={ersatz}
           seiten={seiten}
           farbe={farbe}
           schriftgroesse={schriftgroesse}

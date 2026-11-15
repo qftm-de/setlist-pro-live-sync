@@ -9,6 +9,7 @@ from . import (
     session,
     setlists,
     songs,
+    sync,
     views,
 )
 
@@ -20,6 +21,7 @@ urlpatterns = [
     path("abmeldung/", session.abmeldung),
     path("bands/", bands.BandListe.as_view()),
     path("bands/<int:band_id>/", bands.BandDetail.as_view()),
+    path("bands/<int:band_id>/sync/", sync.BandAbgleich.as_view()),
     path("bands/<int:band_id>/songs/", songs.SongListe.as_view()),
     path("bands/<int:band_id>/songs/<int:song_id>/", songs.SongDetail.as_view()),
     path(

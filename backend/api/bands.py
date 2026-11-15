@@ -3,6 +3,7 @@ from django.http import Http404
 from rest_framework import generics
 
 from bands.models import Band, Membership
+from realtime.services import band_ereignis
 
 from .serializers import BandSerializer
 
@@ -31,6 +32,7 @@ class BandListe(generics.ListCreateAPIView):
             Membership.objects.create(
                 band=band, user=self.request.user, role=Membership.ROLE_OWNER
             )
+            band_ereignis(band, "band.created", name=band.name)
 
 
 class BandDetail(generics.RetrieveUpdateAPIView):
@@ -39,3 +41,8 @@ class BandDetail(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return band_fuer(self.request.user, self.kwargs["band_id"])
+
+    def perform_update(self, serializer):
+        with transaction.atomic():
+            band = serializer.save()
+            band_ereignis(band, "band.updated", name=band.name)

@@ -25,6 +25,7 @@ from documents.storage import (
     verschiebe_nach_final,
 )
 from library.models import Song
+from realtime.services import band_ereignis
 
 from .bands import band_fuer
 from .document_serializers import AktivierungSerializer, DocumentVersionSerializer
@@ -100,6 +101,12 @@ class DokumentDetail(APIView):
             dokument.active_version_id = version_id
             dokument.revision += 1
             dokument.save(update_fields=["active_version", "revision", "updated_at"])
+            band_ereignis(
+                song.band,
+                "document.updated",
+                song_id=song.id,
+                revision=dokument.revision,
+            )
         return Response(dokument_daten(dokument))
 
 
@@ -192,6 +199,12 @@ class DokumentVersionen(APIView):
                         page_count=ergebnis.seiten,
                         sha256=sha256,
                         uploaded_by=request.user,
+                    )
+                    band_ereignis(
+                        song.band,
+                        "document.version_created",
+                        song_id=song.id,
+                        version_id=version.id,
                     )
                     final = verschiebe_nach_final(temp, schluessel)
             except IntegrityError:

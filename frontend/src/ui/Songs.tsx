@@ -28,6 +28,7 @@ export function Songs({
   const [notiz, setNotiz] = useState("");
   const [zustand, setZustand] = useState<SpeicherZustand>("entwurf");
   const [fehler, setFehler] = useState<string | null>(null);
+  const [offenerSong, setOffenerSong] = useState<Song | null>(null);
 
   async function anlegen(ereignis: React.FormEvent) {
     ereignis.preventDefault();
@@ -77,14 +78,18 @@ export function Songs({
     }
   }
 
+  const offenEntfernt =
+    offenerSong !== null && !songs.some((song) => song.id === offenerSong.id);
+  const anzeige = offenEntfernt ? [...songs, offenerSong] : songs;
+
   return (
     <section className="songs" aria-labelledby="songs-titel">
       <h2 id="songs-titel">Songs</h2>
-      {songs.length === 0 ? (
+      {anzeige.length === 0 ? (
         <p>Keine Songs in dieser Band.</p>
       ) : (
         <ul className="songliste">
-          {songs.map((song) => (
+          {anzeige.map((song) => (
             <SongZeile
               key={song.id}
               bandId={bandId}
@@ -94,6 +99,8 @@ export function Songs({
               onAendern={() => onGeaendert?.()}
               onLoeschen={loeschen}
               onOeffnen={onNavigieren}
+              geloescht={offenEntfernt && offenerSong?.id === song.id}
+              onBearbeitung={(gewaehlt) => setOffenerSong(gewaehlt)}
               onSitzungAbgelaufen={onSitzungAbgelaufen}
             />
           ))}

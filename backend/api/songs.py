@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.http import Http404
 from rest_framework import generics, status
@@ -5,6 +6,7 @@ from rest_framework.response import Response
 
 from documents.models import Document
 from library.models import Song
+from realtime.services import band_ereignis
 
 from .bands import band_fuer
 from .serializers import SongSerializer
@@ -19,7 +21,9 @@ class SongListe(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         band = band_fuer(self.request.user, self.kwargs["band_id"])
-        serializer.save(band=band)
+        with transaction.atomic():
+            song = serializer.save(band=band)
+            band_ereignis(band, "song.created", id=song.id)
 
 
 class SongDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -31,6 +35,18 @@ class SongDetail(generics.RetrieveUpdateDestroyAPIView):
             return Song.objects.get(id=self.kwargs["song_id"], band=band)
         except Song.DoesNotExist as fehler:
             raise Http404 from fehler
+
+    def perform_update(self, serializer):
+        with transaction.atomic():
+            song = serializer.save()
+            band_ereignis(song.band, "song.updated", id=song.id)
+
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            band = instance.band
+            kennung = instance.id
+            instance.delete()
+            band_ereignis(band, "song.deleted", id=kennung)
 
     def destroy(self, request, *args, **kwargs):
         song = self.get_object()

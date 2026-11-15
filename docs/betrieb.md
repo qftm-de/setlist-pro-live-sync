@@ -69,3 +69,38 @@ Kommando eignet sich für einen täglichen Cron- oder Timer-Lauf.
 Anmerkungstexte erscheinen nicht in Anwendungsprotokollen oder im Banddetail.
 Für Fehlersuche den HTTP-Status und die Anmerkungs-ID verwenden, nicht den
 Inhalt.
+
+## Echtzeit
+
+Jeder geöffnete Tab hält eine authentifizierte Verbindung zu
+`/ws/bands/<band_id>/`. Der Server prüft beim Aufbau und bei jeder
+Auslieferung erneut Session, aktives Konto und Bandmitgliedschaft. Ein
+fehlender oder fremder `Origin` wird abgelehnt.
+
+- Der Client sendet alle 20 Sekunden einen Heartbeat. Antwortet der Server
+  60 Sekunden nicht, gilt die Verbindung als unterbrochen.
+- Wiederverbindung wartet zufällig zwischen 1 und 30 Sekunden, mit
+  wachsender Obergrenze je Versuch.
+- Band- und persönliche Ereignisse haben getrennte Gruppen und Zähler.
+  Eine Lücke oder ein verlorenes letztes Ereignis löst einen Vollabgleich
+  über `GET /api/bands/<band_id>/sync/` aus.
+- Abgleich und Ereigniszähler stammen aus demselben PostgreSQL-Snapshot.
+
+Mutationen schreiben Fachdaten und Ereignis in einer Transaktion. Ein
+Rollback hinterlässt weder Ereignis noch Bestätigung. Der Dienst `relay`
+liest den Ausgangspuffer und veröffentlicht über Redis. Er arbeitet
+mindestens einmal, Duplikate sind erlaubt. Ein Redis-Ausfall verzögert den
+Abgleich, verliert aber keinen bestätigten Fachstand. Nach einem
+Redis-Neustart genügt Warten; keine Fachdaten zurücksetzen.
+
+Ereignisse bleiben sieben Tage erhalten. Veröffentlichte ältere Ereignisse
+entfernt das Relay, unveröffentlichte bleiben liegen.
+
+### Diagnose
+
+- `docker compose logs relay` zeigt veröffentlichte und offene Ereignisse.
+- `docker compose exec api python manage.py shell -c "from realtime.models import OutboxEvent; print(OutboxEvent.objects.filter(published_at__isnull=True).count())"`
+  nennt den Rückstand. Ein dauerhaft steigender Wert deutet auf Redis.
+- `docker compose restart api relay` hilft nach Konfigurationsänderungen.
+- Der WebSocket braucht die Proxy-Route `/ws/` mit Upgrade-Headern. Ohne sie
+  antwortet der Browser mit einem fehlgeschlagenen Handshake.

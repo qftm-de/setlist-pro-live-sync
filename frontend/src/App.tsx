@@ -10,6 +10,9 @@ import { apiAnmerkungen } from "./annotations/annotations";
 import { DokumentRoute } from "./documents/DokumentRoute";
 import { apiDokumente } from "./documents/documents";
 import { apiGigs } from "./gigs/gigs";
+import { useBandSync } from "./realtime/useBandSync";
+import { VerbindungsStatus } from "./realtime/VerbindungsStatus";
+import type { Ereignis } from "./realtime/typen";
 import { parseRoute } from "./routing";
 import { apiSitzung } from "./session/session";
 import { apiSetlists } from "./setlists/setlists";
@@ -46,6 +49,9 @@ export function App({
   const [bands, setBands] = useState<BandsZustand>({ status: "laedt" });
   const [bandId, setBandId] = useState<string | null>(null);
   const [datenVersion, setDatenVersion] = useState(0);
+  const [ereignisMarke, setEreignisMarke] = useState(0);
+  const [dokumentMarke, setDokumentMarke] = useState(0);
+  const [setlistMarke, setSetlistMarke] = useState(0);
   const { navigiere, registriereWaechter, mitWaechter, istGeschuetzt } =
     useNavigationsWaechter((ziel) => {
       window.history.pushState({}, "", ziel);
@@ -147,6 +153,36 @@ export function App({
   const { direktFehler, bandWechseln } = useAktiveBand(aktiveBands, route, bandId, setBandId, navigiere);
 
   const bandDaten = useBandDaten(bandAdapter, bandId, datenVersion);
+
+  const beiEchtzeitEreignis = useCallback((ereignis: Ereignis) => {
+    setEreignisMarke((wert) => wert + 1);
+    if (ereignis.stream === "band") {
+      setDatenVersion((wert) => wert + 1);
+    }
+    if (
+      ereignis.event.startsWith("annotation.") ||
+      ereignis.event.startsWith("document.")
+    ) {
+      setDokumentMarke((wert) => wert + 1);
+    }
+    if (ereignis.event.startsWith("setlist.")) {
+      setSetlistMarke((wert) => wert + 1);
+    }
+  }, []);
+
+  const beiAbgleich = useCallback(() => {
+    setDatenVersion((wert) => wert + 1);
+    setEreignisMarke((wert) => wert + 1);
+    setDokumentMarke((wert) => wert + 1);
+    setSetlistMarke((wert) => wert + 1);
+  }, []);
+
+  const echtzeit = useBandSync(
+    bandDaten.status === "fertig" ? bandDaten.daten.bandId : null,
+    beiEchtzeitEreignis,
+    beiAbgleich,
+    sitzung.status === "angemeldet",
+  );
 
   useEffect(() => {
     if (bandDaten.status === "fehler" && bandDaten.code === "unauthenticated") {
@@ -254,6 +290,10 @@ export function App({
             <p className="band-id" data-band-id={bandDaten.daten.bandId}>
               Bereich {pfad}
             </p>
+            <VerbindungsStatus
+              zustand={echtzeit.zustand}
+              onErneutVersuchen={echtzeit.erneutVersuchen}
+            />
             {route.bereich === "setlists" ? (
               <Setlists
                 key={bandDaten.daten.bandId}
@@ -261,6 +301,7 @@ export function App({
                 songs={bandDaten.daten.songs}
                 adapter={setlistAdapter}
                 initialSetlistId={route.setlistId}
+                aktualisierung={setlistMarke}
                 onSitzungAbgelaufen={sitzungAbgelaufen}
               />
             ) : route.bereich === "gigs" ? (
@@ -269,6 +310,7 @@ export function App({
                 bandId={bandDaten.daten.bandId}
                 adapter={gigAdapter}
                 setlistAdapter={setlistAdapter}
+                aktualisierung={ereignisMarke}
                 onNavigieren={navigiere}
                 onSitzungAbgelaufen={sitzungAbgelaufen}
               />
@@ -281,6 +323,7 @@ export function App({
                 adapter={dokumentAdapter}
                 anmerkungAdapter={anmerkungAdapter}
                 viewer={dokumentViewer}
+                aktualisierung={dokumentMarke}
                 registriereWaechter={registriereWaechter}
                 onSitzungAbgelaufen={sitzungAbgelaufen}
               />

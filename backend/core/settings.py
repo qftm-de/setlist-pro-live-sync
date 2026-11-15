@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "gigs",
     "documents",
     "annotations",
+    "realtime",
     "api",
 ]
 
@@ -82,6 +83,18 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "core.wsgi.application"
+ASGI_APPLICATION = "core.asgi.application"
+
+REDIS_URL = konfiguration.redis_url
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": [REDIS_URL]},
+    }
+}
+REALTIME_CHECK_SECONDS = 20
+REALTIME_MAX_CONNECTIONS_PER_USER = 20
+REALTIME_MIN_PING_SECONDS = 5
 
 DATABASES = {
     "default": {

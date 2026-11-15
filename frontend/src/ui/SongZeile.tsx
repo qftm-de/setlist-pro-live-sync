@@ -10,6 +10,8 @@ interface SongZeileProps {
   onAendern: (song: Song) => void;
   onLoeschen: (song: Song) => void;
   onOeffnen?: (pfad: string) => void;
+  geloescht?: boolean;
+  onBearbeitung?: (song: Song | null) => void;
   onSitzungAbgelaufen?: () => void;
 }
 
@@ -25,6 +27,8 @@ export function SongZeile({
   onAendern,
   onLoeschen,
   onOeffnen,
+  geloescht = false,
+  onBearbeitung,
   onSitzungAbgelaufen,
 }: SongZeileProps) {
   const [bearbeiten, setBearbeiten] = useState(false);
@@ -43,6 +47,7 @@ export function SongZeile({
     setNotiz(song.notes ?? "");
     setFehler(null);
     setBearbeiten(true);
+    onBearbeitung?.(song);
   }
 
   async function speichern(ereignis: React.FormEvent) {
@@ -68,6 +73,7 @@ export function SongZeile({
       });
       onAendern({ ...song, ...geaendert });
       setBearbeiten(false);
+      onBearbeitung?.(null);
     } catch (ursache) {
       setFehler(behandleFehler(ursache, onSitzungAbgelaufen));
     }
@@ -81,12 +87,18 @@ export function SongZeile({
     setNotiz(song.notes ?? "");
     setFehler(null);
     setBearbeiten(false);
+    onBearbeitung?.(null);
   }
 
   if (bearbeiten) {
     return (
       <li className="songzeile">
         <form className="songbearbeiten" onSubmit={speichern}>
+          {geloescht ? (
+            <p role="alert">
+              Dieser Song wurde inzwischen gelöscht. Dein Entwurf bleibt erhalten.
+            </p>
+          ) : null}
           <label>
             Titel (ändern)
             <input
@@ -134,7 +146,9 @@ export function SongZeile({
               onChange={(ereignis) => setNotiz(ereignis.target.value)}
             />
           </label>
-          <button type="submit">Änderung speichern</button>
+          <button type="submit" disabled={geloescht}>
+            Änderung speichern
+          </button>
           <button type="button" onClick={abbrechen}>
             Abbrechen
           </button>

@@ -17,6 +17,7 @@ interface SetlistEditorProps {
   setlist: Setlist;
   songs: Song[];
   adapter: SetlistAdapter;
+  geloescht?: boolean;
   onSitzungAbgelaufen?: () => void;
   onGespeichert?: (setlist: Setlist) => void;
 }
@@ -26,6 +27,7 @@ export function SetlistEditor({
   setlist,
   songs,
   adapter,
+  geloescht = false,
   onSitzungAbgelaufen,
   onGespeichert,
 }: SetlistEditorProps) {
@@ -123,6 +125,11 @@ export function SetlistEditor({
   return (
     <section className="setlist-editor" aria-labelledby="setlist-titel">
       <h2 id="setlist-titel">{setlist.name}</h2>
+      {geloescht ? (
+        <p role="alert">
+          Diese Setlist wurde inzwischen gelöscht. Dein Entwurf bleibt erhalten.
+        </p>
+      ) : null}
       <fieldset className="setlist-feld" disabled={zustand === "speichert"}>
       {bloecke.length === 0 ? (
         <p>Noch keine Abschnitte. Beginne mit einem Set.</p>
@@ -268,7 +275,7 @@ export function SetlistEditor({
           type="button"
           className="setlist-speichern"
           onClick={speichern}
-          disabled={zustand === "speichert"}
+          disabled={zustand === "speichert" || geloescht}
         >
           {zustand === "speichert" ? "Speichert …" : "Setlist speichern"}
         </button>

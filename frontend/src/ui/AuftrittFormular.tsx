@@ -10,6 +10,7 @@ interface AuftrittFormularProps {
   setlistFehler: string | null;
   onSetlistsErneutLaden?: () => void;
   gesperrt?: boolean;
+  geloescht?: boolean;
   onSpeichern: (eingabe: GigEingabe) => Promise<void>;
   onAbbrechen?: () => void;
   onSitzungAbgelaufen?: () => void;
@@ -22,6 +23,7 @@ export function AuftrittFormular({
   setlistFehler,
   onSetlistsErneutLaden,
   gesperrt = false,
+  geloescht = false,
   onSpeichern,
   onAbbrechen,
   onSitzungAbgelaufen,
@@ -45,6 +47,9 @@ export function AuftrittFormular({
 
   async function speichern(ereignis: React.FormEvent) {
     ereignis.preventDefault();
+    if (geloescht) {
+      return;
+    }
     const saubererTitel = titel.trim();
     if (!saubererTitel) {
       setFehler("Bitte einen Titel eintragen.");
@@ -89,6 +94,11 @@ export function AuftrittFormular({
 
   return (
     <form className="auftritt-formular" onSubmit={speichern}>
+      {geloescht ? (
+        <p role="alert">
+          Dieser Auftritt wurde inzwischen gelöscht. Dein Entwurf bleibt erhalten.
+        </p>
+      ) : null}
       <label>
         {`Titel${suffix}`}
         <input
@@ -170,7 +180,7 @@ export function AuftrittFormular({
       <p className="auftritt-hinweis">
         Die Verknüpfung zeigt den aktuellen Stand und sichert keinen historischen Inhalt.
       </p>
-      <button type="submit" disabled={laeuft || gesperrt}>
+      <button type="submit" disabled={laeuft || gesperrt || geloescht}>
         {modus === "anlegen" ? "Auftritt anlegen" : "Änderung speichern"}
       </button>
       {modus === "bearbeiten" && onAbbrechen ? (

@@ -7,6 +7,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 
 from gigs.models import Gig
+from realtime.services import band_ereignis
 
 from .bands import band_fuer
 from .gig_serializers import SETLIST_REFERENZ, GigSerializer
@@ -79,7 +80,9 @@ class GigListe(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         band = band_fuer(self.request.user, self.kwargs["band_id"])
-        serializer.save(band=band)
+        with transaction.atomic():
+            gig = serializer.save(band=band)
+            band_ereignis(band, "gig.created", id=gig.id)
 
 
 class GigDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -96,6 +99,18 @@ class GigDetail(generics.RetrieveUpdateDestroyAPIView):
             **super().get_serializer_context(),
             "band": band_fuer(self.request.user, self.kwargs["band_id"]),
         }
+
+    def perform_update(self, serializer):
+        with transaction.atomic():
+            gig = serializer.save()
+            band_ereignis(gig.band, "gig.updated", id=gig.id)
+
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            band = instance.band
+            kennung = instance.id
+            instance.delete()
+            band_ereignis(band, "gig.deleted", id=kennung)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
