@@ -23,7 +23,11 @@ if (!fs.existsSync(nginx)) {
   process.exit(1);
 }
 const nginxText = fs.readFileSync(nginx, "utf8");
-for (const pflicht of ["try_files $uri $uri/ /index.html", "proxy_pass http://api:8000"]) {
+for (const pflicht of [
+  "try_files $uri $uri/ /index.html",
+  "resolver 127.0.0.11",
+  "proxy_pass $api_upstream",
+]) {
   if (!nginxText.includes(pflicht)) {
     console.error(`nginx.conf enthält nicht: ${pflicht}`);
     process.exit(1);
