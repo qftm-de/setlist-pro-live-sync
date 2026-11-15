@@ -88,6 +88,14 @@
   - Drittreview R13 behoben: Löschmarken für entfernte Auftritte und Setlists (vergangene Auftritte bleiben in ihrer Gruppe), Verbindungs- und Ping-Grenzen am WebSocket, schnellere Relay-Abfrage für die Latenzgrenze, lokale PDFs unter `docs/` ignoriert, begrenzte Test-Worker gegen Lastflackern.
   - Zweitreview R13 behoben: Root-`npm ci` im CI-Job `kern`, eingefrorene Bearbeitungsrevision für Anmerkungen, Löschmarke für entfernte Anmerkungen mit erhaltenem Entwurf, Setlist-Hinweis nur bei `setlist.`-Ereignissen, robuste Origin-Prüfung bei manipulierten Ports. R14 und R15 folgen als eigene Pakete mit eigenen R-Zeilen.
 
+- Gate und Review beschleunigt (15.11.2026): gleiche Verify-Befehle laufen
+  einmal statt pro R-Zeile, Schritte mit `parallel: true` starten zusammen mit
+  dem Gate, und ein zweiter Gutachter (ein externes Modell, direkte API) prüft
+  denselben Diff in einer eigenen Befunddatei. Der Push dauert damit rund
+  sieben statt dreizehn Minuten.
+- `verify-kern` und `verify-realtime` nutzen eigene Compose-Projektnamen und
+  Ports je Lauf, zwei gleichzeitige Gates stören sich nicht mehr.
+
 ## Offen
 
 - Firebase und Firestore sind abgekündigt. Der alte Bestand bleibt als lokaler Export in `.tmp/fb/` und ist keine Projektaufgabe mehr. Offen bleibt nur die persönliche Hygiene: ein in der Alt-App sichtbares Passwort bei anderer Gelegenheit rotieren.

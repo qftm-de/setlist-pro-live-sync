@@ -5,6 +5,16 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Changed
+
+- Gate führt gleiche Verify-Befehle nur einmal aus und nennt bei einem Fehler
+  alle betroffenen R-Zeilen. R6 bis R12 teilen sich `verify-kern`, das läuft
+  jetzt einmal statt siebenmal.
+- Gate-Schritte mit `parallel: true` starten mit dem Gate und zählen an ihrer
+  Stelle im Ablauf. Beide Reviews laufen dadurch parallel zum Verify.
+- Zweiter Review-Durchgang über eine direkte API-Anbindung. Getrennte Befunddatei über `REVIEW_OUT`, ein
+  offener Blocker oder Major eines der beiden Gutachter stoppt den Push.
+
 ### Added
 
 - Projektstruktur, Planung und Dokumentation für den Neubau.

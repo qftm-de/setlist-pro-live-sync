@@ -9,7 +9,10 @@ import { fileURLToPath } from "node:url";
 import { resolveDiffBase } from "./lib/git-base.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const findingsPath = path.join(root, ".tmp", "review", "findings.md");
+// REVIEW_OUT erlaubt einen zweiten Durchgang mit eigener Datei, damit sich
+// zwei Gutachter nicht gegenseitig überschreiben.
+const findingsRel = process.env.REVIEW_OUT || ".tmp/review/findings.md";
+const findingsPath = path.join(root, findingsRel);
 const timeoutSekunden = Number.parseInt(process.env.KILO_REVIEW_TIMEOUT || "", 10) || 600;
 // Review-Modell: glm-5.3 über OpenCode Go, unabhängig vom Kilo-Standard.
 const modell = process.env.KILO_REVIEW_MODEL || "opencode-go/glm-5.3";
@@ -82,7 +85,7 @@ const r = spawnSync("kilo", [
   modell,
   "--agent", "review",
   "--title", "Pre-Push-Review",
-  `Pre-Push-Review: Prüfe den Diff nach dem Skill review. Basis: ${basisText}. Schreibe .tmp/review/findings.md.`,
+  `Pre-Push-Review: Prüfe den Diff nach dem Skill review. Basis: ${basisText}. Schreibe ${findingsRel}.`,
 ], { cwd: root, encoding: "utf8", env, timeout: timeoutSekunden * 1000, shell: process.platform === "win32" });
 
 if ((r.error && r.error.code === "ETIMEDOUT") || r.signal === "SIGTERM") {
@@ -95,8 +98,8 @@ if ((r.status ?? 1) !== 0) {
 }
 
 if (!findingsAktuell(stand())) {
-  process.stderr.write("kilo run lief, aber findings.md passt nicht zum aktuellen Stand\n");
+  process.stderr.write("kilo run lief, aber ${findingsRel} passt nicht zum aktuellen Stand\n");
   process.exit(1);
 }
 
-console.log(`Review geschrieben: .tmp/review/findings.md (${stand().head.slice(5, 12)})`);
+console.log(`Review geschrieben: ${findingsRel} (${stand().head.slice(5, 12)})`);

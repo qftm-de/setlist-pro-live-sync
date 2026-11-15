@@ -2,7 +2,7 @@
 // Einziger Gate-Einstieg. --schnell lokal, --voll vor Push/CI. Schreibt keine Dateien.
 // Schritte kommen aus harness/projekt.yaml, sonst die Builtin-Liste.
 
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -57,7 +57,7 @@ function normalizeSteps(list) {
     if (typeof item === "string") {
       return { name: item, kind: "builtin", run: null };
     }
-    return { name: item.name || item.run, kind: "run", run: item.run };
+    return { name: item.name || item.run, kind: "run", run: item.run, parallel: item.parallel === true };
   });
 }
 
@@ -226,16 +226,19 @@ function schrittHarness() {
   mark("harness", "grün", meldung);
 }
 
-function schrittReviewStand() {
-  if(policy.review === "off") {mark("review-stand","grün","deaktiviert");return;}
-  const findingsPath = path.join(root, ".tmp", "review", "findings.md");
+function schrittReviewStand(datei = ".tmp/review/findings.md") {
+  // Zweiter Gutachter schreibt eine eigene Datei; Schrittname bleibt
+  // unterscheidbar, die Prüfung ist dieselbe.
+  const name = datei === ".tmp/review/findings.md" ? "review-stand" : "review-stand-2";
+  if(policy.review === "off") {mark(name,"grün","deaktiviert");return;}
+  const findingsPath = path.join(root, datei);
   if (!fs.existsSync(findingsPath)) {
-    mark("review-stand", policy.review === "required" ? "rot" : "grün", "kein findings.md");
+    mark(name, policy.review === "required" ? "rot" : "grün", `kein ${datei}`);
     return;
   }
   const stand = nodeScript("scripts/review-stand.mjs");
   if ((stand.status ?? 1) !== 0) {
-    mark("review-stand", "rot", kurz(stand.stderr || stand.stdout));
+    mark(name, "rot", kurz(stand.stderr || stand.stdout));
     return;
   }
   const erwartet = (stand.stdout || "").trim();
@@ -243,20 +246,21 @@ function schrittReviewStand() {
   const diffZeile = erwartet.split(/\r?\n/).find((l) => l.startsWith("DIFF ")) || "";
   const text = fs.readFileSync(findingsPath, "utf8");
   if (!diffZeile || !headZeile || !text.includes(diffZeile) || !text.includes(headZeile)) {
-    mark("review-stand", "rot", "findings.md gehört zu einem anderen Diff");
+    mark(name, "rot", `${datei} gehört zu einem anderen Diff`);
     return;
   }
   const befunde = parseFindings(text);
-  if (befunde.length === 0 && !/keine belegten befunde/i.test(text)) {
-    mark("review-stand", "rot", "findings.md ohne Befundabschnitte im Format '## F1 – Titel'");
+  const ohneBefund = /keine belegten befunde|keine blocker|keine major/i.test(text);
+  if (befunde.length === 0 && !ohneBefund) {
+    mark(name, "rot", `${datei} ohne Befundabschnitte im Format '## F1 – Titel'`);
     return;
   }
   const offen = befunde.filter((b) => (b.schwere === "blocker" || b.schwere === "major") && b.status === "offen");
   if (offen.length > 0) {
-    mark("review-stand", "rot", `${offen.length} offene(r) Blocker oder Major`);
+    mark(name, "rot", `${offen.length} offene(r) Blocker oder Major`);
     return;
   }
-  mark("review-stand", "grün");
+  mark(name, "grün");
 }
 
 // Befundabschnitte nach dem Review-Skill: jede Überschrift '## F<n> – Titel'
@@ -292,8 +296,29 @@ function schrittGitleaks() {
   mark("gitleaks", "grün");
 }
 
-function schrittRun(step) {
-  const r = runShell(step.run, root);
+// Schritte mit parallel: true laufen ab dem Gate-Start im Hintergrund. Das
+// Ergebnis wird erst gezählt, wenn der Schritt an der Reihe ist, die Ausgabe
+// bleibt also in der gewohnten Reihenfolge.
+function starteImHintergrund(step) {
+  const kind = spawn(step.run, { cwd: root, env: process.env, shell: true });
+  let aus = "";
+  let fehler = "";
+  kind.stdout.on("data", (stueck) => {
+    aus += stueck;
+  });
+  kind.stderr.on("data", (stueck) => {
+    fehler += stueck;
+  });
+  return new Promise((fertig) => {
+    kind.on("close", (code) => fertig({ status: code ?? 1, stdout: aus, stderr: fehler }));
+    // Startet der Befehl gar nicht, hing das Gate bisher ohne Meldung. Der
+    // Fehler wird jetzt als roter Schritt gezählt.
+    kind.on("error", (ursache) => fertig({ status: 1, stdout: aus, stderr: String(ursache.message) }));
+  });
+}
+
+async function schrittRun(step, laeuft) {
+  const r = laeuft ? await laeuft : runShell(step.run, root);
   if ((r.status ?? 1) !== 0) {
     mark(step.name, "rot", kurz(r.stderr || r.stdout));
     return;
@@ -312,12 +337,19 @@ const builtins = {
   gitleaks: schrittGitleaks,
   harness: schrittHarness,
   "review-stand": schrittReviewStand,
+  "review-stand-2": () => schrittReviewStand(".tmp/review/zweit.md"),
 };
 
 console.log(`Gate ${modus}`);
+const hintergrund = new Map();
+for (const step of schritte) {
+  if (step.kind === "run" && step.parallel) {
+    hintergrund.set(step, starteImHintergrund(step));
+  }
+}
 for (const step of schritte) {
   if (step.kind === "run") {
-    schrittRun(step);
+    await schrittRun(step, hintergrund.get(step));
     continue;
   }
   const fn = builtins[step.name];
