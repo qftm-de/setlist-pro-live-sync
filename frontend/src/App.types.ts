@@ -28,7 +28,7 @@ export type SitzungZustand =
   | { status: "laedt" }
   | { status: "fehler"; fehler: string }
   | { status: "anonym" }
-  | { status: "angemeldet"; benutzername: string };
+  | { status: "angemeldet"; benutzername: string; benutzerId?: number };
 
 export type BandsZustand =
   | { status: "laedt" }

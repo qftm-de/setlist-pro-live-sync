@@ -118,7 +118,11 @@ export function App({
           setSitzung({ status: "anonym" });
           return;
         }
-        setSitzung({ status: "angemeldet", benutzername: geladen.benutzername ?? "" });
+        setSitzung({
+          status: "angemeldet",
+          benutzername: geladen.benutzername ?? "",
+          benutzerId: geladen.benutzerId,
+        });
         bandAdapter
           .ladeBands()
           .then((liste) => {
@@ -154,6 +158,8 @@ export function App({
 
   const bandDaten = useBandDaten(bandAdapter, bandId, datenVersion);
 
+  const benutzerId = sitzung.status === "angemeldet" ? sitzung.benutzerId : undefined;
+
   const beiEchtzeitEreignis = useCallback((ereignis: Ereignis) => {
     setEreignisMarke((wert) => wert + 1);
     if (ereignis.stream === "band") {
@@ -165,10 +171,13 @@ export function App({
     ) {
       setDokumentMarke((wert) => wert + 1);
     }
-    if (ereignis.event.startsWith("setlist.")) {
+    if (
+      ereignis.event.startsWith("setlist.") &&
+      ereignis.data.actor_id !== benutzerId
+    ) {
       setSetlistMarke((wert) => wert + 1);
     }
-  }, []);
+  }, [benutzerId]);
 
   const beiAbgleich = useCallback(() => {
     setDatenVersion((wert) => wert + 1);

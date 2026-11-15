@@ -31,6 +31,12 @@ export function Setlists({
   const [detail, setDetail] = useState<Setlist | null>(null);
   const [detailHinweis, setDetailHinweis] = useState<string | null>(null);
   const [detailGeloescht, setDetailGeloescht] = useState(false);
+
+  function waehle(id: number | null) {
+    setDetailHinweis(null);
+    setDetailGeloescht(false);
+    setGewaehlt(id);
+  }
   const initialRef = useRef(initialSetlistId);
   const listeGeladen = useRef(false);
   const markeRef = useRef(aktualisierung);
@@ -50,7 +56,7 @@ export function Setlists({
     listeGeladen.current = false;
     setListe(null);
     setFehler(null);
-    setGewaehlt(null);
+    waehle(null);
     setDetail(null);
     adapter
       .ladeSetlists(bandId)
@@ -61,11 +67,11 @@ export function Setlists({
         listeGeladen.current = true;
         setListe(geladen);
         if (initialSetlistId === null) {
-          setGewaehlt(geladen[0]?.id ?? null);
+          waehle(geladen[0]?.id ?? null);
         } else if (geladen.some((setlist) => setlist.id === initialSetlistId)) {
-          setGewaehlt(initialSetlistId);
+          waehle(initialSetlistId);
         } else {
-          setGewaehlt(null);
+          waehle(null);
           setFehler("Diese Setlist existiert nicht.");
         }
       })
@@ -163,7 +169,7 @@ export function Setlists({
       // Ohne geladene Liste würde die neue Setlist die Ansicht ersetzen.
       if (liste === null) return;
       setListe((vorher) => [...(vorher ?? []), { id: neu.id, name: neu.name }]);
-      setGewaehlt(neu.id);
+      waehle(neu.id);
       setDetail(neu);
       setName("");
     } catch (ursache) {
@@ -181,7 +187,7 @@ export function Setlists({
       const rest = (liste ?? []).filter((eintrag) => eintrag.id !== setlist.id);
       setListe(rest);
       if (gewaehlt === setlist.id) {
-        setGewaehlt(rest[0]?.id ?? null);
+        waehle(rest[0]?.id ?? null);
       }
     } catch (ursache) {
       setFehler(behandleFehler(ursache, onSitzungAbgelaufen));
@@ -210,9 +216,7 @@ export function Setlists({
                 aria-pressed={gewaehlt === setlist.id}
                 onClick={() => {
                   setFehler(null);
-                  setDetailHinweis(null);
-                  setDetailGeloescht(false);
-                  setGewaehlt(setlist.id);
+                  waehle(setlist.id);
                 }}
               >
                 {setlist.name}

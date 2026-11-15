@@ -45,6 +45,35 @@ describe("AnmerkungsBereich", () => {
     expect(aendere.mock.calls[0][4]).toBe(0);
   });
 
+  it("markiert eine entfernte bandweite Anmerkung auch im Lesemodus", async () => {
+    let aufrufe = 0;
+    const adapter = anmerkungTestAdapter(
+      [testAnmerkung({ id: 1, can_edit: false, can_delete: true })],
+      {
+        async lade() {
+          aufrufe += 1;
+          return aufrufe === 1
+            ? [testAnmerkung({ id: 1, can_edit: false, can_delete: true })]
+            : [];
+        },
+      },
+    );
+    const { rerender } = render(bereich(adapter));
+    fireEvent.click(await screen.findByRole("button", { name: /Leiser/ }));
+    expect(screen.getByText("Bandweite Anmerkung")).toBeInTheDocument();
+
+    rerender(bereich(adapter, 1));
+
+    expect(
+      await screen.findByText(
+        "Diese Anmerkung wurde inzwischen gelöscht. Dein Entwurf bleibt erhalten.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Anmerkung löschen" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("markiert eine entfernte Anmerkung und behält den Entwurf", async () => {
     let aufrufe = 0;
     const adapter = anmerkungTestAdapter([testAnmerkung({ id: 1 })], {

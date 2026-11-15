@@ -41,7 +41,13 @@ export function AnmerkungsFormulare({
 }: FormulareProps) {
   const angezeigt = ausgewaehlt ?? ersatz;
   if (angezeigt && !angezeigt.can_edit) {
-    return <AnmerkungLesen anmerkung={angezeigt} onLoeschen={onLoeschen} />;
+    return (
+      <AnmerkungLesen
+        anmerkung={angezeigt}
+        geloescht={ausgewaehlt === null}
+        onLoeschen={onLoeschen}
+      />
+    );
   }
   if (entwurf) {
     return (

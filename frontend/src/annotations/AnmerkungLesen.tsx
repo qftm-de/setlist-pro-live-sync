@@ -2,10 +2,15 @@ import type { Anmerkung } from "./annotations";
 
 interface AnmerkungLesenProps {
   anmerkung: Anmerkung;
+  geloescht?: boolean;
   onLoeschen: () => void;
 }
 
-export function AnmerkungLesen({ anmerkung, onLoeschen }: AnmerkungLesenProps) {
+export function AnmerkungLesen({
+  anmerkung,
+  geloescht = false,
+  onLoeschen,
+}: AnmerkungLesenProps) {
   return (
     <section className="anmerkung-formular" aria-label="Anmerkung lesen">
       <h4>Bandweite Anmerkung</h4>
@@ -14,7 +19,12 @@ export function AnmerkungLesen({ anmerkung, onLoeschen }: AnmerkungLesenProps) {
         Nur der Autor kann diese Anmerkung ändern. Aktuelle Owner dürfen
         bandweite Anmerkungen löschen.
       </p>
-      {anmerkung.can_delete ? (
+      {geloescht ? (
+        <p role="alert">
+          Diese Anmerkung wurde inzwischen gelöscht. Dein Entwurf bleibt erhalten.
+        </p>
+      ) : null}
+      {anmerkung.can_delete && !geloescht ? (
         <button type="button" onClick={onLoeschen}>
           Anmerkung löschen
         </button>

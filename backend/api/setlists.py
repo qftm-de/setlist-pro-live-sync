@@ -47,6 +47,7 @@ class SetlistListe(generics.ListCreateAPIView):
                     serializer.instance.band,
                     "setlist.created",
                     id=serializer.instance.id,
+                    actor_id=self.request.user.id,
                 )
         except IntegrityError:
             # Zwei gleichzeitige Anfragen haben die Prüfung beide passiert.
@@ -77,14 +78,24 @@ class SetlistDetail(generics.RetrieveUpdateDestroyAPIView):
     def perform_update(self, serializer):
         with transaction.atomic():
             setlist = serializer.save()
-            band_ereignis(setlist.band, "setlist.updated", id=setlist.id)
+            band_ereignis(
+                setlist.band,
+                "setlist.updated",
+                id=setlist.id,
+                actor_id=self.request.user.id,
+            )
 
     def perform_destroy(self, instance):
         with transaction.atomic():
             band = instance.band
             kennung = instance.id
             instance.delete()
-            band_ereignis(band, "setlist.deleted", id=kennung)
+            band_ereignis(
+                band,
+                "setlist.deleted",
+                id=kennung,
+                actor_id=self.request.user.id,
+            )
 
     def get_serializer_context(self):
         return {**super().get_serializer_context(), "band": band_fuer(
@@ -103,7 +114,12 @@ class SetlistInhalt(generics.GenericAPIView):
         try:
             with transaction.atomic():
                 ersetze_inhalt(setlist, eingabe.validated_data["sections"])
-                band_ereignis(setlist.band, "setlist.content", id=setlist.id)
+                band_ereignis(
+                    setlist.band,
+                    "setlist.content",
+                    id=setlist.id,
+                    actor_id=self.request.user.id,
+                )
         except Setlist.DoesNotExist as fehler:
             # Ein anderes Mitglied hat die Setlist im selben Moment gelöscht.
             raise Http404 from fehler

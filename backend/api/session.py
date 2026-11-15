@@ -32,6 +32,7 @@ def _ohne_konto_pruefen(passwort: str) -> None:
 def _konto(user) -> JsonResponse:
     return JsonResponse(
         {
+            "id": user.id,
             "username": user.get_username(),
             "display_name": user.display_name or user.get_username(),
         }
