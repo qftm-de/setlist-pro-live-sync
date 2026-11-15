@@ -199,6 +199,6 @@ describe("Auftritte", () => {
     expect(
       await screen.findByRole("button", { name: "Hauptset", pressed: true }),
     ).toBeInTheDocument();
-    expect(ladeSetlist).toHaveBeenCalledWith("a", 2);
+    await waitFor(() => expect(ladeSetlist).toHaveBeenCalledWith("a", 2));
   });
 });
