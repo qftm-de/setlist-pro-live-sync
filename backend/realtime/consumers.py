@@ -8,7 +8,7 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.conf import settings
 
-from .origin import origin_gueltig
+from .origin import origin_gueltig, schema_aus_scope
 from .services import bandgruppe, persoenliche_gruppe, zaehler
 from .zugriff import origin_aus, zugriff_gueltig
 
@@ -21,7 +21,9 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self) -> None:
         self.band_id = int(self.scope["url_route"]["kwargs"]["band_id"])
         self.ueberwachung: asyncio.Task | None = None
-        if not origin_gueltig(origin_aus(self.scope)):
+        if not origin_gueltig(
+            origin_aus(self.scope), schema_aus_scope(self.scope)
+        ):
             await self.close(code=4403)
             return
         konto_id = await database_sync_to_async(zugriff_gueltig)(

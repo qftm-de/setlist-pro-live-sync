@@ -270,6 +270,17 @@ try {
     "Bestätigte Änderung fehlt nach dem Redis-Ausfall",
   );
 
+  schritt(["stop", "cache"], "Redis für den Kaltstart stoppen");
+  schritt(["restart", "api"], "API ohne Redis neu starten");
+  await warteAuf(async () => {
+    try {
+      return (await erste.ruf(`/api/bands/${bandId}/sync/`)).status === 200;
+    } catch {
+      return false;
+    }
+  }, "API startet ohne Redis nicht");
+  schritt(["start", "cache"], "Redis nach dem Kaltstart starten");
+
   await pruefeWebSocket({
     basis,
     erste,

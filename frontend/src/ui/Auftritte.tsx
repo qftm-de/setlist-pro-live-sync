@@ -36,10 +36,7 @@ export function Auftritte({
   const [schreibt, setSchreibt] = useState(false);
   const [meldung, setMeldung] = useState(false);
   const [schreibFehler, setSchreibFehler] = useState<string | null>(null);
-  const [offenerGig, setOffenerGig] = useState<{
-    gig: Gig;
-    gruppe: "upcoming" | "past";
-  } | null>(null);
+  const [offeneGigs, setOffeneGigs] = useState<Record<number, Gig>>({});
   const setlistLauf = useRef(0);
   const aktiv = useRef(true);
   const markeRef = useRef(aktualisierung);
@@ -131,16 +128,24 @@ export function Auftritte({
     zustand.status === "fertig"
       ? [...zustand.gruppen.upcoming, ...zustand.gruppen.past]
       : [];
-  const offenEntfernt =
-    offenerGig !== null &&
-    !alleGigs.some((eintrag) => eintrag.id === offenerGig.gig.id);
+  const offeneListe = Object.values(offeneGigs).map(
+    (gig) => alleGigs.find((eintrag) => eintrag.id === gig.id) ?? gig,
+  );
+
+  function merkeBearbeitung(gig: Gig, offen: boolean) {
+    setOffeneGigs((vorher) => {
+      if (offen) {
+        return { ...vorher, [gig.id]: gig };
+      }
+      const rest = { ...vorher };
+      delete rest[gig.id];
+      return rest;
+    });
+  }
 
   function listeMit(gruppe: "upcoming" | "past"): Gig[] {
     const basis = zustand.status === "fertig" ? zustand.gruppen[gruppe] : [];
-    if (offenerGig?.gruppe === gruppe && offenEntfernt) {
-      return [...basis, offenerGig.gig];
-    }
-    return basis;
+    return basis.filter((gig) => offeneGigs[gig.id] === undefined);
   }
 
   return (
@@ -155,6 +160,33 @@ export function Auftritte({
       ) : null}
       {zustand.status === "fertig" ? (
         <>
+          {offeneListe.length > 0 ? (
+            <div className="auftritt-gruppe">
+              <h3>In Bearbeitung</h3>
+              <ul className="auftritt-liste">
+                {offeneListe.map((gig) => (
+                  <AuftrittZeile
+                    key={gig.id}
+                    bandId={bandId}
+                    gig={gig}
+                    setlists={setlists}
+                    setlistFehler={setlistFehler}
+                    onSetlistsErneutLaden={() => void ladeSetlists()}
+                    gesperrt={
+                      schreibt || !alleGigs.some((eintrag) => eintrag.id === gig.id)
+                    }
+                    geloescht={!alleGigs.some((eintrag) => eintrag.id === gig.id)}
+                    starteBearbeitung
+                    onBearbeitung={merkeBearbeitung}
+                    onSpeichern={speichern}
+                    onLoeschen={(eintrag) => void loeschen(eintrag)}
+                    onSetlistOeffnen={oeffneSetlist}
+                    onSitzungAbgelaufen={onSitzungAbgelaufen}
+                  />
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <div className="auftritt-gruppe">
             <h3>Kommende Auftritte</h3>
             {listeMit("upcoming").length === 0 ? (
@@ -169,13 +201,8 @@ export function Auftritte({
                     setlists={setlists}
                     setlistFehler={setlistFehler}
                     onSetlistsErneutLaden={() => void ladeSetlists()}
-                    gesperrt={schreibt || offenEntfernt}
-                    geloescht={offenEntfernt && offenerGig?.gig.id === gig.id}
-                    onBearbeitung={(gewaehlt) =>
-                      setOffenerGig(
-                        gewaehlt ? { gig: gewaehlt, gruppe: "upcoming" } : null,
-                      )
-                    }
+                    gesperrt={schreibt}
+                    onBearbeitung={merkeBearbeitung}
                     onSpeichern={speichern}
                     onLoeschen={(eintrag) => void loeschen(eintrag)}
                     onSetlistOeffnen={oeffneSetlist}
@@ -199,13 +226,8 @@ export function Auftritte({
                     setlists={setlists}
                     setlistFehler={setlistFehler}
                     onSetlistsErneutLaden={() => void ladeSetlists()}
-                    gesperrt={schreibt || offenEntfernt}
-                    geloescht={offenEntfernt && offenerGig?.gig.id === gig.id}
-                    onBearbeitung={(gewaehlt) =>
-                      setOffenerGig(
-                        gewaehlt ? { gig: gewaehlt, gruppe: "past" } : null,
-                      )
-                    }
+                    gesperrt={schreibt}
+                    onBearbeitung={merkeBearbeitung}
                     onSpeichern={speichern}
                     onLoeschen={(eintrag) => void loeschen(eintrag)}
                     onSetlistOeffnen={oeffneSetlist}

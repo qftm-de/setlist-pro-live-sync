@@ -34,6 +34,7 @@ const DEFAULT_VOLL = [
   "gitleaks",
   "harness",
   "review-stand",
+  "review-stand-2",
 ];
 
 function loadProjekt() {
@@ -233,7 +234,10 @@ function schrittReviewStand(datei = ".tmp/review/findings.md") {
   if(policy.review === "off") {mark(name,"grün","deaktiviert");return;}
   const findingsPath = path.join(root, datei);
   if (!fs.existsSync(findingsPath)) {
-    mark(name, policy.review === "required" ? "rot" : "grün", `kein ${datei}`);
+    // Der zweite Gutachter ist optional. Fehlt seine Datei, gilt der Schritt
+    // als grün, sonst würde jedes Projekt ohne zweiten Lauf rot.
+    const pflicht = datei === ".tmp/review/findings.md" && policy.review === "required";
+    mark(name, pflicht ? "rot" : "grün", `kein ${datei}`);
     return;
   }
   const stand = nodeScript("scripts/review-stand.mjs");
@@ -250,7 +254,7 @@ function schrittReviewStand(datei = ".tmp/review/findings.md") {
     return;
   }
   const befunde = parseFindings(text);
-  const ohneBefund = /keine belegten befunde|keine blocker|keine major/i.test(text);
+  const ohneBefund = /^\s*[„"]?keine belegten befunde[."“]?\s*$/im.test(text);
   if (befunde.length === 0 && !ohneBefund) {
     mark(name, "rot", `${datei} ohne Befundabschnitte im Format '## F1 – Titel'`);
     return;

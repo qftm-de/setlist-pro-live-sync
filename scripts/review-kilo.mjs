@@ -98,7 +98,7 @@ if ((r.status ?? 1) !== 0) {
 }
 
 if (!findingsAktuell(stand())) {
-  process.stderr.write("kilo run lief, aber ${findingsRel} passt nicht zum aktuellen Stand\n");
+  process.stderr.write(`kilo run lief, aber ${findingsRel} passt nicht zum aktuellen Stand\n`);
   process.exit(1);
 }
 

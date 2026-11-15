@@ -248,6 +248,19 @@ describe("BandSync", () => {
     client.stop();
   });
 
+  it("erlaubt nach einer Serverschließung einen neuen Versuch", async () => {
+    const aufbau = baue({ band: 0, personal: 0 });
+    const socket = await verbinde(aufbau);
+    socket.nachricht({ type: "closed", reason: "unauthorized" });
+    expect(aufbau.zustaende.at(-1)).toBe("unterbrochen");
+    aufbau.client.erneutVersuchen();
+    const neu = TestSocket.letzte as TestSocket;
+    expect(neu).not.toBe(socket);
+    neu.oeffnen();
+    await microtasks();
+    expect(aufbau.zustaende.at(-1)).toBe("verbunden");
+  });
+
   it("beendet die Verbindung ohne weitere Versuche", async () => {
     const aufbau = baue({ band: 0, personal: 0 });
     const socket = await verbinde(aufbau);

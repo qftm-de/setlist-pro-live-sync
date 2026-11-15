@@ -28,7 +28,7 @@ export function Songs({
   const [notiz, setNotiz] = useState("");
   const [zustand, setZustand] = useState<SpeicherZustand>("entwurf");
   const [fehler, setFehler] = useState<string | null>(null);
-  const [offenerSong, setOffenerSong] = useState<Song | null>(null);
+  const [offeneSongs, setOffeneSongs] = useState<Record<number, Song>>({});
 
   async function anlegen(ereignis: React.FormEvent) {
     ereignis.preventDefault();
@@ -78,9 +78,21 @@ export function Songs({
     }
   }
 
-  const offenEntfernt =
-    offenerSong !== null && !songs.some((song) => song.id === offenerSong.id);
-  const anzeige = offenEntfernt ? [...songs, offenerSong] : songs;
+  const vermisste = Object.values(offeneSongs).filter(
+    (song) => !songs.some((eintrag) => eintrag.id === song.id),
+  );
+  const anzeige = [...songs, ...vermisste];
+
+  function merkeBearbeitung(song: Song, offen: boolean) {
+    setOffeneSongs((vorher) => {
+      if (offen) {
+        return { ...vorher, [song.id]: song };
+      }
+      const rest = { ...vorher };
+      delete rest[song.id];
+      return rest;
+    });
+  }
 
   return (
     <section className="songs" aria-labelledby="songs-titel">
@@ -99,8 +111,11 @@ export function Songs({
               onAendern={() => onGeaendert?.()}
               onLoeschen={loeschen}
               onOeffnen={onNavigieren}
-              geloescht={offenEntfernt && offenerSong?.id === song.id}
-              onBearbeitung={(gewaehlt) => setOffenerSong(gewaehlt)}
+              geloescht={
+                offeneSongs[song.id] !== undefined &&
+                !songs.some((eintrag) => eintrag.id === song.id)
+              }
+              onBearbeitung={merkeBearbeitung}
               onSitzungAbgelaufen={onSitzungAbgelaufen}
             />
           ))}

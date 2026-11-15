@@ -48,7 +48,8 @@ describe("lokale Ressourcen", () => {
   it("liefert Deep-Links über den SPA-Fallback und proxyt die API", () => {
     const nginx = fs.readFileSync(path.resolve(process.cwd(), "nginx.conf"), "utf8");
     expect(nginx).toContain("try_files $uri $uri/ /index.html");
-    expect(nginx).toContain("proxy_pass http://api:8000");
+    expect(nginx).toContain("resolver 127.0.0.11");
+    expect(nginx).toContain("proxy_pass $api_upstream");
   });
 
   it("setzt Proxy-Header für alle proxeten Bereiche", () => {

@@ -6,9 +6,6 @@ from importlib import import_module
 
 from django.conf import settings
 
-from bands.models import Membership
-
-
 def _cookie(scope, name: str) -> str | None:
     for schluessel, wert in scope.get("headers", []):
         if schluessel.decode("latin-1").lower() != "cookie":
@@ -25,29 +22,6 @@ def origin_aus(scope) -> str | None:
         if schluessel.decode("latin-1").lower() == "origin":
             return wert.decode("latin-1")
     return None
-
-
-def frisches_konto(scope):
-    """Lädt Session und Konto neu aus der Datenbank, nicht aus dem Cache."""
-    schluessel = _cookie(scope, settings.SESSION_COOKIE_NAME)
-    if not schluessel:
-        return None
-    SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
-    sitzung = SessionStore(session_key=schluessel)
-    try:
-        sitzung.load()
-    except Exception:
-        return None
-    konto_id = sitzung.get("_auth_user_id")
-    if not konto_id:
-        return None
-    from accounts.models import User
-
-    return User.objects.filter(pk=konto_id, is_active=True).first()
-
-
-def ist_mitglied(band_id: int, user_id: int) -> bool:
-    return Membership.objects.filter(band_id=band_id, user_id=user_id).exists()
 
 
 def zugriff_gueltig(scope, band_id: int) -> int | None:

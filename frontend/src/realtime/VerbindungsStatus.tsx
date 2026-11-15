@@ -4,7 +4,7 @@ import "./realtime.css";
 const TEXTE: Record<Verbindungszustand, string> = {
   verbinden: "Verbindung wird aufgebaut.",
   verbunden: "Verbunden. Änderungen werden abgeglichen.",
-  unterbrochen: "Verbindung unterbrochen. Der Abgleich läuft erneut.",
+  unterbrochen: "Verbindung unterbrochen.",
   abgleich: "Abgleich läuft.",
   "abgleich-fehlgeschlagen": "Abgleich fehlgeschlagen.",
 };
@@ -25,7 +25,7 @@ export function VerbindungsStatus({
       data-echtzeit-status={zustand}
     >
       {TEXTE[zustand]}
-      {zustand === "abgleich-fehlgeschlagen" ? (
+      {zustand === "unterbrochen" || zustand === "abgleich-fehlgeschlagen" ? (
         <button type="button" className="echtzeit-erneut" onClick={onErneutVersuchen}>
           Erneut versuchen
         </button>

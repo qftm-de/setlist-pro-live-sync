@@ -8,7 +8,7 @@ from django.test import SimpleTestCase, TransactionTestCase, override_settings
 
 from bands.models import Band, Membership
 from core.asgi import application
-from realtime.origin import origin_gueltig
+from realtime.origin import origin_gueltig, schema_aus_scope
 
 User = get_user_model()
 
@@ -53,8 +53,8 @@ class OriginTest(SimpleTestCase):
         SECURE_PROXY_SSL_HEADER=("HTTP_X_FORWARDED_PROTO", "https"),
     )
     def test_hinter_dem_proxy_gilt_https(self):
-        self.assertTrue(origin_gueltig("https://band.example"))
-        self.assertFalse(origin_gueltig("http://band.example"))
+        self.assertTrue(origin_gueltig("https://band.example", "https"))
+        self.assertFalse(origin_gueltig("http://band.example", "https"))
 
     @override_settings(
         CSRF_TRUSTED_ORIGINS=[],
@@ -63,15 +63,36 @@ class OriginTest(SimpleTestCase):
         SECURE_PROXY_SSL_HEADER=None,
     )
     def test_lokal_gilt_http_mit_port(self):
-        self.assertTrue(origin_gueltig("http://band.example"))
-        self.assertTrue(origin_gueltig("http://band.example:8080"))
-        self.assertFalse(origin_gueltig("https://band.example"))
-        self.assertFalse(origin_gueltig("http://fremd.example:8080"))
+        self.assertTrue(origin_gueltig("http://band.example", "http"))
+        self.assertTrue(origin_gueltig("http://band.example:8080", "http"))
+        self.assertFalse(origin_gueltig("https://band.example", "http"))
+        self.assertFalse(origin_gueltig("http://fremd.example:8080", "http"))
 
     @override_settings(CSRF_TRUSTED_ORIGINS=["https://band.example"], DEBUG=False)
     def test_trusted_origin_bleibt_exakt(self):
         self.assertTrue(origin_gueltig("https://band.example"))
         self.assertFalse(origin_gueltig("https://band.example:8443"))
+
+    @override_settings(
+        CSRF_TRUSTED_ORIGINS=[],
+        ALLOWED_HOSTS=[".band.example"],
+        DEBUG=False,
+    )
+    def test_dot_host_erlaubt_subdomains(self):
+        self.assertTrue(origin_gueltig("http://live.band.example", "http"))
+        self.assertFalse(origin_gueltig("http://fremd.example", "http"))
+
+    @override_settings(
+        SECURE_PROXY_SSL_HEADER=("HTTP_X_FORWARDED_PROTO", "https")
+    )
+    def test_schema_kommt_aus_dem_proxy_header(self):
+        scope = {
+            "scheme": "http",
+            "headers": [
+                (b"x-forwarded-proto", b"https"),
+            ],
+        }
+        self.assertEqual(schema_aus_scope(scope), "https")
 
 
 @override_settings(**SETTINGS)

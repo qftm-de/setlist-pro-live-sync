@@ -11,7 +11,7 @@ interface SongZeileProps {
   onLoeschen: (song: Song) => void;
   onOeffnen?: (pfad: string) => void;
   geloescht?: boolean;
-  onBearbeitung?: (song: Song | null) => void;
+  onBearbeitung?: (song: Song, offen: boolean) => void;
   onSitzungAbgelaufen?: () => void;
 }
 
@@ -47,7 +47,7 @@ export function SongZeile({
     setNotiz(song.notes ?? "");
     setFehler(null);
     setBearbeiten(true);
-    onBearbeitung?.(song);
+    onBearbeitung?.(song, true);
   }
 
   async function speichern(ereignis: React.FormEvent) {
@@ -73,7 +73,7 @@ export function SongZeile({
       });
       onAendern({ ...song, ...geaendert });
       setBearbeiten(false);
-      onBearbeitung?.(null);
+      onBearbeitung?.(song, false);
     } catch (ursache) {
       setFehler(behandleFehler(ursache, onSitzungAbgelaufen));
     }
@@ -87,7 +87,7 @@ export function SongZeile({
     setNotiz(song.notes ?? "");
     setFehler(null);
     setBearbeiten(false);
-    onBearbeitung?.(null);
+    onBearbeitung?.(song, false);
   }
 
   if (bearbeiten) {

@@ -62,7 +62,10 @@ describe("Auftritte", () => {
       await screen.findByRole("heading", { name: "Vergangene Auftritte" })
     ).closest(".auftritt-gruppe") as HTMLElement;
     fireEvent.click(within(gruppe).getByRole("button", { name: "Alt ändern" }));
-    fireEvent.change(within(gruppe).getByLabelText("Titel (ändern)"), {
+    const offen = (
+      await screen.findByRole("heading", { name: "In Bearbeitung" })
+    ).closest(".auftritt-gruppe") as HTMLElement;
+    fireEvent.change(within(offen).getByLabelText("Titel (ändern)"), {
       target: { value: "Alter Entwurf" },
     });
     await adapter.loescheGig("a", 2);
@@ -78,12 +81,45 @@ describe("Auftritte", () => {
     );
 
     expect(
-      await within(gruppe).findByText(
+      await within(offen).findByText(
         "Dieser Auftritt wurde inzwischen gelöscht. Dein Entwurf bleibt erhalten.",
       ),
     ).toBeInTheDocument();
-    expect(within(gruppe).getByLabelText("Titel (ändern)")).toHaveValue(
+    expect(within(offen).getByLabelText("Titel (ändern)")).toHaveValue(
       "Alter Entwurf",
     );
+  });
+
+  it("behält den Entwurf, wenn der Auftritt die Gruppe wechselt", async () => {
+    const adapter = erstelleGigTestAdapter(
+      [gig({ id: 2, title: "Alt", date: "2026-06-01" })],
+      "2026-06-15",
+    );
+    const { rerender } = render(
+      <Auftritte
+        bandId="a"
+        adapter={adapter}
+        setlistAdapter={erstelleSetlistTestAdapter([])}
+        onNavigieren={() => undefined}
+      />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Alt ändern" }));
+    fireEvent.change(screen.getByLabelText("Titel (ändern)"), {
+      target: { value: "Bleibt offen" },
+    });
+    await adapter.aendereGig("a", 2, { date: "2026-07-01" });
+
+    rerender(
+      <Auftritte
+        bandId="a"
+        adapter={adapter}
+        setlistAdapter={erstelleSetlistTestAdapter([])}
+        onNavigieren={() => undefined}
+        aktualisierung={1}
+      />,
+    );
+
+    expect(screen.getByLabelText("Titel (ändern)")).toHaveValue("Bleibt offen");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
