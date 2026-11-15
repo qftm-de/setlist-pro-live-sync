@@ -359,7 +359,10 @@ export function App({
                 adapter={bandAdapter}
                 songs={songsFuerListe}
                 onNavigieren={navigiere}
-                onGeaendert={() => setDatenVersion((wert) => wert + 1)}
+                onGeaendert={() => {
+                  setSyncStand(null);
+                  setDatenVersion((wert) => wert + 1);
+                }}
                 onSitzungAbgelaufen={sitzungAbgelaufen}
               />
             )}

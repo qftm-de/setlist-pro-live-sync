@@ -39,9 +39,6 @@ export function useGigs(
       if (token !== lauf.current) {
         return false;
       }
-      if (vorgabeRef.current) {
-        return false;
-      }
       setZustand({ status: "fertig", gruppen });
       setAbgleichFehler(null);
       return true;
@@ -73,7 +70,9 @@ export function useGigs(
   }, [adapter, bandId, onSitzungAbgelaufen]);
 
   useEffect(() => {
-    setZustand({ status: "laedt" });
+    if (!vorgabeRef.current) {
+      setZustand({ status: "laedt" });
+    }
     setAbgleichFehler(null);
     void laden();
     return () => {

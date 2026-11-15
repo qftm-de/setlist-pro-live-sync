@@ -50,7 +50,7 @@ services:
       retries: 10
   relay:
     build: ./backend
-    command: sh -c "python manage.py migrate --noinput && python manage.py relay --intervall 0.05"
+    command: sh -c "python manage.py migrate --noinput && python manage.py relay --intervall 0.2"
     environment: *api-umgebung
     depends_on:
       api:

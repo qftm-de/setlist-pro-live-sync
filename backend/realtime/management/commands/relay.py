@@ -12,7 +12,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--einmal", action="store_true", help="Ein Lauf, dann Ende.")
-        parser.add_argument("--intervall", type=float, default=0.05)
+        parser.add_argument("--intervall", type=float, default=0.2)
         parser.add_argument("--grenze", type=int, default=100)
 
     def handle(self, *args, **optionen):

@@ -6,6 +6,19 @@ import { erstelleSetlistTestAdapter } from "../setlists/setlists";
 import { Auftritte } from "./Auftritte";
 
 describe("Auftritte", () => {
+  it("zeigt die Vorgabe sofort ohne Ladezustand", () => {
+    render(
+      <Auftritte
+        bandId="a"
+        adapter={erstelleGigTestAdapter([], "2026-06-15")}
+        setlistAdapter={erstelleSetlistTestAdapter([])}
+        onNavigieren={() => undefined}
+        vorgabe={{ upcoming: [gig()], past: [] }}
+      />,
+    );
+    expect(screen.getByText("Sommerfest")).toBeInTheDocument();
+  });
+
   it("markiert einen entfernten Auftritt und behält den Entwurf", async () => {
     const adapter = erstelleGigTestAdapter([gig()], "2026-06-15");
     const { rerender } = render(
