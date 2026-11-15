@@ -44,6 +44,8 @@ export function Setlists({
   const markeRef = useRef(aktualisierung);
   const vorgabeRef = useRef(vorgabe);
   vorgabeRef.current = vorgabe;
+  const gewaehltRef = useRef(gewaehlt);
+  gewaehltRef.current = gewaehlt;
 
   useEffect(() => {
     if (vorgabe) {
@@ -100,7 +102,7 @@ export function Setlists({
       return;
     }
     markeRef.current = aktualisierung;
-    if (gewaehlt !== null) {
+    if (gewaehltRef.current !== null) {
       setDetailHinweis(
         "Diese Setlist wurde inzwischen geändert. Dein Entwurf bleibt erhalten.",
       );
@@ -113,10 +115,13 @@ export function Setlists({
           return;
         }
         setListe(geladen);
-        if (gewaehlt !== null && !geladen.some((setlist) => setlist.id === gewaehlt)) {
+        if (
+          gewaehltRef.current !== null &&
+          !geladen.some((setlist) => setlist.id === gewaehltRef.current)
+        ) {
           setDetailGeloescht(true);
           setDetailHinweis(null);
-        } else if (gewaehlt !== null) {
+        } else if (gewaehltRef.current !== null) {
           setDetailGeloescht(false);
           setDetailHinweis(
             "Diese Setlist wurde inzwischen geändert. Dein Entwurf bleibt erhalten.",
@@ -131,7 +136,7 @@ export function Setlists({
     return () => {
       aktiv = false;
     };
-  }, [adapter, aktualisierung, bandId, gewaehlt, onSitzungAbgelaufen]);
+  }, [adapter, aktualisierung, bandId, onSitzungAbgelaufen]);
 
   useEffect(() => {
     if (gewaehlt === null) {

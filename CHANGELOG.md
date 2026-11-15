@@ -129,7 +129,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   Formular als gelöscht markiert, der Entwurf bleibt erhalten und das
   Speichern ist gesperrt; vergangene Auftritte behalten dabei ihre Gruppe.
   Der WebSocket begrenzt Verbindungen je Konto und Band sowie die
-  Ping-Frequenz. Das Relay liest den Ausgangspuffer alle 50 Millisekunden,
+  Ping-Frequenz. Das Relay liest den Ausgangspuffer alle 200 Millisekunden,
   damit der Lastlauf die 1.000-Millisekunden-Grenze stabil hält. Lokale
   PDFs unter `docs/` sind ignoriert. Die Frontend-Tests laufen mit
   begrenzter Worker-Zahl stabiler.

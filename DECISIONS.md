@@ -45,7 +45,7 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 - Ein eigener Relay-Dienst veröffentlicht den Ausgangspuffer wiederholt und mindestens einmal. Grund: Netzfunktionen gehören nicht in die Fachtransaktion; Redis-Ausfall verzögert nur den Abgleich.
 - Jeder sichtbare Strom hat einen eigenen Zähler, erhöht unter Zeilensperre. Grund: Eine globale Datenbanksequenz erzeugt scheinbare Lücken, sobald persönliche Ereignisse getrennt laufen.
 - Band- und persönliche Ereignisse nutzen getrennte Channels-Gruppen. Bandereignisse tragen keine persönlichen Inhalte oder Kennungen. Grund: Privatisierte Anmerkungen dürfen im Bandstrom nicht nachträglich auftauchen.
-- WebSocket-Aufbau verlangt exakten Origin, aktive Session und Mitgliedschaft; Rechte werden alle 20 Sekunden und vor jeder Auslieferung neu geprüft. Grund: Eine offene Verbindung ist keine dauerhafte Berechtigung.
+- WebSocket-Aufbau verlangt exakten Origin, aktive Session und Mitgliedschaft; Rechte werden alle 15 Sekunden und vor jeder Auslieferung neu geprüft. Grund: Eine offene Verbindung ist keine dauerhafte Berechtigung.
 
 ## GitHub
 

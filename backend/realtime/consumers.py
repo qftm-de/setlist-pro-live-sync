@@ -61,9 +61,15 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
         if self.ueberwachung is not None:
             self.ueberwachung.cancel()
             self.ueberwachung = None
-        for gruppe in getattr(self, "gruppen", []):
-            await self.channel_layer.group_discard(gruppe, self.channel_name)
-        self._gib_verbindung_frei()
+        try:
+            for gruppe in getattr(self, "gruppen", []):
+                try:
+                    await self.channel_layer.group_discard(gruppe, self.channel_name)
+                except Exception:
+                    # Der Verbindungsplatz darf nicht von Redis abhängen.
+                    continue
+        finally:
+            self._gib_verbindung_frei()
 
     def _gib_verbindung_frei(self) -> None:
         schluessel = getattr(self, "verbindungs_schluessel", None)
@@ -90,7 +96,13 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
     async def _pruefe_regelmaessig(self) -> None:
         while True:
             await asyncio.sleep(settings.REALTIME_CHECK_SECONDS)
-            if not await self._zugriff_ok():
+            try:
+                erlaubt = await self._zugriff_ok()
+            except Exception:
+                # Fail closed: ein Datenbankfehler ist kein Freibrief.
+                await self._schliesse_ohne_recht()
+                return
+            if not erlaubt:
                 await self._schliesse_ohne_recht()
                 return
 
