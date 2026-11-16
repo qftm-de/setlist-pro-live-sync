@@ -34,13 +34,30 @@ export interface CrdtTextHandle {
   setWert: (wert: string) => void;
   sendeJetzt: () => void;
   uebernehmen: () => void;
-  wendeRemoteAn: (update: string) => void;
+  wendeRemoteAn: (update: string, epoch?: number) => void;
 }
 
 function docAusUpdate(update: Uint8Array): Y.Doc {
   const doc = new Y.Doc();
   Y.applyUpdate(doc, update);
   return doc;
+}
+
+/** Ein leerer Delta kann trotzdem Bytes enthalten; der Zustandsvektor zählt. */
+function hatOffeneOps(doc: Y.Doc, sv: Uint8Array | null): boolean {
+  if (!sv) {
+    return false;
+  }
+  const aktuell = zustandsVektor(doc);
+  if (aktuell.length !== sv.length) {
+    return true;
+  }
+  for (let index = 0; index < aktuell.length; index += 1) {
+    if (aktuell[index] !== sv[index]) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
@@ -67,6 +84,12 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
   const [wert, setWertState] = useState(optionen.wert);
   const [zustand, setZustand] = useState<TextZustand>("bestaetigt");
   const [entwurf, setEntwurf] = useState<string | null>(null);
+  const entwurfRef = useRef<string | null>(null);
+
+  const setzeEntwurf = useCallback((wert: string | null) => {
+    entwurfRef.current = wert;
+    setEntwurf(wert);
+  }, []);
 
   const timerLoeschen = useCallback(() => {
     if (timerRef.current !== null) {
@@ -94,22 +117,25 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         setzeBestaetigt(bytesAusBase64(stand.state));
         const inhalt = textAusDokument(doc);
         setWertState(inhalt);
-        const offen = deltaUpdate(doc, svRef.current ?? zustandsVektor(doc));
-        setZustand(offen.length > 2 ? "offen" : "bestaetigt");
+        const offen = hatOffeneOps(doc, svRef.current);
+        setZustand(
+          offen
+            ? "offen"
+            : entwurfRef.current
+              ? "abgelehnt"
+              : "bestaetigt",
+        );
         standCbRef.current?.(inhalt);
         return;
       }
 
       // Neuer Stand oder neue Epoche.
       if (doc) {
-        const offen = deltaUpdate(doc, svRef.current ?? zustandsVektor(doc));
-        if (offen.length > 2) {
-          setEntwurf(textAusDokument(doc));
-          setZustand("abgelehnt");
-        } else {
-          setEntwurf(null);
-          setZustand("bestaetigt");
-        }
+        const offen = hatOffeneOps(doc, svRef.current);
+        const neuerEntwurf =
+          offen ? textAusDokument(doc) : entwurfRef.current;
+        setzeEntwurf(neuerEntwurf);
+        setZustand(neuerEntwurf ? "abgelehnt" : "bestaetigt");
       }
       const neu = dokumentAusStand(stand, text);
       docRef.current = neu;
@@ -137,11 +163,11 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
     if (!doc || sendetRef.current) {
       return;
     }
-    const update = deltaUpdate(doc, svRef.current ?? zustandsVektor(doc));
-    if (update.length <= 2) {
+    if (!hatOffeneOps(doc, svRef.current)) {
       setZustand("bestaetigt");
       return;
     }
+    const update = deltaUpdate(doc, svRef.current ?? zustandsVektor(doc));
     if (!aktivRef.current) {
       setZustand("pausiert");
       return;
@@ -160,10 +186,10 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         epochRef.current = antwort.epoch;
         const text = textAusDokument(aktuell);
         setWertState(text);
-        setEntwurf(null);
+        setzeEntwurf(null);
         sendetRef.current = false;
-        const offen = deltaUpdate(aktuell, svRef.current ?? zustandsVektor(aktuell));
-        if (offen.length > 2) {
+        const offen = hatOffeneOps(aktuell, svRef.current);
+        if (offen) {
           setZustand("offen");
           if (aktivRef.current) {
             timerRef.current = window.setTimeout(() => {
@@ -182,12 +208,10 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         if (istApiFehler(fehler) && fehler.code === "conflict") {
           const aktuell = docRef.current;
           if (aktuell) {
-            setEntwurf(textAusDokument(aktuell));
+            setzeEntwurf(textAusDokument(aktuell));
           }
-          const neueEpoche = fehler.daten?.current_epoch;
-          if (typeof neueEpoche === "number") {
-            epochRef.current = neueEpoche;
-          }
+          // Die neue Epoche kommt gleich mit dem neu geladenen Stand.
+          // Hier nicht vorwegnehmen, sonst mischt der Reload beide Stände.
           const bestaetigt = docAusUpdate(
             updateRef.current ?? new Uint8Array(),
           );
@@ -237,9 +261,29 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
   }, [entwurf, setWert]);
 
   const wendeRemoteAn = useCallback(
-    (update: string) => {
+    (update: string, epoch?: number) => {
       const doc = docRef.current;
       if (!doc) {
+        return;
+      }
+      if (typeof epoch === "number" && epoch < epochRef.current) {
+        // Veraltetes Ereignis einer alten Epoche.
+        return;
+      }
+      if (typeof epoch === "number" && epoch > epochRef.current) {
+        // REST-Ersatz: neuer, unabhängiger Zustand. Nicht mit dem alten
+        // Epoche-Dokument mischen, den Entwurf getrennt behalten.
+        const offen = hatOffeneOps(doc, svRef.current);
+        const entwurfText =
+          offen ? textAusDokument(doc) : entwurfRef.current;
+        setzeEntwurf(entwurfText);
+        const neu = docAusUpdate(bytesAusBase64(update));
+        docRef.current = neu;
+        epochRef.current = epoch;
+        setzeBestaetigt(bytesAusBase64(update));
+        setWertState(textAusDokument(neu));
+        setZustand(entwurfText ? "abgelehnt" : "bestaetigt");
+        wertCbRef.current?.(textAusDokument(neu));
         return;
       }
       try {
@@ -250,10 +294,16 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
       setzeBestaetigt(bytesAusBase64(update));
       const text = textAusDokument(doc);
       setWertState(text);
-      const offen = deltaUpdate(doc, svRef.current ?? zustandsVektor(doc));
-      setZustand(offen.length > 2 ? "offen" : "bestaetigt");
+      const offen = hatOffeneOps(doc, svRef.current);
+      setZustand(
+        offen
+          ? "offen"
+          : entwurfRef.current
+            ? "abgelehnt"
+            : "bestaetigt",
+      );
       wertCbRef.current?.(text);
-      if (offen.length > 2 && aktivRef.current && !sendetRef.current) {
+      if (offen && aktivRef.current && !sendetRef.current) {
         timerLoeschen();
         timerRef.current = window.setTimeout(() => {
           timerRef.current = null;
@@ -261,7 +311,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         }, 0);
       }
     },
-    [setzeBestaetigt, timerLoeschen],
+    [setzeBestaetigt, setzeEntwurf, timerLoeschen],
   );
 
   useEffect(

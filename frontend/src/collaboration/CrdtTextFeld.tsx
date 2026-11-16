@@ -57,11 +57,11 @@ export function CrdtTextFeld({
 
   useEffect(() => {
     if (nutztCrdt && remote) {
-      crdt.wendeRemoteAn(remote.update);
+      crdt.wendeRemoteAn(remote.update, remote.epoch);
     }
     // Nur ein neues Remote-Update wird übernommen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remote?.update]);
+  }, [remote?.update, remote?.epoch]);
 
   return (
     <label>
