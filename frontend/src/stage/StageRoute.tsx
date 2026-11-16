@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { behandleFehler, fehlerText, istApiFehler } from "../api/client";
 import { apiAnmerkungen, type Anmerkung, type AnmerkungAdapter } from "../annotations/annotations";
 import { PdfVorrat, type VorratQuelle, type VorratStand } from "../documents/pdfLaden";
@@ -76,8 +76,11 @@ export function StageRoute({
   const [vorrat, setVorrat] = useState(() => new PdfVorrat());
   const [anmerkungen, setAnmerkungen] = useState<Record<number, Anmerkung[]>>({});
   const [anmerkungsFehler, setAnmerkungsFehler] = useState(0);
+  const ladeSequenzRef = useRef(0);
 
   const ladeSitzung = useCallback(async () => {
+    const sequenz = ladeSequenzRef.current + 1;
+    ladeSequenzRef.current = sequenz;
     setLaedt(true);
     setFehler(null);
     try {
@@ -85,8 +88,14 @@ export function StageRoute({
         sessionId !== null
           ? await stageAdapter.detail(bandId, sessionId, verbindungId)
           : await stageAdapter.aktive(bandId, verbindungId);
+      if (sequenz !== ladeSequenzRef.current) {
+        return;
+      }
       setSitzung(geladen);
     } catch (ursache) {
+      if (sequenz !== ladeSequenzRef.current) {
+        return;
+      }
       const text = behandleFehler(ursache, onSitzungAbgelaufen);
       if (
         istApiFehler(ursache) &&
@@ -107,7 +116,9 @@ export function StageRoute({
       );
       setSitzung(null);
     } finally {
-      setLaedt(false);
+      if (sequenz === ladeSequenzRef.current) {
+        setLaedt(false);
+      }
     }
   }, [bandId, onSitzungAbgelaufen, sessionId, stageAdapter, verbindungId]);
 

@@ -184,7 +184,14 @@ export function SetlistEditor({
         ) : null}
       </div>
       <StatusAnzeige zustand={zustand} />
-      {textFehler ? <p role="alert">{textFehler}</p> : null}
+      {textFehler ? (
+        <p role="alert">
+          {textFehler}{" "}
+          <button type="button" onClick={() => void ladeTexte()}>
+            Erneut laden
+          </button>
+        </p>
+      ) : null}
       {fehler ? <p role="alert">{fehler}</p> : null}
     </section>
   );

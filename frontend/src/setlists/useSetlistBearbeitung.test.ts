@@ -141,6 +141,67 @@ describe("useSetlistBearbeitung", () => {
     await waitFor(() => expect(result.current.bloecke[0].name).toBe("Neu"));
   });
 
+  it("lädt nach einem Abgleich den vollständigen Stand", async () => {
+    const mitAlt = {
+      ...saved,
+      revision: 0,
+      sections: [{ ...saved.sections[0], name: "Alt" }],
+    };
+    const neu = {
+      ...saved,
+      revision: 5,
+      sections: [{ ...saved.sections[0], name: "Neu" }],
+    };
+    const ladeSetlist = vi.fn(async () => neu);
+    const ladeTexte = vi.fn(async () => ({ revision: 5, texts: [] }));
+    const adapter = { ...adapterMit(ladeTexte), ladeSetlist };
+    const { result, rerender } = renderHook(
+      (optionen: { syncMarke: number }) =>
+        useSetlistBearbeitung({
+          bandId: "b1",
+          setlist: mitAlt,
+          songs: [],
+          adapter,
+          verbunden: true,
+          syncMarke: optionen.syncMarke,
+          textEreignisse: {},
+        }),
+      { initialProps: { syncMarke: 0 } },
+    );
+    await waitFor(() => expect(ladeTexte).toHaveBeenCalled());
+    rerender({ syncMarke: 1 });
+    await waitFor(() => expect(ladeSetlist).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.bloecke[0].name).toBe("Neu"));
+  });
+
+  it("speichert nicht, wenn die Textstände fehlen", async () => {
+    const speichern = vi.fn(async () => saved);
+    const ladeTexte = vi
+      .fn<NonNullable<SetlistAdapter["ladeTexte"]>>()
+      .mockRejectedValue(new Error("offline"));
+    const adapter = {
+      ...adapterMit(ladeTexte),
+      speichereInhalt: speichern,
+    };
+    const { result } = renderHook(() =>
+      useSetlistBearbeitung({
+        bandId: "b1",
+        setlist: initial,
+        songs: [],
+        adapter,
+        verbunden: true,
+        textEreignisse: {},
+      }),
+    );
+    await waitFor(() => expect(result.current.textFehler).not.toBeNull());
+    act(() => result.current.blockHinzufuegen("set"));
+    await act(async () => {
+      await result.current.speichern();
+    });
+    expect(speichern).not.toHaveBeenCalled();
+    expect(result.current.fehler).toContain("Textstände");
+  });
+
   it("verwirft eine überholte Ladeantwort", async () => {
     let ersterAufloeser!: (wert: {
       revision: number;

@@ -66,6 +66,7 @@ export function useSetlistBearbeitung({
   const [zustand, setZustand] = useState<SpeicherZustand>("gespeichert");
   const [fehler, setFehler] = useState<string | null>(null);
   const [textFehler, setTextFehler] = useState<string | null>(null);
+  const zustandRef = useRef<SpeicherZustand>("gespeichert");
   const [konflikt, setKonflikt] = useState(false);
   const [texte, setTexte] = useState<Record<string, TextStand>>({});
   const texteRef = useRef<Record<string, TextStand>>({});
@@ -75,6 +76,7 @@ export function useSetlistBearbeitung({
   const [notizen, setNotizen] = useState<Record<string, string>>({});
 
   const basisRef = useRef<MergeBasis>(mergeBasis(bloeckeAusSetlist(setlist)));
+  zustandRef.current = zustand;
   const setIdRef = useRef(setlist.id);
   useEffect(() => {
     if (setIdRef.current !== setlist.id) {
@@ -150,7 +152,6 @@ export function useSetlistBearbeitung({
         }),
       );
       setTexte(karte);
-      setRevision((vorher) => Math.max(vorher, antwort.revision));
       setTextFehler(null);
     } catch {
       if (sequenz !== ladeSequenzRef.current) {
@@ -165,22 +166,42 @@ export function useSetlistBearbeitung({
     void ladeTexte();
   }, [ladeTexte]);
 
+  const ladeAlles = useCallback(async () => {
+    if (zustandRef.current !== "gespeichert") {
+      // Ein lokaler Entwurf bleibt erhalten; die Revision wird nicht
+      // angehoben, damit der nächste PUT nicht still überschreibt.
+      await ladeTexte();
+      return;
+    }
+    try {
+      const server = await adapter.ladeSetlist(bandId, setlist.id);
+      const frisch = bloeckeAusSetlist(server);
+      basisRef.current = mergeBasis(frisch);
+      setBloecke(frisch);
+      setRevision(server.revision ?? 0);
+      setName(server.name);
+      await ladeTexte();
+    } catch {
+      setTextFehler("Setlist konnte nicht neu geladen werden.");
+    }
+  }, [adapter, bandId, ladeTexte, setlist.id]);
+
   const warVerbundenRef = useRef(verbunden);
   useEffect(() => {
     if (!warVerbundenRef.current && verbunden) {
-      // Nach einer Lücke die bestätigten Texte nachladen, bevor ein PUT
-      // veraltete Namen zurückschreibt.
-      void ladeTexte();
+      // Nach einer Lücke den vollständigen Stand nachladen, bevor ein PUT
+      // veraltete Strukturen oder Namen zurückschreibt.
+      void ladeAlles();
     }
     warVerbundenRef.current = verbunden;
-  }, [ladeTexte, verbunden]);
+  }, [ladeAlles, verbunden]);
 
   useEffect(() => {
     if (syncMarke > 0) {
-      // Ein vollständiger Abgleich kann gepufferte Textereignisse überholen.
-      void ladeTexte();
+      // Ein vollständiger Abgleich kann gepufferte Ereignisse überholen.
+      void ladeAlles();
     }
-  }, [ladeTexte, syncMarke]);
+  }, [ladeAlles, syncMarke]);
 
   function aendern(neu: Block[]) {
     setBloecke(neu);
@@ -313,6 +334,10 @@ export function useSetlistBearbeitung({
   async function speichern() {
     if (!verbunden) {
       setFehler("Ohne Verbindung ist die Bearbeitung pausiert. Der Entwurf bleibt erhalten.");
+      return;
+    }
+    if (textFehler) {
+      setFehler("Textstände fehlen. Bitte erneut laden.");
       return;
     }
     setZustand("speichert");
