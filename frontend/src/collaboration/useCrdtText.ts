@@ -86,6 +86,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
   const [entwurf, setEntwurf] = useState<string | null>(null);
   const entwurfRef = useRef<string | null>(null);
   const ausServerstandRef = useRef(Boolean(optionen.stand?.state));
+  const lokalGeaendertRef = useRef(false);
   const docGenerationRef = useRef(0);
 
   const setzeEntwurf = useCallback((wert: string | null) => {
@@ -109,17 +110,25 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
     (stand: TextStand | null | undefined, text: string) => {
       const neuerEpoch = stand?.epoch ?? 0;
       const doc = docRef.current;
+      if (stand?.state && neuerEpoch < epochRef.current) {
+        // Veralteter Stand nach einem Epochenwechsel.
+        return;
+      }
       if (stand?.state && !ausServerstandRef.current) {
         // Erster echter Serverstand: Dokument daraus aufbauen. Ein lokal
         // getippter Text wird als Unterschied übernommen, nicht gemischt.
-        const lokalText = doc ? textAusDokument(doc) : text;
+        // Ohne Serverstand tippt die Komponente über den `wert`-Prop; dann
+        // ist der Prop aktueller als das alte Dokument.
+        const angezeigt =
+          lokalGeaendertRef.current && doc ? textAusDokument(doc) : text;
         const neu = dokumentAusStand(stand, text);
-        if (doc && lokalText !== text) {
-          setzeText(neu, lokalText);
+        if (angezeigt !== textAusDokument(neu)) {
+          setzeText(neu, angezeigt);
         }
         docRef.current = neu;
         docGenerationRef.current += 1;
         ausServerstandRef.current = true;
+        lokalGeaendertRef.current = false;
         epochRef.current = neuerEpoch;
         setzeBestaetigt(bytesAusBase64(stand.state));
         const inhalt = textAusDokument(neu);
@@ -135,10 +144,6 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
             sendeJetztRef.current();
           }, 0);
         }
-        return;
-      }
-      if (stand?.state && neuerEpoch < epochRef.current) {
-        // Veralteter Stand nach einem Epochenwechsel.
         return;
       }
       if (doc && stand?.state && neuerEpoch === epochRef.current) {
@@ -307,6 +312,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         return;
       }
       setzeText(doc, neu);
+      lokalGeaendertRef.current = true;
       setWertState(textAusDokument(doc));
       setZustand(aktivRef.current ? "offen" : "pausiert");
       wertCbRef.current?.(textAusDokument(doc));
@@ -349,6 +355,8 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         const neu = docAusUpdate(bytesAusBase64(update));
         docRef.current = neu;
         docGenerationRef.current += 1;
+        ausServerstandRef.current = true;
+        lokalGeaendertRef.current = false;
         epochRef.current = epoch;
         setzeBestaetigt(bytesAusBase64(update));
         setWertState(textAusDokument(neu));

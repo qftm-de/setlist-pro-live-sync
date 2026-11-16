@@ -275,6 +275,65 @@ describe("useCrdtText", () => {
     expect(server.getText("t").toString()).toBe("AB");
   });
 
+  it("übernimmt getippten Prop-Text beim ersten Serverstand", async () => {
+    vi.useFakeTimers();
+    const basis = stand("Set 1");
+    const server = serverAus(basis);
+    const sends: number[] = [];
+    const senden = (update: string, epoch: number) => {
+      sends.push(epoch);
+      Y.applyUpdate(server, bytesAusBase64(update));
+      return Promise.resolve(antwort(server, epoch, 1));
+    };
+    const { result, rerender } = renderHook(
+      (optionen: { standWert: TextStand | null; wert: string }) =>
+        useCrdtText({
+          stand: optionen.standWert,
+          wert: optionen.wert,
+          aktiv: true,
+          senden,
+        }),
+      {
+        initialProps: {
+          standWert: null as TextStand | null,
+          wert: "Set 1",
+        },
+      },
+    );
+    // Der Editor spiegelt das Tippen in den Prop, der Hook bekommt kein setWert.
+    rerender({ standWert: null, wert: "Set 1 neu" });
+    rerender({ standWert: basis, wert: "Set 1 neu" });
+    expect(result.current.wert).toBe("Set 1 neu");
+    expect(result.current.zustand).toBe("offen");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(sends).toEqual([0]);
+    expect(server.getText("t").toString()).toBe("Set 1 neu");
+    expect(result.current.zustand).toBe("bestaetigt");
+  });
+
+  it("ignoriert einen älteren Stand vor dem ersten Serverstand", () => {
+    const eins = stand("Eins");
+    const neu = stand("Neu", 1);
+    const alt = stand("Alt", 0);
+    const senden = vi.fn(async () => antwort(serverAus(eins), 0, 1));
+    const { result, rerender } = renderHook(
+      (optionen: { standWert: TextStand | null }) =>
+        useCrdtText({
+          stand: optionen.standWert,
+          wert: "Eins",
+          aktiv: true,
+          senden,
+        }),
+      { initialProps: { standWert: null as TextStand | null } },
+    );
+    act(() => result.current.wendeRemoteAn(neu.state, 1));
+    expect(result.current.wert).toBe("Neu");
+    rerender({ standWert: alt });
+    expect(result.current.wert).toBe("Neu");
+  });
+
   it("ignoriert einen verspäteten Stand mit älterer Epoche", () => {
     const eins = stand("Eins");
     const zwei = stand("Zwei", 1);
