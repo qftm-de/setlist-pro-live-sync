@@ -129,6 +129,9 @@ describe("useSetlistBearbeitung", () => {
       }),
     );
     await waitFor(() => expect(ladeTexte).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(Object.keys(result.current.texte).length).toBeGreaterThan(0),
+    );
     expect(result.current.bloecke[0].zeilen[0].titel).toBe("Songtitel");
   });
 

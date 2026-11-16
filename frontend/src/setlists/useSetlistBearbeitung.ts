@@ -38,6 +38,8 @@ interface Optionen {
   onGespeichert?: (setlist: Setlist) => void;
 }
 
+const TEXTSPERRE = "Textstände fehlen. Bitte erneut laden.";
+
 function textAusStand(stand: TextStand | undefined): string | null {
   if (!stand?.state) {
     return null;
@@ -155,7 +157,7 @@ export function useSetlistBearbeitung({
       );
       setTexte(karte);
       setTextFehler(null);
-      setFehler(null);
+      setFehler((vorher) => (vorher === TEXTSPERRE ? null : vorher));
     } catch {
       if (sequenz !== ladeSequenzRef.current) {
         return;
@@ -340,7 +342,7 @@ export function useSetlistBearbeitung({
       return;
     }
     if (textFehler) {
-      setFehler("Textstände fehlen. Bitte erneut laden.");
+      setFehler(TEXTSPERRE);
       return;
     }
     setZustand("speichert");
