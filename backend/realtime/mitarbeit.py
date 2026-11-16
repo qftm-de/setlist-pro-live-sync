@@ -77,11 +77,16 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
     setlist, obj_uuid, feld, initial = ziel
     try:
         with transaction.atomic():
+            gesperrt = None
+            if typ == TextState.TYP_SETLIST:
+                # Setlist-Zeile vor TextState sperren (wie perform_update).
+                gesperrt = Setlist.objects.select_for_update().get(pk=setlist.pk)
             obj, text = update_anwenden(
                 typ, obj_uuid, feld, epoche, dekodiere(nachricht.get("update")), initial
             )
-            if typ == TextState.TYP_SETLIST:
-                Setlist.objects.filter(pk=setlist.pk).update(name=text)
+            if gesperrt is not None:
+                gesperrt.name = text
+                gesperrt.save(update_fields=["name"])
             elif typ == TextState.TYP_SECTION:
                 Section.objects.filter(uuid=obj_uuid).update(name=text)
             else:

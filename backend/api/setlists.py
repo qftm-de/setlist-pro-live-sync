@@ -299,6 +299,13 @@ class SetlistTextUpdate(APIView):
         kennung, feld, initial = ziel
         try:
             with transaction.atomic():
+                gesperrt = None
+                if daten["object_type"] == TextState.TYP_SETLIST:
+                    # Gleiche Sperrreihenfolge wie perform_update:
+                    # Setlist-Zeile vor TextState.
+                    gesperrt = Setlist.objects.select_for_update().get(
+                        pk=setlist.pk
+                    )
                 obj, text = update_anwenden(
                     daten["object_type"],
                     kennung,
@@ -307,8 +314,9 @@ class SetlistTextUpdate(APIView):
                     dekodiere(daten["update"]),
                     initial,
                 )
-                if daten["object_type"] == TextState.TYP_SETLIST:
-                    Setlist.objects.filter(pk=setlist.pk).update(name=text)
+                if gesperrt is not None:
+                    gesperrt.name = text
+                    gesperrt.save(update_fields=["name"])
                 elif daten["object_type"] == TextState.TYP_SECTION:
                     Section.objects.filter(uuid=kennung).update(name=text)
                 else:

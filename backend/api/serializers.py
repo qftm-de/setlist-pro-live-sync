@@ -68,6 +68,7 @@ class SetlistSerializer(SetlistNamePruefung, serializers.ModelSerializer):
     class Meta:
         model = Setlist
         fields = ["id", "uuid", "name", "revision", "sections"]
+        read_only_fields = ["id", "uuid", "revision"]
 
 
 class EintragEingabeSerializer(serializers.Serializer):

@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
+import { ApiFehler } from "../api/client";
 import { base64AusBytes } from "../collaboration/texte";
 import { textSchluessel } from "../collaboration/texte";
 import type { Setlist, SetlistAdapter } from "./setlists";
@@ -225,6 +226,43 @@ describe("useSetlistBearbeitung", () => {
     rerender({ syncMarke: 1 });
     await waitFor(() => expect(ladeSetlist).toHaveBeenCalled());
     await waitFor(() => expect(result.current.bloecke[0].name).toBe("Neu"));
+  });
+
+  it("behält den Merge-Hinweis nach dem Nachladen", async () => {
+    const speichereInhalt = vi
+      .fn()
+      .mockRejectedValue(new ApiFehler(409, "conflict"));
+    const ladeTexte = vi.fn(async () => ({ revision: 1, texts: [] }));
+    const ladeSetlist = vi.fn(async () => saved);
+    const adapter = {
+      ...adapterMit(ladeTexte),
+      speichereInhalt,
+      ladeSetlist,
+    };
+    const { result } = renderHook(() =>
+      useSetlistBearbeitung({
+        bandId: "b1",
+        setlist: initial,
+        songs: [],
+        adapter,
+        verbunden: true,
+        textEreignisse: {},
+      }),
+    );
+    await waitFor(() => expect(ladeTexte).toHaveBeenCalled());
+    act(() => result.current.blockHinzufuegen("set"));
+    await act(async () => {
+      await result.current.speichern();
+    });
+    expect(result.current.konflikt).toBe(true);
+    await act(async () => {
+      await result.current.zusammenfuehren();
+    });
+    await waitFor(() =>
+      expect(result.current.fehler).toBe(
+        "Zusammengeführt. Bitte erneut speichern.",
+      ),
+    );
   });
 
   it("speichert nicht, wenn die Textstände fehlen", async () => {
