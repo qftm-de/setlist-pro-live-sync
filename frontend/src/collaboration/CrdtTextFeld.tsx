@@ -10,7 +10,7 @@ interface CrdtTextFeldProps {
   onWert: (text: string) => void;
   onStand?: (text: string) => void;
   onKonflikt?: () => void;
-  remote?: { update: string; epoch: number } | null;
+  remote?: { update: string; epoch: number; revision?: number } | null;
   label: string;
   name?: string;
   maxLength: number;
@@ -57,7 +57,7 @@ export function CrdtTextFeld({
 
   useEffect(() => {
     if (remote) {
-      crdt.wendeRemoteAn(remote.update, remote.epoch);
+      crdt.wendeRemoteAn(remote.update, remote.epoch, remote.revision);
     }
     // Nur ein neues Remote-Update wird übernommen.
     // eslint-disable-next-line react-hooks/exhaustive-deps

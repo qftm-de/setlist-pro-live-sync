@@ -8,7 +8,12 @@ import {
   serverAus,
   stand,
 } from "./crdtTestHelfer";
-import { bytesAusBase64, type TextAntwort } from "./texte";
+import {
+  base64AusBytes,
+  bytesAusBase64,
+  type TextAntwort,
+  type TextStand,
+} from "./texte";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -85,4 +90,39 @@ describe("useCrdtText", () => {
     expect(server.getText("t").toString()).toBe("Alt!");
     expect(result.current.zustand).toBe("bestaetigt");
   });
+  it("nimmt einen neueren Lesestand trotz älterem Ereignis an", () => {
+    const basis = stand("A");
+    const ereignisDoc = serverAus(basis);
+    ereignisDoc.getText("t").insert(1, "B");
+    const neuerDoc = new Y.Doc();
+    Y.applyUpdate(neuerDoc, Y.encodeStateAsUpdate(ereignisDoc));
+    neuerDoc.getText("t").insert(2, "!");
+    const senden = vi.fn(async () => antwort(serverAus(basis), 0, 1));
+    const { result, rerender } = renderHook(
+      (optionen: { standWert: TextStand }) =>
+        useCrdtText({
+          stand: optionen.standWert,
+          wert: "A",
+          aktiv: true,
+          senden,
+        }),
+      { initialProps: { standWert: basis } },
+    );
+    act(() =>
+      result.current.wendeRemoteAn(
+        base64AusBytes(Y.encodeStateAsUpdate(ereignisDoc)),
+        0,
+        1,
+      ),
+    );
+    expect(result.current.wert).toBe("AB");
+    const neuerStand = {
+      ...stand("AB!", 0),
+      revision: 2,
+      state: base64AusBytes(Y.encodeStateAsUpdate(neuerDoc)),
+    };
+    rerender({ standWert: neuerStand });
+    expect(result.current.wert).toBe("AB!");
+  });
+
 });

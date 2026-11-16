@@ -34,7 +34,7 @@ export interface CrdtTextHandle {
   setWert: (wert: string) => void;
   sendeJetzt: () => void;
   uebernehmen: () => void;
-  wendeRemoteAn: (update: string, epoch?: number) => void;
+  wendeRemoteAn: (update: string, epoch?: number, revision?: number) => void;
 }
 
 function docAusUpdate(update: Uint8Array): Y.Doc {
@@ -88,6 +88,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
   const ausServerstandRef = useRef(Boolean(optionen.stand?.state));
   const lokalGeaendertRef = useRef(false);
   const standAusEreignisRef = useRef(false);
+  const letzteEreignisRevisionRef = useRef(0);
   const ausgangstextRef = useRef(optionen.wert);
   const docGenerationRef = useRef(0);
 
@@ -121,22 +122,24 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         standAusEreignisRef.current &&
         neuerEpoch <= epochRef.current
       ) {
-        // Ein Ereignisstand ist neuer als dieser verspätete Lesestand.
-        // Offene lokale Eingaben dürfen jetzt gesendet werden, weil die
-        // Komponente mit dem Stand in den CRDT-Modus wechselt.
-        if (
-          doc &&
-          hatLokaleAenderungen(doc, updateRef.current) &&
-          aktivRef.current &&
-          !sendetRef.current
-        ) {
-          timerLoeschen();
-          timerRef.current = window.setTimeout(() => {
-            timerRef.current = null;
-            sendeJetztRef.current();
-          }, 0);
+        // Ein Ereignisstand ist neuer als dieser Lesestand, es sei denn der
+        // Lesestand trägt eine höhere Revision.
+        if ((stand.revision ?? 0) <= letzteEreignisRevisionRef.current) {
+          if (
+            doc &&
+            hatLokaleAenderungen(doc, updateRef.current) &&
+            aktivRef.current &&
+            !sendetRef.current
+          ) {
+            timerLoeschen();
+            timerRef.current = window.setTimeout(() => {
+              timerRef.current = null;
+              sendeJetztRef.current();
+            }, 0);
+          }
+          return;
         }
-        return;
+        standAusEreignisRef.current = false;
       }
       if (stand?.state && !ausServerstandRef.current) {
         // Erster echter Serverstand: Dokument daraus aufbauen. Nur ein echt
@@ -365,10 +368,13 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
   }, [entwurf, setWert]);
 
   const wendeRemoteAn = useCallback(
-    (update: string, epoch?: number) => {
+    (update: string, epoch?: number, revision?: number) => {
       const doc = docRef.current;
       if (!doc) {
         return;
+      }
+      if (typeof revision === "number") {
+        letzteEreignisRevisionRef.current = revision;
       }
       if (!ausServerstandRef.current) {
         // Erstes Serverereignis vor dem Lesestand: Der lokale Text ist noch

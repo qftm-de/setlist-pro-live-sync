@@ -102,4 +102,5 @@ export interface TextEreignis {
   field: string;
   update: string;
   epoch: number;
+  revision: number;
 }
