@@ -196,6 +196,8 @@ describe("App", () => {
       verzug.aufloesen({ id: 1, name: "Hauptset", sections: [] });
       await verzug.promise;
     });
-    expect(screen.getByLabelText("Notiz für Abschnitt 1 (leer ergibt Pause)")).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText("Notiz für Abschnitt 1 (leer ergibt Pause)"),
+    ).toBeInTheDocument();
   });
 });
