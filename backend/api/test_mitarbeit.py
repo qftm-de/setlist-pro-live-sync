@@ -381,6 +381,49 @@ class SetlistMitarbeitTest(TestCase):
         self.assertEqual(wieder.status_code, 200)
         self.assertEqual(wieder.json()["text"], "Neu!")
 
+    def test_text_update_trimmt_wie_der_restweg(self):
+        """Randleerzeichen im Textweg erzeugen keinen Epochenwechsel (R14)."""
+        self.put([{"name": "A", "kind": "set"}], 0)
+        abschnitt = Section.objects.get(setlist=self.setlist)
+        stand = next(
+            eintrag
+            for eintrag in self.client.get(f"{self.basis}texts/").json()["texts"]
+            if eintrag["object_type"] == "section"
+        )
+        basis = base64.b64decode(stand["state"])
+        antwort = self.client.post(
+            f"{self.basis}text/",
+            data=json.dumps(
+                {
+                    "object_type": "section",
+                    "object_uuid": stand["object_uuid"],
+                    "field": "name",
+                    "epoch": stand["epoch"],
+                    "update": b64(yjs_update(basis, " ")),
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(antwort.status_code, 200)
+        self.assertEqual(antwort.json()["text"], "A")
+        self.assertEqual(Section.objects.get(pk=abschnitt.pk).name, "A")
+
+        # Der Gesamt-PUT mit demselben Namen darf die Epoche nicht erhöhen.
+        zustand = TextState.objects.get(
+            object_type="section", object_uuid=stand["object_uuid"], field="name"
+        )
+        epoche = zustand.epoch
+        antwort = self.put(
+            [{"uuid": str(abschnitt.uuid), "name": "A", "kind": "set"}], 1
+        )
+        self.assertEqual(antwort.status_code, 200)
+        self.assertEqual(
+            TextState.objects.get(
+                object_type="section", object_uuid=stand["object_uuid"], field="name"
+            ).epoch,
+            epoche,
+        )
+
     def test_zu_grosses_update_wird_abgewiesen(self):
         self.put([{"name": "A", "kind": "set"}], 0)
         stand = self.client.get(f"{self.basis}texts/").json()["texts"][0]

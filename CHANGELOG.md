@@ -36,6 +36,22 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - Zweiter Review-Durchgang über eine direkte API-Anbindung. Getrennte Befunddatei über `REVIEW_OUT`, ein
   offener Blocker oder Major eines der beiden Gutachter stoppt den Push.
 
+### Fixed
+
+- Gemeinsame Bearbeitung (R14): Beide Schreibwege legen denselben Text in die
+  Spalte. Der Textweg trimmt jetzt wie der REST-Weg; ein Randleerzeichen löst
+  keinen Epochenwechsel mehr aus, der die Zusammenführung aller Teilnehmer
+  verwirft.
+- Gemeinsame Bearbeitung (R14): Textpfad und Gesamt-PUT sperren in derselben
+  Reihenfolge, Strukturzeile vor TextState. Die umgekehrte Reihenfolge konnte
+  auf Abschnitts- und Eintragsnamen einen Deadlock auslösen. R14.
+- Echtzeit (R14, R15): Befehle über den Band-WebSocket unterliegen einer
+  Mengenbremse wie Textupdates. Abgelehnte Befehle erzeugen weder
+  Protokollzeile noch Ereignis und erreichen die Sitzungssperre nicht.
+- Echtzeit (R13, R14): `text.updated` und `annotation.text` tragen nur noch das
+  bestätigte Delta statt des vollen CRDT-Zustands. Der gespeicherte Zustand je
+  Feld ist auf 512 KiB begrenzt.
+
 ### Added
 
 - Projektstruktur, Planung und Dokumentation für den Neubau.

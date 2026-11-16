@@ -74,23 +74,25 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
     ziel = _textziel(band_id, typ, kennung, feld)
     if ziel is None:
         raise MitarbeitFehler(409, "Textfeld gehört nicht zu dieser Band.")
+    if typ not in (TextState.TYP_SETLIST, TextState.TYP_SECTION, TextState.TYP_ENTRY):
+        raise MitarbeitFehler(400, "Unbekannter Feldtyp.")
     setlist, obj_uuid, feld, initial = ziel
     try:
         with transaction.atomic():
-            gesperrt = None
+            # Sperrreihenfolge wie in ersetze_inhalt: Strukturzeile vor
+            # TextState, sonst Deadlock mit dem Gesamt-PUT.
             if typ == TextState.TYP_SETLIST:
-                # Setlist-Zeile vor TextState sperren (wie perform_update).
                 gesperrt = Setlist.objects.select_for_update().get(pk=setlist.pk)
+            elif typ == TextState.TYP_SECTION:
+                gesperrt = Section.objects.select_for_update().get(uuid=obj_uuid)
+            else:
+                gesperrt = Entry.objects.select_for_update().get(uuid=obj_uuid)
             obj, text = update_anwenden(
                 typ, obj_uuid, feld, epoche, dekodiere(nachricht.get("update")), initial
             )
-            if gesperrt is not None:
-                gesperrt.name = text
-                gesperrt.save(update_fields=["name"])
-            elif typ == TextState.TYP_SECTION:
-                Section.objects.filter(uuid=obj_uuid).update(name=text)
-            else:
-                Entry.objects.filter(uuid=obj_uuid).update(label=text)
+            spalte = "label" if typ == TextState.TYP_ENTRY else "name"
+            setattr(gesperrt, spalte, text)
+            gesperrt.save(update_fields=[spalte])
             band_ereignis(
                 setlist.band,
                 "text.updated",
@@ -99,7 +101,8 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
                 field=obj.field,
                 epoch=obj.epoch,
                 revision=obj.revision,
-                update=kodiere(bytes(obj.state)),
+                # Nur das bestätigte Delta senden, nicht den vollen Zustand.
+                update=nachricht.get("update"),
             )
     except IntegrityError as fehler:
         raise MitarbeitFehler(

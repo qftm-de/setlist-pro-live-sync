@@ -299,13 +299,19 @@ class SetlistTextUpdate(APIView):
         kennung, feld, initial = ziel
         try:
             with transaction.atomic():
-                gesperrt = None
+                # Sperrreihenfolge wie in ersetze_inhalt: Strukturzeile vor
+                # TextState. Andersherum entsteht mit dem Gesamt-PUT ein
+                # Deadlock auf Abschnitts- und Eintragsnamen.
                 if daten["object_type"] == TextState.TYP_SETLIST:
-                    # Gleiche Sperrreihenfolge wie perform_update:
-                    # Setlist-Zeile vor TextState.
                     gesperrt = Setlist.objects.select_for_update().get(
                         pk=setlist.pk
                     )
+                elif daten["object_type"] == TextState.TYP_SECTION:
+                    gesperrt = Section.objects.select_for_update().get(
+                        uuid=kennung
+                    )
+                else:
+                    gesperrt = Entry.objects.select_for_update().get(uuid=kennung)
                 obj, text = update_anwenden(
                     daten["object_type"],
                     kennung,
@@ -314,13 +320,9 @@ class SetlistTextUpdate(APIView):
                     dekodiere(daten["update"]),
                     initial,
                 )
-                if gesperrt is not None:
-                    gesperrt.name = text
-                    gesperrt.save(update_fields=["name"])
-                elif daten["object_type"] == TextState.TYP_SECTION:
-                    Section.objects.filter(uuid=kennung).update(name=text)
-                else:
-                    Entry.objects.filter(uuid=kennung).update(label=text)
+                spalte = "label" if daten["object_type"] == TextState.TYP_ENTRY else "name"
+                setattr(gesperrt, spalte, text)
+                gesperrt.save(update_fields=[spalte])
                 band_ereignis(
                     setlist.band,
                     "text.updated",
@@ -329,7 +331,9 @@ class SetlistTextUpdate(APIView):
                     field=obj.field,
                     epoch=obj.epoch,
                     revision=obj.revision,
-                    update=kodiere(bytes(obj.state)),
+                    # Nur das bestätigte Delta senden. Der Vollzustand wächst
+                    # mit jedem Tastendruck und ginge an den ganzen Bandstrom.
+                    update=daten["update"],
                 )
         except EpocheVeraltet as fehler:
             return Response(

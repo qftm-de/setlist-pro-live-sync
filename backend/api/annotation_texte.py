@@ -119,7 +119,9 @@ class AnnotationTexte(APIView):
                     "epoch": obj.epoch,
                     "generation": gesperrt.permission_generation,
                     "revision": gesperrt.revision,
-                    "update": kodiere(bytes(obj.state)),
+                    # Delta statt Vollzustand: der Vollzustand wächst mit jeder
+                    # Bearbeitung und geht an alle Berechtigten.
+                    "update": request.data.get("update"),
                 }
                 if gesperrt.visibility == Annotation.SICHTBAR_BAND:
                     band_ereignis(band, "annotation.text", **daten)

@@ -7,6 +7,10 @@ import base64
 from pycrdt import Doc, Text
 
 MAX_UPDATE_BYTES = 64 * 1024
+# Obergrenze für den gespeicherten Zustand eines Feldes. Yjs verdichtet beim
+# Kodieren, wächst aber mit Grabsteinen gelöschter Zeichen. Ohne Grenze kann
+# ein Feld den Bandstrom und den texts/-Abruf beliebig aufblähen.
+MAX_ZUSTAND_BYTES = 8 * MAX_UPDATE_BYTES
 
 FELDGRENZEN = {
     "name": 120,

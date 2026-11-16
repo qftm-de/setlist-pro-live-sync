@@ -37,7 +37,7 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4401)
             return
         self.konto_id = konto_id
-        self.text_zeiten: list[float] = []
+        self.zeiten: dict[str, list[float]] = {}
         schluessel = (self.band_id, self.konto_id)
         anzahl = BandConsumer._verbindungen.get(schluessel, 0)
         if anzahl >= settings.REALTIME_MAX_CONNECTIONS_PER_USER:
@@ -141,6 +141,17 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
         finally:
             await self.close(code=4403)
 
+    def _gebremst(self, art: str, grenze: int) -> bool:
+        """Mengenbremse je Nachrichtenart: höchstens grenze je 10 Sekunden."""
+        jetzt = time.monotonic()
+        zeiten = [zeit for zeit in self.zeiten.get(art, []) if jetzt - zeit < 10]
+        if len(zeiten) >= grenze:
+            self.zeiten[art] = zeiten
+            return True
+        zeiten.append(jetzt)
+        self.zeiten[art] = zeiten
+        return False
+
     async def receive_json(self, content, **kwargs) -> None:
         if not isinstance(content, dict):
             return
@@ -156,11 +167,7 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
                     }
                 )
                 return
-            jetzt = time.monotonic()
-            self.text_zeiten = [
-                zeit for zeit in self.text_zeiten if jetzt - zeit < 10
-            ]
-            if len(self.text_zeiten) >= 30:
+            if self._gebremst(art, 30):
                 await self.send_json(
                     {
                         "type": "text.error",
@@ -169,7 +176,17 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
                     }
                 )
                 return
-            self.text_zeiten.append(jetzt)
+        if art in ("setlist.command", "stage.command") and self._gebremst(art, 20):
+            # Abgelehnte Befehle erzeugen weder Protokollzeile noch Ereignis
+            # und kommen nicht bis an die Sitzungssperre.
+            await self.send_json(
+                {
+                    "type": "command.error",
+                    "status": 429,
+                    "detail": "Zu viele Befehle.",
+                }
+            )
+            return
         if art == "stage.command":
             if not await self._zugriff_ok():
                 await self._schliesse_ohne_recht()
