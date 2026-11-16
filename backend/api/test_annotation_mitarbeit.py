@@ -10,7 +10,7 @@ from annotations.testhelfer import AnnotationTestBasis
 from collaboration.models import TextState
 from realtime.models import OutboxEvent
 
-from .test_mitarbeit import b64, yjs_update
+from .mitarbeit_basis import b64, yjs_update
 
 
 class AnnotationMitarbeitTest(AnnotationTestBasis):

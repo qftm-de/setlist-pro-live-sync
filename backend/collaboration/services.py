@@ -14,7 +14,6 @@ from .text import (
     initialzustand,
     kodiere,
     pruefe_laenge,
-    setze_text,
     wende_update_an,
 )
 
@@ -158,8 +157,13 @@ def text_ersetzen(
                 "state": zustand_initial(obj_typ, obj_uuid, feld, text).state
             },
         )
-        neu, inhalt = setze_text(bytes(obj.state), text)
+        # Neuer Zustand statt setze_text: das Leeren hinterlässt Grabsteine und
+        # der Zustand wüchse bei jedem REST-Ersatz. Nach der Epochensperre
+        # laden alle Teilnehmer neu, ein frischer Zustand ist hier korrekt.
+        neu, inhalt = initialzustand(text), text
         pruefe_laenge(feld, inhalt)
+        if len(neu) > MAX_ZUSTAND_BYTES:
+            raise TextFehler("Der Textzustand ist zu groß.")
         obj.state = neu
         obj.epoch += 1
         obj.revision += 1

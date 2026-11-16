@@ -37,6 +37,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   begrenzt; ein Update, das darüber hinausgeht, wird abgewiesen. Die
   Ereignisse `text.updated` und `annotation.text` tragen weiter den
   Vollzustand, weil das Frontend den bestätigten Stand damit vergleicht.
+- Gemeinsame Bearbeitung (R14): `text_ersetzen` baut den Zustand neu auf,
+  statt den alten mit Grabsteinen zu leeren. Damit wächst der Zustand bei
+  wiederholtem REST-Ersatz nicht mehr und die Größe bleibt geprüft. R14.
 
 ### Added
 

@@ -61,14 +61,6 @@ def wende_update_an(state: bytes, update: bytes) -> tuple[bytes, str]:
     return bytes(doc.get_update()), str(doc.get("t", type=Text))
 
 
-def setze_text(state: bytes, text: str) -> tuple[bytes, str]:
-    doc = _doc(state)
-    inhalt_ = doc.get("t", type=Text)
-    inhalt_.clear()
-    inhalt_ += text or ""
-    return bytes(doc.get_update()), str(inhalt_)
-
-
 def kodiere(update: bytes) -> str:
     return base64.b64encode(update).decode("ascii")
 
