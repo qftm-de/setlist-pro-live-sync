@@ -189,10 +189,12 @@ def _abschnitt_werte(payload: dict, alt: Section | None = None) -> dict:
     kind = payload.get("kind", alt.kind if alt else "set")
     if kind not in dict(Section.KIND_CHOICES):
         raise BefehlUngueltig("Unbekannte Abschnittsart.")
-    name = payload.get("name", alt.name if alt else "")
-    if len(name or "") > 120:
+    # Trimmen wie der REST-Weg (DRF-CharField). Sonst weicht die Spalte vom
+    # CRDT-Stand ab und der nächste Gesamt-PUT erhöht die Epoche.
+    name = str(payload.get("name", alt.name if alt else "") or "").strip()
+    if len(name) > 120:
         raise BefehlUngueltig("Name ist zu lang.")
-    return {"kind": kind, "name": name or ""}
+    return {"kind": kind, "name": name}
 
 
 def _neue_id(payload: dict, typ: str) -> uuid.UUID:

@@ -331,9 +331,11 @@ class SetlistTextUpdate(APIView):
                     field=obj.field,
                     epoch=obj.epoch,
                     revision=obj.revision,
-                    # Nur das bestätigte Delta senden. Der Vollzustand wächst
-                    # mit jedem Tastendruck und ginge an den ganzen Bandstrom.
-                    update=daten["update"],
+                    # Vollzustand statt Delta: das Frontend vergleicht den
+                    # bestätigten Stand mit der vollen Kodierung. Ein Delta
+                    # erzeugt dort eine Rücksende-Schleife. Die Größe deckelt
+                    # MAX_ZUSTAND_BYTES in collaboration/text.py.
+                    update=kodiere(bytes(obj.state)),
                 )
         except EpocheVeraltet as fehler:
             return Response(

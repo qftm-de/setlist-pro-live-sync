@@ -33,9 +33,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - Echtzeit (R14, R15): Befehle über den Band-WebSocket unterliegen einer
   Mengenbremse wie Textupdates. Abgelehnte Befehle erzeugen weder
   Protokollzeile noch Ereignis und erreichen die Sitzungssperre nicht.
-- Echtzeit (R13, R14): `text.updated` und `annotation.text` tragen nur noch das
-  bestätigte Delta statt des vollen CRDT-Zustands. Der gespeicherte Zustand je
-  Feld ist auf 512 KiB begrenzt.
+- Echtzeit (R13, R14): Der gespeicherte CRDT-Zustand je Feld ist auf 512 KiB
+  begrenzt; ein Update, das darüber hinausgeht, wird abgewiesen. Die
+  Ereignisse `text.updated` und `annotation.text` tragen weiter den
+  Vollzustand, weil das Frontend den bestätigten Stand damit vergleicht.
 
 ### Added
 

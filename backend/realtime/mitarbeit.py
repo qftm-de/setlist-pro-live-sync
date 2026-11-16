@@ -101,8 +101,9 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
                 field=obj.field,
                 epoch=obj.epoch,
                 revision=obj.revision,
-                # Nur das bestätigte Delta senden, nicht den vollen Zustand.
-                update=nachricht.get("update"),
+                # Vollzustand, siehe api/setlists.py: ein Delta löst im
+                # Frontend eine Rücksende-Schleife aus.
+                update=kodiere(bytes(obj.state)),
             )
     except IntegrityError as fehler:
         raise MitarbeitFehler(

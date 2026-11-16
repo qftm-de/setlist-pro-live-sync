@@ -381,6 +381,16 @@ class SetlistMitarbeitTest(TestCase):
         self.assertEqual(wieder.status_code, 200)
         self.assertEqual(wieder.json()["text"], "Neu!")
 
+    def test_befehl_trimmt_abschnittsnamen(self):
+        """Der Befehlspfad trimmt wie der REST-Weg (R14)."""
+        self.put([{"name": "A", "kind": "set"}], 0)
+        abschnitt = Section.objects.get(setlist=self.setlist)
+        antwort = self.befehl(
+            "section.update", {"uuid": str(abschnitt.uuid), "name": "  Neu  "}
+        )
+        self.assertEqual(antwort.status_code, 200)
+        self.assertEqual(Section.objects.get(pk=abschnitt.pk).name, "Neu")
+
     def test_befehl_mit_ungueltiger_dauer_wird_abgewiesen(self):
         """Dauer wird im Befehlspfad wie im REST-Weg geprüft (R14)."""
         self.put([{"name": "A", "kind": "set"}], 0)
