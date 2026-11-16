@@ -265,8 +265,8 @@ export async function pruefeLast({ basis, erste, bandIds, pruefe }) {
       );
       // Eine einzelne Spitze schwankt mit der Maschinenlast. Auf einem
       // Zweikern-CI-Runner wurden 1072 ms bei 1000 ms Grenze gemessen, bei
-      // freier Maschine 300 ms. Der Median trägt die Aussage, der Deckel
-      // fängt echte Hänger.
+      // freier Maschine 300 ms. Der Median trägt die Aussage. Eine hängende
+      // Nachricht fängt der Timeout in naechste (4000 ms).
       gemessen.push(...latenzen);
       await sleep(500);
     }
@@ -274,9 +274,7 @@ export async function pruefeLast({ basis, erste, bandIds, pruefe }) {
     if (gemessen.length > 0) {
       const sortiert = [...gemessen].sort((a, b) => a - b);
       const median = sortiert[Math.floor(sortiert.length / 2)];
-      const groesste = sortiert[sortiert.length - 1];
       pruefe(median < 1000, `Lastlauf: Median ${median} ms bis zum Gerät`);
-      pruefe(groesste < 5000, `Lastlauf: Ausreißer ${groesste} ms bis zum Gerät`);
     }
     for (const runde of verbindungen) {
       for (const verbindung of runde) {

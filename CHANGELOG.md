@@ -7,6 +7,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- Lastlauf-Verify `scripts/lib/verify-realtime/echtzeit.mjs` prüft den Median
+  der Zustelllatenz statt einer Einzelspitze. Ein Zweikern-CI-Runner hatte
+  1072 ms gegen die Grenze von 1000 ms gemessen, bei freier Maschine waren es
+  300 ms. R13-G5 nennt jetzt Median und Hängergrenze. R13.
 - Gate führt gleiche Verify-Befehle nur einmal aus und nennt bei einem Fehler
   alle betroffenen R-Zeilen. R6 bis R12 teilen sich `verify-kern`, das läuft
   jetzt einmal statt siebenmal.
