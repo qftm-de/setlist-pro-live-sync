@@ -186,4 +186,40 @@ describe("useCrdtText", () => {
     expect(result.current.wert).toBe("AB!");
   });
 
+  it("sendet offene Änderungen nach einem gleichalten Lesestand", async () => {
+    vi.useFakeTimers();
+    const basis = stand("A");
+    const server = serverAus(basis);
+    const sends: number[] = [];
+    const senden = (update: string, epoch: number) => {
+      sends.push(epoch);
+      Y.applyUpdate(server, bytesAusBase64(update));
+      return Promise.resolve(antwort(server, epoch, 1));
+    };
+    const { result, rerender } = renderHook(
+      (optionen: { standWert: TextStand }) =>
+        useCrdtText({
+          stand: optionen.standWert,
+          wert: "A",
+          aktiv: true,
+          senden,
+        }),
+      { initialProps: { standWert: basis } },
+    );
+    act(() => result.current.setWert("AB"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    expect(sends).toEqual([0]);
+
+    act(() => result.current.setWert("ABC"));
+    rerender({ standWert: { ...basis, revision: 1 } });
+    expect(result.current.zustand).toBe("offen");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(sends).toEqual([0, 0]);
+    expect(server.getText("t").toString()).toBe("ABC");
+  });
+
 });

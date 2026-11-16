@@ -125,6 +125,40 @@ describe("useSetlistBearbeitung", () => {
     ).toBeDefined();
   });
 
+  it("ignoriert den Fehler einer überholten Ladeantwort", async () => {
+    let ersterAblehner!: (fehler: unknown) => void;
+    const ladeTexte = vi
+      .fn<NonNullable<SetlistAdapter["ladeTexte"]>>()
+      .mockImplementationOnce(
+        () =>
+          new Promise((_res, rej) => {
+            ersterAblehner = rej;
+          }),
+      )
+      .mockResolvedValue({ revision: 1, texts: [sectionStand] });
+    const adapter = adapterMit(ladeTexte);
+    const { result } = renderHook(() =>
+      useSetlistBearbeitung({
+        bandId: "b1",
+        setlist: initial,
+        songs: [],
+        adapter,
+        verbunden: true,
+        textEreignisse: {},
+      }),
+    );
+    await waitFor(() => expect(ladeTexte).toHaveBeenCalledTimes(1));
+    act(() => result.current.blockHinzufuegen("set"));
+    await act(async () => {
+      await result.current.speichern();
+    });
+    await waitFor(() => expect(ladeTexte).toHaveBeenCalledTimes(2));
+    await act(async () => {
+      ersterAblehner(new Error("alt"));
+    });
+    expect(result.current.textFehler).toBeNull();
+  });
+
   it("macht einen Fehler beim Laden der Textstände sichtbar", async () => {
     const ladeTexte = vi
       .fn<NonNullable<SetlistAdapter["ladeTexte"]>>()

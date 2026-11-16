@@ -89,6 +89,20 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
     }
   }, []);
 
+  const planeSenden = useCallback(
+    (sofort = false) => {
+      timerLoeschen();
+      if (!aktivRef.current || sendetRef.current) {
+        return;
+      }
+      timerRef.current = window.setTimeout(() => {
+        timerRef.current = null;
+        sendeJetztRef.current();
+      }, sofort ? 0 : 250);
+    },
+    [timerLoeschen],
+  );
+
   const setzeBestaetigt = useCallback((update: Uint8Array) => {
     updateRef.current = update;
     svRef.current = zustandsVektor(docAusUpdate(update));
@@ -110,17 +124,8 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         // Ein Ereignisstand ist neuer als dieser Lesestand, es sei denn der
         // Lesestand trägt eine höhere Revision.
         if ((stand.revision ?? 0) <= letzteEreignisRevisionRef.current) {
-          if (
-            doc &&
-            hatLokaleAenderungen(doc, updateRef.current) &&
-            aktivRef.current &&
-            !sendetRef.current
-          ) {
-            timerLoeschen();
-            timerRef.current = window.setTimeout(() => {
-              timerRef.current = null;
-              sendeJetztRef.current();
-            }, 0);
+          if (doc && hatLokaleAenderungen(doc, updateRef.current)) {
+            planeSenden(true);
           }
           return;
         }
@@ -154,11 +159,8 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
           offen ? "offen" : entwurfRef.current ? "abgelehnt" : "bestaetigt",
         );
         standCbRef.current?.(inhalt);
-        if (offen && aktivRef.current && !sendetRef.current) {
-          timerRef.current = window.setTimeout(() => {
-            timerRef.current = null;
-            sendeJetztRef.current();
-          }, 0);
+        if (offen) {
+          planeSenden(true);
         }
         return;
       }
@@ -181,6 +183,9 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
               : "bestaetigt",
         );
         standCbRef.current?.(inhalt);
+        if (offen) {
+          planeSenden(true);
+        }
         return;
       }
 
@@ -205,7 +210,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
       setWertState(inhalt);
       standCbRef.current?.(inhalt);
     },
-    [setzeBestaetigt],
+    [planeSenden, setzeBestaetigt],
   );
 
   useEffect(() => {
@@ -213,7 +218,12 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
     // Nur ein neuer Serverstand startet den Zustand neu. Lokale Werte
     // dürfen den laufenden Text nicht zurücksetzen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialisieren, optionen.stand?.epoch, optionen.stand?.state]);
+  }, [
+    initialisieren,
+    optionen.stand?.epoch,
+    optionen.stand?.revision,
+    optionen.stand?.state,
+  ]);
 
   const sendeJetzt = useCallback(() => {
     timerLoeschen();
@@ -267,12 +277,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         const offen = hatLokaleAenderungen(aktuell, updateRef.current);
         if (offen) {
           setZustand("offen");
-          if (aktivRef.current) {
-            timerRef.current = window.setTimeout(() => {
-              timerRef.current = null;
-              sendeJetztRef.current();
-            }, 0);
-          }
+          planeSenden(true);
         } else {
           setZustand("bestaetigt");
         }
@@ -349,16 +354,9 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
       setWertState(textAusDokument(doc));
       setZustand(aktivRef.current ? "offen" : "pausiert");
       wertCbRef.current?.(textAusDokument(doc));
-      if (!aktivRef.current || sendetRef.current) {
-        return;
-      }
-      timerLoeschen();
-      timerRef.current = window.setTimeout(() => {
-        timerRef.current = null;
-        sendeJetztRef.current();
-      }, 250);
+      planeSenden();
     },
-    [timerLoeschen],
+    [planeSenden],
   );
 
   const uebernehmen = useCallback(() => {
@@ -409,12 +407,8 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
               : "bestaetigt",
         );
         standCbRef.current?.(inhalt);
-        if (offen && aktivRef.current && !sendetRef.current) {
-          timerLoeschen();
-          timerRef.current = window.setTimeout(() => {
-            timerRef.current = null;
-            sendeJetztRef.current();
-          }, 0);
+        if (offen) {
+          planeSenden(true);
         }
         return;
       }
@@ -461,15 +455,11 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
             : "bestaetigt",
       );
       standCbRef.current?.(text);
-      if (offen && aktivRef.current && !sendetRef.current) {
-        timerLoeschen();
-        timerRef.current = window.setTimeout(() => {
-          timerRef.current = null;
-          sendeJetztRef.current();
-        }, 0);
+      if (offen) {
+        planeSenden(true);
       }
     },
-    [setzeBestaetigt, setzeEntwurf, timerLoeschen],
+    [planeSenden, setzeBestaetigt, setzeEntwurf],
   );
 
   useEffect(
