@@ -5,21 +5,6 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
-### Added
-
-- Bühnensitzung (R15): Pro Band läuft höchstens eine feste Sitzung mit
-  Snapshot aus Setlist, Songmetadaten und aktiven PDF-Versionen. Eine
-  Verbindung leitet, Teilnehmer folgen freiwillig, Übergabe, Owner-Übernahme,
-  ausdrückliche Rückkehr und Ende sind serverseitig geprüft. Steuerbefehle
-  laufen nummeriert und generationsgebunden über den Band-WebSocket. Die
-  Bühnenansicht navigiert lokal, hält Zoom und Drehung je Gerät, zeigt
-  bandweite Anmerkungen live und bereitet bis zu 128 MiB PDFs samt Seite 1
-  vor. R15.
-- Gemeinsame Setlist-Bearbeitung (R14): Setlists tragen eine Revision,
-  Abschnitte und Einträge dauerhafte UUIDs. Einzelbefehle gleichen Strukturen
-  idempotent ab, Textfelder führen Yjs-Zustände mit Epoche, und bandweite
-  Anmerkungen darf jedes Mitglied bearbeiten. R14.
-
 ### Changed
 
 - Lastlauf-Verify `scripts/lib/verify-realtime/echtzeit.mjs` prüft den Median
@@ -55,6 +40,18 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 ### Added
 
 - Projektstruktur, Planung und Dokumentation für den Neubau.
+- Bühnensitzung (R15): Pro Band läuft höchstens eine feste Sitzung mit
+  Snapshot aus Setlist, Songmetadaten und aktiven PDF-Versionen. Eine
+  Verbindung leitet, Teilnehmer folgen freiwillig, Übergabe, Owner-Übernahme,
+  ausdrückliche Rückkehr und Ende sind serverseitig geprüft. Steuerbefehle
+  laufen nummeriert und generationsgebunden über den Band-WebSocket. Die
+  Bühnenansicht navigiert lokal, hält Zoom und Drehung je Gerät, zeigt
+  bandweite Anmerkungen live und bereitet bis zu 128 MiB PDFs samt Seite 1
+  vor. R15.
+- Gemeinsame Setlist-Bearbeitung (R14): Setlists tragen eine Revision,
+  Abschnitte und Einträge dauerhafte UUIDs. Einzelbefehle gleichen Strukturen
+  idempotent ab, Textfelder führen Yjs-Zustände mit Epoche, und bandweite
+  Anmerkungen darf jedes Mitglied bearbeiten. R14.
 - Analyse der Alt-App als Referenz.
 - Markenentwurf mit Sprache, Farben und Namen.
 - Gerüst: Frontend (Vite, React, TypeScript, Vitest), Backend

@@ -381,6 +381,34 @@ class SetlistMitarbeitTest(TestCase):
         self.assertEqual(wieder.status_code, 200)
         self.assertEqual(wieder.json()["text"], "Neu!")
 
+    def test_befehl_mit_ungueltiger_dauer_wird_abgewiesen(self):
+        """Dauer wird im Befehlspfad wie im REST-Weg geprüft (R14)."""
+        self.put([{"name": "A", "kind": "set"}], 0)
+        abschnitt = Section.objects.get(setlist=self.setlist)
+        eintrag = str(uuid.uuid4())
+        antwort = self.befehl(
+            "entry.create",
+            {
+                "uuid": eintrag,
+                "section_uuid": str(abschnitt.uuid),
+                "entry_type": "pause",
+                "duration_seconds": "abc",
+            },
+        )
+        self.assertEqual(antwort.status_code, 400)
+        self.assertFalse(Entry.objects.filter(uuid=eintrag).exists())
+
+        antwort = self.befehl(
+            "entry.create",
+            {
+                "uuid": str(uuid.uuid4()),
+                "section_uuid": str(abschnitt.uuid),
+                "entry_type": "pause",
+                "duration_seconds": 999_999,
+            },
+        )
+        self.assertEqual(antwort.status_code, 400)
+
     def test_text_update_trimmt_wie_der_restweg(self):
         """Randleerzeichen im Textweg erzeugen keinen Epochenwechsel (R14)."""
         self.put([{"name": "A", "kind": "set"}], 0)

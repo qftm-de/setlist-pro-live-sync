@@ -81,14 +81,25 @@ def _eintraege(abschnitt: Section) -> list[Entry]:
 
 
 def _suche_abschnitt(setlist: Setlist, kennung) -> Section:
-    treffer = Section.objects.filter(setlist=setlist, uuid=kennung).first()
+    # Strukturzeile zuerst sperren. Der Textpfad sperrt in derselben
+    # Reihenfolge, sonst entsteht ein Deadlock auf Abschnittsnamen.
+    treffer = (
+        Section.objects.select_for_update()
+        .filter(setlist=setlist, uuid=kennung)
+        .first()
+    )
     if treffer is None:
         raise NachbarFehlt("Abschnitt gehört nicht zu dieser Setlist.")
     return treffer
 
 
 def _suche_eintrag(setlist: Setlist, kennung) -> Entry:
-    treffer = Entry.objects.filter(section__setlist=setlist, uuid=kennung).first()
+    # Strukturzeile zuerst sperren, siehe _suche_abschnitt.
+    treffer = (
+        Entry.objects.select_for_update()
+        .filter(section__setlist=setlist, uuid=kennung)
+        .first()
+    )
     if treffer is None:
         raise NachbarFehlt("Eintrag gehört nicht zu dieser Setlist.")
     return treffer
@@ -157,10 +168,21 @@ def _eintrag_werte(payload: dict, band, alt: Entry | None = None) -> dict:
         "entry_type": art,
         "song": song,
         "label": label,
-        "duration_seconds": payload.get(
-            "duration_seconds", alt.duration_seconds if alt else None
+        "duration_seconds": _dauer_aus(
+            payload.get("duration_seconds", alt.duration_seconds if alt else None)
         ),
     }
+
+
+def _dauer_aus(wert) -> int | None:
+    """Gleiche Grenzen wie der REST-Weg (serializers.py, min_value 1)."""
+    if wert is None:
+        return None
+    if isinstance(wert, bool) or not isinstance(wert, int):
+        raise BefehlUngueltig("Dauer muss eine ganze Zahl sein.")
+    if wert < 1 or wert > 86400:
+        raise BefehlUngueltig("Dauer muss zwischen 1 und 86400 Sekunden liegen.")
+    return wert
 
 
 def _abschnitt_werte(payload: dict, alt: Section | None = None) -> dict:
