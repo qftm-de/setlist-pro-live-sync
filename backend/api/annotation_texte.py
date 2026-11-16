@@ -15,8 +15,8 @@ from collaboration.models import TextState
 from collaboration.services import (
     EpocheVeraltet,
     update_anwenden,
-    zustand,
     zustand_daten,
+    zustand_lesen,
 )
 from collaboration.text import TextFehler, dekodiere, kodiere
 from realtime.services import band_ereignis, persoenliches_ereignis
@@ -42,7 +42,7 @@ class AnnotationTexte(APIView):
         band, version, annotation, _ = self._objekt(
             request, band_id, song_id, version_id, annotation_id
         )
-        obj = zustand(
+        obj = zustand_lesen(
             TextState.TYP_ANNOTATION, annotation.uuid, "text", annotation.text
         )
         return Response(
@@ -109,8 +109,9 @@ class AnnotationTexte(APIView):
                     # zurückgerollt wird. Keine Teiländerung.
                     raise TextFehler("Eine Textanmerkung braucht Text.")
                 gesperrt.text = text.strip()
-                gesperrt.revision += 1
-                gesperrt.save(update_fields=["text", "revision", "updated_at"])
+                # Textänderungen sind über Epoche und Generation geschützt.
+                # Die REST-Revision bleibt für Geometrie, Farbe usw. stabil.
+                gesperrt.save(update_fields=["text", "updated_at"])
                 daten = {
                     "id": gesperrt.id,
                     "version_id": version.id,
@@ -128,7 +129,11 @@ class AnnotationTexte(APIView):
                     )
         except EpocheVeraltet as fehler:
             return Response(
-                {"detail": str(fehler), "epoch": True},
+                {
+                    "detail": str(fehler),
+                    "epoch": True,
+                    "current_epoch": fehler.current_epoch,
+                },
                 status=status.HTTP_409_CONFLICT,
             )
         except TextFehler as fehler:

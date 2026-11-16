@@ -23,10 +23,11 @@ from setlists.models import Entry, Section, Setlist
 
 
 class MitarbeitFehler(Exception):
-    def __init__(self, status: int, detail: str):
+    def __init__(self, status: int, detail: str, daten: dict | None = None):
         super().__init__(detail)
         self.status = status
         self.detail = detail
+        self.daten = daten or {}
 
 
 def _mitglied(konto_id: int, band_id: int) -> None:
@@ -100,7 +101,9 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
             409, "Der Name ist in dieser Band schon vergeben."
         ) from fehler
     except EpocheVeraltet as fehler:
-        raise MitarbeitFehler(409, str(fehler)) from fehler
+        raise MitarbeitFehler(
+            409, str(fehler), {"current_epoch": fehler.current_epoch}
+        ) from fehler
     except TextFehler as fehler:
         raise MitarbeitFehler(400, str(fehler)) from fehler
     return {

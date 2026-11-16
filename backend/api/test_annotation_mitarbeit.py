@@ -42,6 +42,45 @@ class AnnotationMitarbeitTest(AnnotationTestBasis):
         self.assertEqual(aktuell.author_id, self.benutzer.id)
         self.assertEqual(aktuell.text, "Leiser spielen gemeinsam")
 
+        # Der Textupdate lässt die REST-Revision stabil. Ein PATCH mit der beim
+        # Öffnen eingefrorenen Revision bleibt damit gültig.
+        farbe = mitglied.patch(
+            self.pfad(annotation_id=angelegt["id"]),
+            data=json.dumps({"revision": 0, "color": "blau"}),
+            content_type="application/json",
+        )
+        self.assertEqual(farbe.status_code, 200)
+        self.assertEqual(farbe.json()["color"], "blau")
+
+    def test_text_lesen_legt_keine_zeile_an(self):
+        angelegt = self.erstelle(visibility="band").json()
+        TextState.objects.filter(
+            object_type="annotation", object_uuid=angelegt["uuid"], field="text"
+        ).delete()
+        vorher = TextState.objects.count()
+        stand = self.text_stand(angelegt["id"])
+        self.assertEqual(TextState.objects.count(), vorher)
+        antwort = self.client.post(
+            self.text_pfad(angelegt["id"]),
+            data=json.dumps(
+                {
+                    "epoch": stand["epoch"],
+                    "generation": stand["generation"],
+                    "update": b64(
+                        yjs_update(base64.b64decode(stand["state"]), "!")
+                    ),
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(antwort.status_code, 200)
+        self.assertEqual(antwort.json()["text"], "Leiser spielen!")
+        self.assertTrue(
+            TextState.objects.filter(
+                object_type="annotation", object_uuid=angelegt["uuid"], field="text"
+            ).exists()
+        )
+
     def test_privatisierung_erhoeht_generation(self):
         angelegt = self.erstelle(visibility="band").json()
         mitglied = self.mitglied_client()

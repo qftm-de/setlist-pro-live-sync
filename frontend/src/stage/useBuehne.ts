@@ -103,7 +103,8 @@ export function useBuehne({
     if (antwort.type !== "stage.result") {
       return;
     }
-    if (Number(antwort.session_id) !== sitzung.id) {
+    const antwortSitzung = Number(antwort.session_id);
+    if (Number.isFinite(antwortSitzung) && antwortSitzung !== sitzung.id) {
       return;
     }
     if (antwort.status === "confirmed") {

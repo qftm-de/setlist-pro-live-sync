@@ -357,7 +357,29 @@ class SetlistMitarbeitTest(TestCase):
             content_type="application/json",
         )
         self.assertEqual(antwort.status_code, 409)
+        self.assertEqual(antwort.json()["current_epoch"], 1)
         self.assertEqual(Setlist.objects.get(pk=self.setlist.pk).name, "Neu")
+
+        # Mit der genannten Epoche und dem neuen Stand gelingt der nächste
+        # Update auf demselben Feld.
+        neu = self.client.get(f"{self.basis}texts/").json()["texts"][0]
+        wieder = self.client.post(
+            f"{self.basis}text/",
+            data=json.dumps(
+                {
+                    "object_type": "setlist",
+                    "object_uuid": neu["object_uuid"],
+                    "field": "name",
+                    "epoch": neu["epoch"],
+                    "update": b64(
+                        yjs_update(base64.b64decode(neu["state"]), "!")
+                    ),
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(wieder.status_code, 200)
+        self.assertEqual(wieder.json()["text"], "Neu!")
 
     def test_zu_grosses_update_wird_abgewiesen(self):
         self.put([{"name": "A", "kind": "set"}], 0)

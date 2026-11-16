@@ -66,6 +66,7 @@ export function SetlistEditor({
     remoteFuer,
     speichern,
     zusammenfuehren,
+    ladeTexte,
   } = bearbeitung;
 
   const sendeSetlistName = setlist.uuid
@@ -99,6 +100,7 @@ export function SetlistEditor({
           senden={sendeSetlistName}
           onWert={setName}
           onStand={setName}
+          onKonflikt={ladeTexte}
           remote={setlist.uuid ? remoteFuer(setlist.uuid, "name") : null}
           maxLength={120}
           disabled={geloescht}
@@ -122,6 +124,7 @@ export function SetlistEditor({
             verbunden={verbunden}
             senden={sendeFuer}
             remote={remoteFuer}
+            onKonflikt={ladeTexte}
             onBlockAendern={(aenderung) =>
               blockAendern(block.schluessel, aenderung)
             }

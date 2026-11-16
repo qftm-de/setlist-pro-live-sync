@@ -191,6 +191,7 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
                         "type": "text.error" if art == "text.update" else "command.error",
                         "status": fehler.status,
                         "detail": fehler.detail,
+                        **fehler.daten,
                     }
                 )
                 return
@@ -233,6 +234,8 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
 
         from stage.dienste import BuehnenFehler, steuere
 
+        session_id = content.get("session_id")
+        number = content.get("number")
         try:
             session_id = int(content.get("session_id"))
             generation = int(content.get("generation"))
@@ -253,6 +256,8 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
                 {
                     "type": "stage.result",
                     "status": "rejected",
+                    "session_id": session_id,
+                    "number": number,
                     "reason": fehler.detail,
                     "http": fehler.status,
                 }
@@ -263,6 +268,8 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
                 {
                     "type": "stage.result",
                     "status": "unknown",
+                    "session_id": session_id,
+                    "number": number,
                     "reason": "Der Befehl konnte nicht geprüft werden.",
                 }
             )

@@ -21,6 +21,10 @@ from .text import (
 class EpocheVeraltet(TextFehler):
     """Der Text wurde per REST ersetzt. Alte Updates sind ungültig."""
 
+    def __init__(self, detail: str, current_epoch: int | None = None):
+        super().__init__(detail)
+        self.current_epoch = current_epoch
+
 
 def _client_id(obj_typ: str, obj_uuid: uuid.UUID, feld: str) -> int:
     roh = f"{obj_typ}:{obj_uuid}:{feld}".encode("utf-8")
@@ -120,7 +124,7 @@ def update_anwenden(
             },
         )
         if obj.epoch != erwartete_epoche:
-            raise EpocheVeraltet("Der Text wurde inzwischen ersetzt.")
+            raise EpocheVeraltet("Der Text wurde inzwischen ersetzt.", obj.epoch)
         neu, text = wende_update_an(bytes(obj.state), update)
         pruefe_laenge(feld, text)
         obj.state = neu

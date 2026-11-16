@@ -9,6 +9,7 @@ interface CrdtTextFeldProps {
   senden?: (update: string, epoch: number) => Promise<TextAntwort>;
   onWert: (text: string) => void;
   onStand?: (text: string) => void;
+  onKonflikt?: () => void;
   remote?: { update: string; epoch: number } | null;
   label: string;
   name?: string;
@@ -32,6 +33,7 @@ export function CrdtTextFeld({
   senden,
   onWert,
   onStand,
+  onKonflikt,
   remote = null,
   label,
   name,
@@ -49,6 +51,7 @@ export function CrdtTextFeld({
       (async () => ({ text: wert, epoch: stand?.epoch ?? 0, revision: 0, update: "" })),
     onWert,
     onStand,
+    onKonflikt,
   });
   const nutztCrdt = Boolean(stand && senden);
 

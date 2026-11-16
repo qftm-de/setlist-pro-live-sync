@@ -25,6 +25,7 @@ interface SetlistBlockProps {
   verbunden: boolean;
   senden: SendeFuer;
   remote: RemoteFuer;
+  onKonflikt?: () => void;
   onBlockAendern: (aenderung: Partial<Block>) => void;
   onBlockStand: (name: string) => void;
   onZeileStand: (index: number, label: string) => void;
@@ -51,6 +52,7 @@ export function SetlistBlock({
   verbunden,
   senden,
   remote,
+  onKonflikt,
   onBlockAendern,
   onBlockStand,
   onZeileStand,
@@ -80,6 +82,7 @@ export function SetlistBlock({
           senden={block.uuid ? senden("section", block.uuid, "name") : undefined}
           onWert={(wert) => onBlockAendern({ name: wert })}
           onStand={onBlockStand}
+          onKonflikt={onKonflikt}
           remote={block.uuid ? remote(block.uuid, "name") : null}
           maxLength={120}
         />
@@ -124,6 +127,7 @@ export function SetlistBlock({
                   senden={zeile.uuid ? senden("entry", zeile.uuid, "label") : undefined}
                   onWert={(wert) => onZeileAendern(zeilenIndex, { titel: wert })}
                   onStand={(wert) => onZeileStand(zeilenIndex, wert)}
+                  onKonflikt={onKonflikt}
                   remote={zeile.uuid ? remote(zeile.uuid, "label") : null}
                   maxLength={200}
                 />

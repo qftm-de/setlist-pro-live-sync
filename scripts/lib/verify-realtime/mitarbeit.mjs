@@ -329,9 +329,13 @@ export async function pruefeMitarbeit({
     "Zusammengeführter Anmerkungstext fehlt",
   );
 
+  const vorPrivat = await erste.ruf(anmerkungsPfad);
   const privat = await erste.ruf(anmerkungsPfad, {
     methode: "PATCH",
-    koerper: { revision: 2, visibility: "private" },
+    koerper: {
+      revision: vorPrivat.daten.revision,
+      visibility: "private",
+    },
   });
   pruefe(privat.status === 200, "Autor kann nicht privatisieren");
   pruefe(

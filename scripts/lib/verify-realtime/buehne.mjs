@@ -191,6 +191,29 @@ export async function pruefeBuehne({
     "Identischer Befehl bestätigt doppelt",
   );
 
+  // Fehlerantworten tragen die Sitzungskennung.
+  const fehlerKennung = randomUUID();
+  leitungWs.socket.send(
+    JSON.stringify({
+      type: "stage.command",
+      session_id: sessionId,
+      generation: 1,
+      number: 1,
+      command_id: fehlerKennung,
+      command: { kind: "unbekannt" },
+    }),
+  );
+  const fehlerAntwort = await leitungWs.naechste(
+    (nachricht) =>
+      nachricht.type === "stage.result" &&
+      nachricht.status === "rejected" &&
+      Number(nachricht.session_id) === Number(sessionId),
+  );
+  pruefe(
+    Number(fehlerAntwort.session_id) === sessionId,
+    "Fehlerantwort ohne Sitzungskennung",
+  );
+
   const pauseZiel = await befehl(leitungWs, {
     sessionId,
     generation: 1,

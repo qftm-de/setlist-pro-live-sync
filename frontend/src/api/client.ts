@@ -26,13 +26,20 @@ export class ApiFehler extends Error {
   readonly code: ApiFehlerCode;
   /** Klartext des Servers, falls er einen mitschickt (nur 4xx). */
   readonly meldung?: string;
+  readonly daten?: Record<string, unknown>;
 
-  constructor(status: number, code: ApiFehlerCode, meldung?: string) {
+  constructor(
+    status: number,
+    code: ApiFehlerCode,
+    meldung?: string,
+    daten?: Record<string, unknown>,
+  ) {
     super(TEXTE[code]);
     this.name = "ApiFehler";
     this.status = status;
     this.code = code;
     this.meldung = meldung;
+    this.daten = daten;
   }
 }
 
@@ -123,7 +130,20 @@ async function pruefeAntwort(antwort: Response): Promise<never> {
     throw new ApiFehler(404, "not_found");
   }
   if (antwort.status === 409) {
-    throw new ApiFehler(409, "conflict");
+    let text = "";
+    try {
+      text = await antwort.text();
+    } catch {
+      text = "";
+    }
+    let daten: Record<string, unknown> | undefined;
+    try {
+      const roh = text ? JSON.parse(text) : null;
+      daten = roh && typeof roh === "object" ? roh : undefined;
+    } catch {
+      daten = undefined;
+    }
+    throw new ApiFehler(409, "conflict", serverMeldung(text), daten);
   }
   if (antwort.status === 413) {
     throw new ApiFehler(413, "too_large");

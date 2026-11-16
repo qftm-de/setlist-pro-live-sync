@@ -325,7 +325,11 @@ class SetlistTextUpdate(APIView):
                 )
         except EpocheVeraltet as fehler:
             return Response(
-                {"detail": str(fehler), "epoch": True},
+                {
+                    "detail": str(fehler),
+                    "epoch": True,
+                    "current_epoch": fehler.current_epoch,
+                },
                 status=status.HTTP_409_CONFLICT,
             )
         except IntegrityError:

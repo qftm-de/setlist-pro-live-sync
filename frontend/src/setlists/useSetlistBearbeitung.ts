@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { behandleFehler, istApiFehler } from "../api/client";
 import type { Song } from "../bands/bands";
 import {
@@ -79,31 +79,26 @@ export function useSetlistBearbeitung({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setlist.id, setlist.revision, setlist.name]);
 
-  useEffect(() => {
+  const ladeTexte = useCallback(async () => {
     if (!adapter.ladeTexte) {
       return;
     }
-    let aktiv = true;
-    adapter
-      .ladeTexte(bandId, setlist.id)
-      .then((antwort) => {
-        if (!aktiv) {
-          return;
-        }
-        const karte: Record<string, TextStand> = {};
-        for (const stand of antwort.texts) {
-          karte[textSchluessel(stand.object_type, stand.object_uuid, stand.field)] = stand;
-        }
-        setTexte(karte);
-        setRevision((vorher) => Math.max(vorher, antwort.revision));
-      })
-      .catch(() => {
-        // Ohne Textzustand bleiben die Felder lokal bearbeitbar.
-      });
-    return () => {
-      aktiv = false;
-    };
+    try {
+      const antwort = await adapter.ladeTexte(bandId, setlist.id);
+      const karte: Record<string, TextStand> = {};
+      for (const stand of antwort.texts) {
+        karte[textSchluessel(stand.object_type, stand.object_uuid, stand.field)] = stand;
+      }
+      setTexte(karte);
+      setRevision((vorher) => Math.max(vorher, antwort.revision));
+    } catch {
+      // Ohne Textzustand bleiben die Felder lokal bearbeitbar.
+    }
   }, [adapter, bandId, setlist.id]);
+
+  useEffect(() => {
+    void ladeTexte();
+  }, [ladeTexte]);
 
   function aendern(neu: Block[]) {
     setBloecke(neu);
@@ -307,5 +302,6 @@ export function useSetlistBearbeitung({
     remoteFuer,
     speichern,
     zusammenfuehren,
+    ladeTexte,
   };
 }
