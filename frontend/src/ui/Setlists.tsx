@@ -41,6 +41,9 @@ export function Setlists({
   }
   const initialRef = useRef(initialSetlistId);
   const listeGeladen = useRef(false);
+  // Frisch angelegte Setlist: das Detail liegt schon vor, ein Nachladen würde
+  // den gerade bearbeiteten Entwurf überschreiben.
+  const frischRef = useRef<number | null>(null);
   const markeRef = useRef(aktualisierung);
   const vorgabeRef = useRef(vorgabe);
   vorgabeRef.current = vorgabe;
@@ -143,6 +146,11 @@ export function Setlists({
       setDetail(null);
       return;
     }
+    if (frischRef.current === gewaehlt) {
+      // Anlegen kennt das Detail bereits; Nachladen würde den Entwurf ersetzen.
+      frischRef.current = null;
+      return;
+    }
     let aktiv = true;
     setDetail(null);
     adapter
@@ -184,6 +192,7 @@ export function Setlists({
       // Ohne geladene Liste würde die neue Setlist die Ansicht ersetzen.
       if (liste === null) return;
       setListe((vorher) => [...(vorher ?? []), { id: neu.id, name: neu.name }]);
+      frischRef.current = neu.id;
       waehle(neu.id);
       setDetail(neu);
       setName("");

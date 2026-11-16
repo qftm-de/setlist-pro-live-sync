@@ -1,9 +1,15 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { erstelleTestAdapter } from "./bands/bands";
-import { erstelleSetlistTestAdapter } from "./setlists/setlists";
-import { bandAdapterMitSongs, KONFIGURATION, sitzungAdapter, song } from "./test-helfer";
+import { erstelleSetlistTestAdapter, type Setlist } from "./setlists/setlists";
+import {
+  bandAdapterMitSongs,
+  KONFIGURATION,
+  sitzungAdapter,
+  song,
+  verzögert,
+} from "./test-helfer";
 
 beforeEach(() => {
   window.history.replaceState({}, "", "/");
@@ -163,5 +169,33 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("link", { name: "Setlists" }));
     fireEvent.click(await screen.findByRole("button", { name: "Setlist speichern" }));
     expect(await screen.findByRole("button", { name: "Set hinzufügen" })).toBeDisabled();
+  });
+
+  it("behält einen neuen Abschnitt, wenn das Detail erst später eintrifft", async () => {
+    const verzug = verzögert<Setlist>();
+    let ersterAufruf = true;
+    const setlistAdapter = erstelleSetlistTestAdapter([], {
+      ladeSetlist: async (_bandId, setlistId) =>
+        ersterAufruf ? ((ersterAufruf = false), verzug.promise) : { id: setlistId, name: "Hauptset", sections: [] },
+    });
+    render(
+      <App
+        konfigurationLaden={vi.fn().mockResolvedValue(KONFIGURATION)}
+        sessionAdapter={sitzungAdapter()}
+        bandAdapter={bandAdapterMitSongs([])}
+        setlistAdapter={setlistAdapter}
+      />,
+    );
+    fireEvent.click(await screen.findByRole("link", { name: "Setlists" }));
+    fireEvent.change(await screen.findByLabelText("Neue Setlist"), {
+      target: { value: "Hauptset" },
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Setlist anlegen" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Set hinzufügen" }));
+    await act(async () => {
+      verzug.aufloesen({ id: 1, name: "Hauptset", sections: [] });
+      await verzug.promise;
+    });
+    expect(screen.getByLabelText("Notiz für Abschnitt 1 (leer ergibt Pause)")).toBeInTheDocument();
   });
 });

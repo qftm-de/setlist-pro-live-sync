@@ -131,6 +131,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- Setlist-Editor: Ein spät eintreffendes Detail überschreibt keinen neu
+  angelegten Abschnitt mehr. Nach dem Anlegen kommt das Detail aus der
+  Antwort, statt es erneut zu laden. R9.
 - Drittreview R13: Entfernte Auftritte und Setlists bleiben im offenen
   Formular als gelöscht markiert, der Entwurf bleibt erhalten und das
   Speichern ist gesperrt; vergangene Auftritte behalten dabei ihre Gruppe.
