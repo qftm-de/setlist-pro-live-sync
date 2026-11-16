@@ -50,6 +50,7 @@ export function useSetlistBearbeitung({
   const [revision, setRevision] = useState(setlist.revision ?? 0);
   const [zustand, setZustand] = useState<SpeicherZustand>("gespeichert");
   const [fehler, setFehler] = useState<string | null>(null);
+  const [textFehler, setTextFehler] = useState<string | null>(null);
   const [konflikt, setKonflikt] = useState(false);
   const [texte, setTexte] = useState<Record<string, TextStand>>({});
   const [songWahl, setSongWahl] = useState<string>(String(songs[0]?.id ?? ""));
@@ -91,8 +92,10 @@ export function useSetlistBearbeitung({
       }
       setTexte(karte);
       setRevision((vorher) => Math.max(vorher, antwort.revision));
+      setTextFehler(null);
     } catch {
-      // Ohne Textzustand bleiben die Felder lokal bearbeitbar.
+      // Ohne Textzustand bleiben die Felder lokal bearbeitbar, aber sichtbar.
+      setTextFehler("Textstände konnten nicht geladen werden.");
     }
   }, [adapter, bandId, setlist.id]);
 
@@ -248,6 +251,7 @@ export function useSetlistBearbeitung({
       setRevision(gespeichert.revision ?? revision + 1);
       setZustand("gespeichert");
       setKonflikt(false);
+      void ladeTexte();
       onGespeichert?.(gespeichert);
     } catch (ursache) {
       if (istApiFehler(ursache) && ursache.code === "conflict") {
@@ -274,6 +278,7 @@ export function useSetlistBearbeitung({
       setRevision(server.revision ?? 0);
       setKonflikt(false);
       setZustand("entwurf");
+      void ladeTexte();
       setFehler("Zusammengeführt. Bitte erneut speichern.");
     } catch (ursache) {
       setFehler(behandleFehler(ursache, onSitzungAbgelaufen));
@@ -286,6 +291,7 @@ export function useSetlistBearbeitung({
     setName,
     zustand,
     fehler,
+    textFehler,
     konflikt,
     texte,
     songWahl,

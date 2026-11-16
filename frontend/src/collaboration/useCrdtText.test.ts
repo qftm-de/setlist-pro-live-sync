@@ -21,6 +21,34 @@ afterEach(() => {
 });
 
 describe("useCrdtText", () => {
+  it("behält den lokalen Text bei einem Namenskonflikt", async () => {
+    vi.useFakeTimers();
+    const basis = stand("A");
+    const senden = vi
+      .fn()
+      .mockRejectedValue(
+        new ApiFehler(409, "conflict", "Der Name ist vergeben."),
+      );
+    const onKonflikt = vi.fn();
+    const { result } = renderHook(() =>
+      useCrdtText({
+        stand: basis,
+        wert: "A",
+        aktiv: true,
+        senden,
+        onKonflikt,
+      }),
+    );
+    act(() => result.current.setWert("AB"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    expect(result.current.wert).toBe("AB");
+    expect(result.current.zustand).toBe("abgelehnt");
+    expect(result.current.fehler).toContain("Der Name ist vergeben.");
+    expect(onKonflikt).not.toHaveBeenCalled();
+  });
+
   it("zeigt einen Sendefehler und wiederholt ihn", async () => {
     vi.useFakeTimers();
     const basis = stand("A");
@@ -42,7 +70,7 @@ describe("useCrdtText", () => {
       await vi.advanceTimersByTimeAsync(250);
     });
     expect(result.current.fehler).toContain("Senden fehlgeschlagen");
-    expect(result.current.zustand).toBe("offen");
+    expect(result.current.zustand).toBe("fehler");
 
     act(() => result.current.sendeJetzt());
     await act(async () => {

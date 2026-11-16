@@ -23,6 +23,7 @@ const ZUSTAND_TEXT: Record<string, string> = {
   bestaetigt: "live",
   offen: "wird gesendet",
   abgelehnt: "Konflikt, Entwurf behalten",
+  fehler: "Senden fehlgeschlagen",
   pausiert: "pausiert",
 };
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 import { istApiFehler } from "../api/client";
+import { docAusUpdate, hatLokaleAenderungen } from "./crdtHelfer";
 import {
   base64AusBytes,
   bytesAusBase64,
@@ -14,7 +15,12 @@ import {
   type TextStand,
 } from "./texte";
 
-export type TextZustand = "bestaetigt" | "offen" | "abgelehnt" | "pausiert";
+export type TextZustand =
+  | "bestaetigt"
+  | "offen"
+  | "abgelehnt"
+  | "fehler"
+  | "pausiert";
 
 export interface CrdtTextOptionen {
   stand?: TextStand | null;
@@ -36,29 +42,6 @@ export interface CrdtTextHandle {
   sendeJetzt: () => void;
   uebernehmen: () => void;
   wendeRemoteAn: (update: string, epoch?: number, revision?: number) => void;
-}
-
-function docAusUpdate(update: Uint8Array): Y.Doc {
-  const doc = new Y.Doc();
-  Y.applyUpdate(doc, update);
-  return doc;
-}
-
-/** Vergleicht den vollen lokalen Stand mit dem bestätigten Serverstand. */
-function hatLokaleAenderungen(doc: Y.Doc, bestaetigt: Uint8Array | null): boolean {
-  if (!bestaetigt) {
-    return true;
-  }
-  const aktuell = Y.encodeStateAsUpdate(doc);
-  if (aktuell.length !== bestaetigt.length) {
-    return true;
-  }
-  for (let index = 0; index < aktuell.length; index += 1) {
-    if (aktuell[index] !== bestaetigt[index]) {
-      return true;
-    }
-  }
-  return false;
 }
 
 export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
@@ -315,28 +298,39 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
           return;
         }
         if (istApiFehler(fehler) && fehler.code === "conflict") {
-          setFehler(null);
           const aktuell = docRef.current;
+          const neueEpoche = fehler.daten?.current_epoch;
+          if (typeof neueEpoche === "number") {
+            setFehler(null);
+            if (aktuell) {
+              setzeEntwurf(textAusDokument(aktuell));
+            }
+            // Die neue Epoche kommt gleich mit dem neu geladenen Stand.
+            // Hier nicht vorwegnehmen, sonst mischt der Reload beide Stände.
+            const bestaetigt = docAusUpdate(
+              updateRef.current ?? new Uint8Array(),
+            );
+            docRef.current = bestaetigt;
+            docGenerationRef.current += 1;
+            svRef.current = zustandsVektor(bestaetigt);
+            const text = textAusDokument(bestaetigt);
+            setWertState(text);
+            setZustand("abgelehnt");
+            wertCbRef.current?.(text);
+            konfliktCbRef.current?.();
+            return;
+          }
+          // Namens- oder Feldkonflikt: der Serverstand ist unverändert.
+          // Den lokalen Text behalten und den Grund sichtbar machen.
           if (aktuell) {
             setzeEntwurf(textAusDokument(aktuell));
           }
-          // Die neue Epoche kommt gleich mit dem neu geladenen Stand.
-          // Hier nicht vorwegnehmen, sonst mischt der Reload beide Stände.
-          const bestaetigt = docAusUpdate(
-            updateRef.current ?? new Uint8Array(),
-          );
-          docRef.current = bestaetigt;
-          docGenerationRef.current += 1;
-          svRef.current = zustandsVektor(bestaetigt);
-          const text = textAusDokument(bestaetigt);
-          setWertState(text);
+          setFehler(fehler.meldung ?? "Der Text wurde abgelehnt.");
           setZustand("abgelehnt");
-          wertCbRef.current?.(text);
-          konfliktCbRef.current?.();
           return;
         }
         setFehler("Senden fehlgeschlagen. Bitte erneut versuchen.");
-        setZustand(aktivRef.current ? "offen" : "pausiert");
+        setZustand(aktivRef.current ? "fehler" : "pausiert");
       });
   }, [setzeBestaetigt, timerLoeschen]);
 

@@ -46,6 +46,7 @@ export function SetlistEditor({
     setName,
     zustand,
     fehler,
+    textFehler,
     konflikt,
     texte,
     songWahl,
@@ -180,6 +181,7 @@ export function SetlistEditor({
         ) : null}
       </div>
       <StatusAnzeige zustand={zustand} />
+      {textFehler ? <p role="alert">{textFehler}</p> : null}
       {fehler ? <p role="alert">{fehler}</p> : null}
     </section>
   );
