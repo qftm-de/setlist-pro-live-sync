@@ -125,6 +125,177 @@ describe("useCrdtText", () => {
     expect(result.current.zustand).toBe("bestaetigt");
   });
 
+  it("verdoppelt den Text beim ersten Serverstand nicht", () => {
+    const basis = stand("Set 1");
+    const senden = vi.fn(async () => antwort(serverAus(basis), 0, 1));
+    const { result, rerender } = renderHook(
+      (optionen: { stand: TextStand | null }) =>
+        useCrdtText({
+          stand: optionen.stand,
+          wert: "Set 1",
+          aktiv: true,
+          senden,
+        }),
+      { initialProps: { stand: null as TextStand | null } },
+    );
+    expect(result.current.wert).toBe("Set 1");
+    rerender({ stand: basis });
+    expect(result.current.wert).toBe("Set 1");
+    expect(result.current.zustand).toBe("bestaetigt");
+    expect(senden).not.toHaveBeenCalled();
+  });
+
+  it("übernimmt getippten Text beim ersten Serverstand ohne Verdopplung", async () => {
+    vi.useFakeTimers();
+    const basis = stand("Set 1");
+    const server = serverAus(basis);
+    const sends: number[] = [];
+    const senden = (update: string, epoch: number) => {
+      sends.push(epoch);
+      Y.applyUpdate(server, bytesAusBase64(update));
+      return Promise.resolve(antwort(server, epoch, 1));
+    };
+    const { result, rerender } = renderHook(
+      (optionen: { stand: TextStand | null }) =>
+        useCrdtText({
+          stand: optionen.stand,
+          wert: "Set 1",
+          aktiv: true,
+          senden,
+        }),
+      { initialProps: { stand: null as TextStand | null } },
+    );
+    act(() => result.current.setWert("Set 1 neu"));
+    rerender({ stand: basis });
+    expect(result.current.wert).toBe("Set 1 neu");
+    expect(result.current.zustand).toBe("offen");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(sends).toEqual([0]);
+    expect(server.getText("t").toString()).toBe("Set 1 neu");
+    expect(result.current.zustand).toBe("bestaetigt");
+  });
+
+  it("verwirft eine 200 der alten Epoche nach einem Remote-Wechsel", async () => {
+    vi.useFakeTimers();
+    const basis = stand("A");
+    const neu = stand("Neu", 1);
+    const server = serverAus(neu);
+    const sends: number[] = [];
+    let erster!: (antwortWert: TextAntwort) => void;
+    const senden = (update: string, epoch: number) => {
+      sends.push(epoch);
+      if (sends.length === 1) {
+        return new Promise<TextAntwort>((res) => {
+          erster = res;
+        });
+      }
+      Y.applyUpdate(server, bytesAusBase64(update));
+      return Promise.resolve(antwort(server, epoch, 2));
+    };
+    const { result } = renderHook(() =>
+      useCrdtText({ stand: basis, wert: "A", aktiv: true, senden }),
+    );
+
+    act(() => result.current.setWert("AB"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    act(() => result.current.wendeRemoteAn(neu.state, 1));
+    expect(result.current.wert).toBe("Neu");
+    expect(result.current.entwurf).toBe("AB");
+    expect(result.current.zustand).toBe("abgelehnt");
+
+    await act(async () => {
+      erster(antwort(serverAus(basis), 0, 1));
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.wert).toBe("Neu");
+    expect(result.current.entwurf).toBe("AB");
+    expect(result.current.zustand).toBe("abgelehnt");
+    expect(sends).toEqual([0]);
+
+    act(() => result.current.uebernehmen());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    expect(sends).toEqual([0, 1]);
+    expect(server.getText("t").toString()).toBe("AB");
+    expect(result.current.zustand).toBe("bestaetigt");
+  });
+
+  it("behält den Entwurf, wenn ein 409 der alten Epoche verspätet eintrifft", async () => {
+    vi.useFakeTimers();
+    const basis = stand("A");
+    const neu = stand("Neu", 1);
+    const server = serverAus(neu);
+    const sends: number[] = [];
+    let erster!: (fehler: unknown) => void;
+    const onKonflikt = vi.fn();
+    const senden = (update: string, epoch: number) => {
+      sends.push(epoch);
+      if (sends.length === 1) {
+        return new Promise<TextAntwort>((_res, rej) => {
+          erster = rej;
+        });
+      }
+      Y.applyUpdate(server, bytesAusBase64(update));
+      return Promise.resolve(antwort(server, epoch, 2));
+    };
+    const { result } = renderHook(() =>
+      useCrdtText({
+        stand: basis,
+        wert: "A",
+        aktiv: true,
+        senden,
+        onKonflikt,
+      }),
+    );
+
+    act(() => result.current.setWert("AB"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    act(() => result.current.wendeRemoteAn(neu.state, 1));
+    await act(async () => {
+      erster(new ApiFehler(409, "conflict", "ersetzt", { current_epoch: 1 }));
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.wert).toBe("Neu");
+    expect(result.current.entwurf).toBe("AB");
+    expect(result.current.zustand).toBe("abgelehnt");
+    expect(onKonflikt).not.toHaveBeenCalled();
+
+    act(() => result.current.uebernehmen());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    expect(sends).toEqual([0, 1]);
+    expect(server.getText("t").toString()).toBe("AB");
+  });
+
+  it("ignoriert einen verspäteten Stand mit älterer Epoche", () => {
+    const eins = stand("Eins");
+    const zwei = stand("Zwei", 1);
+    const alt = stand("Alt", 0);
+    const senden = vi.fn(async () => antwort(serverAus(eins), 0, 1));
+    const { result, rerender } = renderHook(
+      (optionen: { stand: TextStand }) =>
+        useCrdtText({
+          stand: optionen.stand,
+          wert: "Eins",
+          aktiv: true,
+          senden,
+        }),
+      { initialProps: { stand: eins } },
+    );
+    act(() => result.current.wendeRemoteAn(zwei.state, 1));
+    expect(result.current.wert).toBe("Zwei");
+    rerender({ stand: alt });
+    expect(result.current.wert).toBe("Zwei");
+  });
+
   it("lädt nach einem 409 den neuen Stand und sendet den Entwurf mit der neuen Epoche", async () => {
     vi.useFakeTimers();
     const basis = stand("A");

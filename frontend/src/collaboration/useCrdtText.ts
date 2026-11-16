@@ -85,6 +85,8 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
   const [zustand, setZustand] = useState<TextZustand>("bestaetigt");
   const [entwurf, setEntwurf] = useState<string | null>(null);
   const entwurfRef = useRef<string | null>(null);
+  const ausServerstandRef = useRef(Boolean(optionen.stand?.state));
+  const docGenerationRef = useRef(0);
 
   const setzeEntwurf = useCallback((wert: string | null) => {
     entwurfRef.current = wert;
@@ -107,6 +109,38 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
     (stand: TextStand | null | undefined, text: string) => {
       const neuerEpoch = stand?.epoch ?? 0;
       const doc = docRef.current;
+      if (stand?.state && !ausServerstandRef.current) {
+        // Erster echter Serverstand: Dokument daraus aufbauen. Ein lokal
+        // getippter Text wird als Unterschied übernommen, nicht gemischt.
+        const lokalText = doc ? textAusDokument(doc) : text;
+        const neu = dokumentAusStand(stand, text);
+        if (doc && lokalText !== text) {
+          setzeText(neu, lokalText);
+        }
+        docRef.current = neu;
+        docGenerationRef.current += 1;
+        ausServerstandRef.current = true;
+        epochRef.current = neuerEpoch;
+        setzeBestaetigt(bytesAusBase64(stand.state));
+        const inhalt = textAusDokument(neu);
+        setWertState(inhalt);
+        const offen = hatOffeneOps(neu, svRef.current);
+        setZustand(
+          offen ? "offen" : entwurfRef.current ? "abgelehnt" : "bestaetigt",
+        );
+        standCbRef.current?.(inhalt);
+        if (offen && aktivRef.current && !sendetRef.current) {
+          timerRef.current = window.setTimeout(() => {
+            timerRef.current = null;
+            sendeJetztRef.current();
+          }, 0);
+        }
+        return;
+      }
+      if (stand?.state && neuerEpoch < epochRef.current) {
+        // Veralteter Stand nach einem Epochenwechsel.
+        return;
+      }
       if (doc && stand?.state && neuerEpoch === epochRef.current) {
         // Gleiche Epoche: Stand einmischen, offene lokale Ops behalten.
         try {
@@ -139,6 +173,8 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
       }
       const neu = dokumentAusStand(stand, text);
       docRef.current = neu;
+      docGenerationRef.current += 1;
+      ausServerstandRef.current = Boolean(stand?.state);
       const inhalt = textAusDokument(neu);
       epochRef.current = neuerEpoch;
       setzeBestaetigt(
@@ -173,12 +209,29 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
       return;
     }
     sendetRef.current = true;
+    const gesendeteEpoche = epochRef.current;
+    const gesendeteGeneration = docGenerationRef.current;
     setZustand("offen");
     void sendenRef
       .current(base64AusBytes(update), epochRef.current)
       .then((antwort) => {
         const aktuell = docRef.current;
         if (!aktuell) {
+          return;
+        }
+        if (
+          epochRef.current !== gesendeteEpoche ||
+          docGenerationRef.current !== gesendeteGeneration
+        ) {
+          // Antwort einer überholten Sendung nach einem Epochenwechsel.
+          sendetRef.current = false;
+          setZustand(
+            hatOffeneOps(aktuell, svRef.current)
+              ? "offen"
+              : entwurfRef.current
+                ? "abgelehnt"
+                : "bestaetigt",
+          );
           return;
         }
         wendeUpdateAn(aktuell, antwort.update);
@@ -205,6 +258,21 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
       })
       .catch((fehler: unknown) => {
         sendetRef.current = false;
+        if (
+          epochRef.current !== gesendeteEpoche ||
+          docGenerationRef.current !== gesendeteGeneration
+        ) {
+          // Ein alter Fehler darf den neuen Entwurf nicht überschreiben.
+          const aktuell = docRef.current;
+          setZustand(
+            aktuell && hatOffeneOps(aktuell, svRef.current)
+              ? "offen"
+              : entwurfRef.current
+                ? "abgelehnt"
+                : "bestaetigt",
+          );
+          return;
+        }
         if (istApiFehler(fehler) && fehler.code === "conflict") {
           const aktuell = docRef.current;
           if (aktuell) {
@@ -216,6 +284,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
             updateRef.current ?? new Uint8Array(),
           );
           docRef.current = bestaetigt;
+          docGenerationRef.current += 1;
           svRef.current = zustandsVektor(bestaetigt);
           const text = textAusDokument(bestaetigt);
           setWertState(text);
@@ -279,6 +348,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         setzeEntwurf(entwurfText);
         const neu = docAusUpdate(bytesAusBase64(update));
         docRef.current = neu;
+        docGenerationRef.current += 1;
         epochRef.current = epoch;
         setzeBestaetigt(bytesAusBase64(update));
         setWertState(textAusDokument(neu));
