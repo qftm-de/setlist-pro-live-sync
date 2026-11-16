@@ -43,17 +43,17 @@ function docAusUpdate(update: Uint8Array): Y.Doc {
   return doc;
 }
 
-/** Ein leerer Delta kann trotzdem Bytes enthalten; der Zustandsvektor zählt. */
-function hatOffeneOps(doc: Y.Doc, sv: Uint8Array | null): boolean {
-  if (!sv) {
-    return false;
+/** Vergleicht den vollen lokalen Stand mit dem bestätigten Serverstand. */
+function hatLokaleAenderungen(doc: Y.Doc, bestaetigt: Uint8Array | null): boolean {
+  if (!bestaetigt) {
+    return true;
   }
-  const aktuell = zustandsVektor(doc);
-  if (aktuell.length !== sv.length) {
+  const aktuell = Y.encodeStateAsUpdate(doc);
+  if (aktuell.length !== bestaetigt.length) {
     return true;
   }
   for (let index = 0; index < aktuell.length; index += 1) {
-    if (aktuell[index] !== sv[index]) {
+    if (aktuell[index] !== bestaetigt[index]) {
       return true;
     }
   }
@@ -87,6 +87,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
   const entwurfRef = useRef<string | null>(null);
   const ausServerstandRef = useRef(Boolean(optionen.stand?.state));
   const lokalGeaendertRef = useRef(false);
+  const standAusEreignisRef = useRef(false);
   const docGenerationRef = useRef(0);
 
   const setzeEntwurf = useCallback((wert: string | null) => {
@@ -114,26 +115,36 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         // Veralteter Stand nach einem Epochenwechsel.
         return;
       }
+      if (
+        stand?.state &&
+        standAusEreignisRef.current &&
+        neuerEpoch <= epochRef.current
+      ) {
+        // Ein Ereignisstand ist neuer als dieser verspätete Lesestand.
+        return;
+      }
       if (stand?.state && !ausServerstandRef.current) {
-        // Erster echter Serverstand: Dokument daraus aufbauen. Ein lokal
-        // getippter Text wird als Unterschied übernommen, nicht gemischt.
-        // Ohne Serverstand tippt die Komponente über den `wert`-Prop; dann
-        // ist der Prop aktueller als das alte Dokument.
+        // Erster echter Serverstand: Dokument daraus aufbauen. Nur ein echt
+        // getippter Text wird als Unterschied übernommen. Ein unveränderter
+        // oder veralteter Prop darf neueren Servertext nicht überschreiben.
         const angezeigt =
           lokalGeaendertRef.current && doc ? textAusDokument(doc) : text;
         const neu = dokumentAusStand(stand, text);
-        if (angezeigt !== textAusDokument(neu)) {
-          setzeText(neu, angezeigt);
+        const serverText = textAusDokument(neu);
+        const ziel = lokalGeaendertRef.current ? angezeigt : serverText;
+        if (ziel !== serverText) {
+          setzeText(neu, ziel);
         }
         docRef.current = neu;
         docGenerationRef.current += 1;
         ausServerstandRef.current = true;
         lokalGeaendertRef.current = false;
+        standAusEreignisRef.current = false;
         epochRef.current = neuerEpoch;
         setzeBestaetigt(bytesAusBase64(stand.state));
         const inhalt = textAusDokument(neu);
         setWertState(inhalt);
-        const offen = hatOffeneOps(neu, svRef.current);
+        const offen = hatLokaleAenderungen(neu, updateRef.current);
         setZustand(
           offen ? "offen" : entwurfRef.current ? "abgelehnt" : "bestaetigt",
         );
@@ -156,7 +167,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         setzeBestaetigt(bytesAusBase64(stand.state));
         const inhalt = textAusDokument(doc);
         setWertState(inhalt);
-        const offen = hatOffeneOps(doc, svRef.current);
+        const offen = hatLokaleAenderungen(doc, updateRef.current);
         setZustand(
           offen
             ? "offen"
@@ -170,7 +181,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
 
       // Neuer Stand oder neue Epoche.
       if (doc) {
-        const offen = hatOffeneOps(doc, svRef.current);
+        const offen = hatLokaleAenderungen(doc, updateRef.current);
         const neuerEntwurf =
           offen ? textAusDokument(doc) : entwurfRef.current;
         setzeEntwurf(neuerEntwurf);
@@ -180,6 +191,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
       docRef.current = neu;
       docGenerationRef.current += 1;
       ausServerstandRef.current = Boolean(stand?.state);
+      standAusEreignisRef.current = false;
       const inhalt = textAusDokument(neu);
       epochRef.current = neuerEpoch;
       setzeBestaetigt(
@@ -204,7 +216,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
     if (!doc || sendetRef.current) {
       return;
     }
-    if (!hatOffeneOps(doc, svRef.current)) {
+    if (!hatLokaleAenderungen(doc, updateRef.current)) {
       setZustand("bestaetigt");
       return;
     }
@@ -231,7 +243,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
           // Antwort einer überholten Sendung nach einem Epochenwechsel.
           sendetRef.current = false;
           setZustand(
-            hatOffeneOps(aktuell, svRef.current)
+            hatLokaleAenderungen(aktuell, updateRef.current)
               ? "offen"
               : entwurfRef.current
                 ? "abgelehnt"
@@ -246,7 +258,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         setWertState(text);
         setzeEntwurf(null);
         sendetRef.current = false;
-        const offen = hatOffeneOps(aktuell, svRef.current);
+        const offen = hatLokaleAenderungen(aktuell, updateRef.current);
         if (offen) {
           setZustand("offen");
           if (aktivRef.current) {
@@ -270,7 +282,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
           // Ein alter Fehler darf den neuen Entwurf nicht überschreiben.
           const aktuell = docRef.current;
           setZustand(
-            aktuell && hatOffeneOps(aktuell, svRef.current)
+            aktuell && hatLokaleAenderungen(aktuell, updateRef.current)
               ? "offen"
               : entwurfRef.current
                 ? "abgelehnt"
@@ -341,6 +353,47 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
       if (!doc) {
         return;
       }
+      if (!ausServerstandRef.current) {
+        // Erstes Serverereignis vor dem Lesestand: Der lokale Text ist noch
+        // nicht CRDT-basiert. Remote-Stand übernehmen, lokales Tippen als
+        // Unterschied anwenden statt beide Dokumente zu mischen.
+        const serverUpdate = bytesAusBase64(update);
+        const neu = docAusUpdate(serverUpdate);
+        const serverText = textAusDokument(neu);
+        const lokalText = textAusDokument(doc);
+        const tippt = lokalGeaendertRef.current;
+        if (tippt && lokalText !== serverText) {
+          setzeText(neu, lokalText);
+        }
+        docRef.current = neu;
+        docGenerationRef.current += 1;
+        ausServerstandRef.current = true;
+        standAusEreignisRef.current = true;
+        lokalGeaendertRef.current = false;
+        if (typeof epoch === "number") {
+          epochRef.current = epoch;
+        }
+        setzeBestaetigt(serverUpdate);
+        const inhalt = textAusDokument(neu);
+        setWertState(inhalt);
+        const offen = hatLokaleAenderungen(neu, updateRef.current);
+        setZustand(
+          offen
+            ? "offen"
+            : entwurfRef.current
+              ? "abgelehnt"
+              : "bestaetigt",
+        );
+        standCbRef.current?.(inhalt);
+        if (offen && aktivRef.current && !sendetRef.current) {
+          timerLoeschen();
+          timerRef.current = window.setTimeout(() => {
+            timerRef.current = null;
+            sendeJetztRef.current();
+          }, 0);
+        }
+        return;
+      }
       if (typeof epoch === "number" && epoch < epochRef.current) {
         // Veraltetes Ereignis einer alten Epoche.
         return;
@@ -348,7 +401,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
       if (typeof epoch === "number" && epoch > epochRef.current) {
         // REST-Ersatz: neuer, unabhängiger Zustand. Nicht mit dem alten
         // Epoche-Dokument mischen, den Entwurf getrennt behalten.
-        const offen = hatOffeneOps(doc, svRef.current);
+        const offen = hatLokaleAenderungen(doc, updateRef.current);
         const entwurfText =
           offen ? textAusDokument(doc) : entwurfRef.current;
         setzeEntwurf(entwurfText);
@@ -357,11 +410,12 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         docGenerationRef.current += 1;
         ausServerstandRef.current = true;
         lokalGeaendertRef.current = false;
+        standAusEreignisRef.current = true;
         epochRef.current = epoch;
         setzeBestaetigt(bytesAusBase64(update));
         setWertState(textAusDokument(neu));
         setZustand(entwurfText ? "abgelehnt" : "bestaetigt");
-        wertCbRef.current?.(textAusDokument(neu));
+        standCbRef.current?.(textAusDokument(neu));
         return;
       }
       try {
@@ -370,9 +424,11 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         return;
       }
       setzeBestaetigt(bytesAusBase64(update));
+      ausServerstandRef.current = true;
+      standAusEreignisRef.current = true;
       const text = textAusDokument(doc);
       setWertState(text);
-      const offen = hatOffeneOps(doc, svRef.current);
+      const offen = hatLokaleAenderungen(doc, updateRef.current);
       setZustand(
         offen
           ? "offen"
@@ -380,7 +436,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
             ? "abgelehnt"
             : "bestaetigt",
       );
-      wertCbRef.current?.(text);
+      standCbRef.current?.(text);
       if (offen && aktivRef.current && !sendetRef.current) {
         timerLoeschen();
         timerRef.current = window.setTimeout(() => {

@@ -42,10 +42,11 @@ export function CrdtTextFeld({
   mehrzeilig = false,
   rows = 3,
 }: CrdtTextFeldProps) {
+  const nutztCrdt = Boolean(stand && senden);
   const crdt = useCrdtText({
     stand,
     wert,
-    aktiv,
+    aktiv: aktiv && nutztCrdt,
     senden:
       senden ??
       (async () => ({ text: wert, epoch: stand?.epoch ?? 0, revision: 0, update: "" })),
@@ -53,7 +54,6 @@ export function CrdtTextFeld({
     onStand,
     onKonflikt,
   });
-  const nutztCrdt = Boolean(stand && senden);
 
   useEffect(() => {
     if (nutztCrdt && remote) {
@@ -77,6 +77,9 @@ export function CrdtTextFeld({
             if (nutztCrdt) {
               crdt.setWert(ereignis.target.value);
             } else {
+              // Ohne Serverstand tippt der Nutzer lokal. Der Hook merkt das
+              // für den ersten Stand, der Prop bleibt die Anzeige.
+              crdt.setWert(ereignis.target.value);
               onWert(ereignis.target.value);
             }
           }}
@@ -91,6 +94,9 @@ export function CrdtTextFeld({
             if (nutztCrdt) {
               crdt.setWert(ereignis.target.value);
             } else {
+              // Ohne Serverstand tippt der Nutzer lokal. Der Hook merkt das
+              // für den ersten Stand, der Prop bleibt die Anzeige.
+              crdt.setWert(ereignis.target.value);
               onWert(ereignis.target.value);
             }
           }}
