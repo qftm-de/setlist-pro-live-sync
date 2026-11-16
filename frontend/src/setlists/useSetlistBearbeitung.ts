@@ -132,9 +132,11 @@ export function useSetlistBearbeitung({
             ...block,
             name,
             zeilen: block.zeilen.map((zeile) => {
-              const labelSchluessel = zeile.uuid
-                ? textSchluessel("entry", zeile.uuid, "label")
-                : "";
+              // Songs tragen ihren Titel selbst; der Label-Stand ist dort leer.
+              const labelSchluessel =
+                zeile.art !== "song" && zeile.uuid
+                  ? textSchluessel("entry", zeile.uuid, "label")
+                  : "";
               const neuesLabel = labelSchluessel
                 ? textAusStand(karte[labelSchluessel])
                 : null;
@@ -153,6 +155,7 @@ export function useSetlistBearbeitung({
       );
       setTexte(karte);
       setTextFehler(null);
+      setFehler(null);
     } catch {
       if (sequenz !== ladeSequenzRef.current) {
         return;
@@ -417,5 +420,6 @@ export function useSetlistBearbeitung({
     speichern,
     zusammenfuehren,
     ladeTexte,
+    ladeAlles,
   };
 }

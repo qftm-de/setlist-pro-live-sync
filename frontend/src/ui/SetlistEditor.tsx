@@ -71,6 +71,7 @@ export function SetlistEditor({
     speichern,
     zusammenfuehren,
     ladeTexte,
+    ladeAlles,
   } = bearbeitung;
 
   const sendeSetlistName = setlist.uuid
@@ -187,7 +188,7 @@ export function SetlistEditor({
       {textFehler ? (
         <p role="alert">
           {textFehler}{" "}
-          <button type="button" onClick={() => void ladeTexte()}>
+          <button type="button" onClick={() => void ladeAlles()}>
             Erneut laden
           </button>
         </p>

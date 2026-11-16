@@ -82,6 +82,56 @@ describe("useSetlistBearbeitung", () => {
     expect(result.current.bloecke[0].name).toBe("Neu");
   });
 
+  it("überschreibt keine Songtitel mit dem leeren Label-Stand", async () => {
+    const leer = new Y.Doc();
+    const labelStand = {
+      object_type: "entry" as const,
+      object_uuid: "song-entry",
+      field: "label" as const,
+      epoch: 0,
+      revision: 0,
+      state: base64AusBytes(Y.encodeStateAsUpdate(leer)),
+    };
+    const mitSong = {
+      ...saved,
+      revision: 0,
+      sections: [
+        {
+          ...saved.sections[0],
+          name: "Set",
+          entries: [
+            {
+              id: 3,
+              uuid: "song-entry",
+              position: 1,
+              entry_type: "song" as const,
+              song: { id: 7, title: "Songtitel" },
+              label: "",
+              duration_seconds: null,
+            },
+          ],
+        },
+      ],
+    };
+    const ladeTexte = vi.fn(async () => ({
+      revision: 0,
+      texts: [labelStand],
+    }));
+    const adapter = adapterMit(ladeTexte);
+    const { result } = renderHook(() =>
+      useSetlistBearbeitung({
+        bandId: "b1",
+        setlist: mitSong,
+        songs: [],
+        adapter,
+        verbunden: true,
+        textEreignisse: {},
+      }),
+    );
+    await waitFor(() => expect(ladeTexte).toHaveBeenCalled());
+    expect(result.current.bloecke[0].zeilen[0].titel).toBe("Songtitel");
+  });
+
   it("lädt nach der Wiederverbindung Textstände nach", async () => {
     const mitAlt = {
       ...saved,
