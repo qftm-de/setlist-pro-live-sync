@@ -1,23 +1,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { anmelden, benutzer, passwort } from "./anmelden";
 
-const benutzer = process.env.E2E_BENUTZER ?? "";
-const passwort = process.env.E2E_PASSWORT ?? "";
 const bandId = process.env.E2E_BAND_ID ?? "";
 const songId = process.env.E2E_SONG_ID ?? "";
 const version1 = Number(process.env.E2E_VERSION_1 ?? 0);
 const version2 = Number(process.env.E2E_VERSION_2 ?? 0);
-
-async function anmelden(page: Page) {
-  await page.goto("/");
-  const feld = page.getByLabel("Benutzername");
-  if (await feld.count()) {
-    await feld.fill(benutzer);
-    await page.getByLabel("Passwort").fill(passwort);
-    await page.getByRole("button", { name: "Anmelden" }).click();
-  }
-  await expect(page.locator("label.bandwechsel select")).toBeVisible();
-  await page.locator("label.bandwechsel select").selectOption(bandId);
-}
 
 async function pdfRoute(page: Page, versionId: number) {
   await page.goto(`/songs/${bandId}/${songId}/pdf/versions/${versionId}`);
@@ -101,7 +88,7 @@ test("Anmerkungen: Marker, Text, Teilen, Ebenen, Entwuerfe und Rotation", async 
     !benutzer || !passwort || !bandId || !songId || !version1 || !version2,
     "E2E-Umgebung fehlt",
   );
-  await anmelden(page);
+  await anmelden(page, bandId);
   await pdfRoute(page, version1);
   await expect(page.getByText("Seite 1 von 3")).toBeVisible();
 

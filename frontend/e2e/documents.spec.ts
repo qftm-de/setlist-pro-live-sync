@@ -1,23 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import { pdfBytes } from "../../scripts/lib/pdf.mjs";
+import { anmelden, benutzer, passwort } from "./anmelden";
 
-const benutzer = process.env.E2E_BENUTZER ?? "";
-const passwort = process.env.E2E_PASSWORT ?? "";
 const bandId = process.env.E2E_BAND_ID ?? "";
 const zweiteBandId = process.env.E2E_ZWEITE_BAND_ID ?? "";
 const songId = process.env.E2E_SONG_ID ?? "";
-
-async function anmelden(page: Page) {
-  await page.goto("/");
-  const feld = page.getByLabel("Benutzername");
-  if (await feld.count()) {
-    await feld.fill(benutzer);
-    await page.getByLabel("Passwort").fill(passwort);
-    await page.getByRole("button", { name: "Anmelden" }).click();
-  }
-  await expect(page.locator("label.bandwechsel select")).toBeVisible();
-  await page.locator("label.bandwechsel select").selectOption(bandId);
-}
 
 async function pdfRoute(page: Page, versionId?: number) {
   const ziel = versionId
@@ -48,7 +35,7 @@ test("PDF.js rendert, zoomt, dreht, laedt herunter und erhaelt Entwuerfe", async
   context,
 }) => {
   test.skip(!benutzer || !passwort || !bandId || !songId, "E2E-Umgebung fehlt");
-  await anmelden(page);
+  await anmelden(page, bandId);
   await pdfRoute(page);
   await expect(page.getByText("Für diesen Song ist noch keine PDF hinterlegt.")).toBeVisible();
 

@@ -131,6 +131,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- Browser-Smoke: Das Anmelden im E2E-Test wartet, bis Anmeldeformular oder
+  Band-Auswahl sichtbar ist, statt einmalig zu prüfen. Auf langsamen Runnern
+  wurde die Anmeldung sonst übersprungen. R11, R12.
 - Setlist-Editor: Ein spät eintreffendes Detail überschreibt keinen neu
   angelegten Abschnitt mehr. Nach dem Anlegen kommt das Detail aus der
   Antwort, statt es erneut zu laden. R9.
