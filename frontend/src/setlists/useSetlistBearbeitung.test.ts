@@ -77,6 +77,54 @@ describe("useSetlistBearbeitung", () => {
     ).toBeDefined();
   });
 
+  it("verwirft eine überholte Ladeantwort", async () => {
+    let ersterAufloeser!: (wert: {
+      revision: number;
+      texts: typeof sectionStand[];
+    }) => void;
+    const ladeTexte = vi
+      .fn<NonNullable<SetlistAdapter["ladeTexte"]>>()
+      .mockImplementationOnce(
+        () =>
+          new Promise((res) => {
+            ersterAufloeser = res;
+          }),
+      )
+      .mockResolvedValue({ revision: 1, texts: [sectionStand] });
+    const adapter = adapterMit(ladeTexte);
+    const { result } = renderHook(() =>
+      useSetlistBearbeitung({
+        bandId: "b1",
+        setlist: initial,
+        songs: [],
+        adapter,
+        verbunden: true,
+        textEreignisse: {},
+      }),
+    );
+    await waitFor(() => expect(ladeTexte).toHaveBeenCalledTimes(1));
+    act(() => result.current.blockHinzufuegen("set"));
+    await act(async () => {
+      await result.current.speichern();
+    });
+    await waitFor(() => expect(ladeTexte).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(
+        result.current.texte[
+          textSchluessel("section", "new-section", "name")
+        ],
+      ).toBeDefined(),
+    );
+    await act(async () => {
+      ersterAufloeser({ revision: 0, texts: [] });
+    });
+    expect(
+      result.current.texte[
+        textSchluessel("section", "new-section", "name")
+      ],
+    ).toBeDefined();
+  });
+
   it("macht einen Fehler beim Laden der Textstände sichtbar", async () => {
     const ladeTexte = vi
       .fn<NonNullable<SetlistAdapter["ladeTexte"]>>()

@@ -53,6 +53,7 @@ export function useSetlistBearbeitung({
   const [textFehler, setTextFehler] = useState<string | null>(null);
   const [konflikt, setKonflikt] = useState(false);
   const [texte, setTexte] = useState<Record<string, TextStand>>({});
+  const ladeSequenzRef = useRef(0);
   const [songWahl, setSongWahl] = useState<string>(String(songs[0]?.id ?? ""));
   const [notizen, setNotizen] = useState<Record<string, string>>({});
 
@@ -84,8 +85,14 @@ export function useSetlistBearbeitung({
     if (!adapter.ladeTexte) {
       return;
     }
+    const sequenz = ladeSequenzRef.current + 1;
+    ladeSequenzRef.current = sequenz;
     try {
       const antwort = await adapter.ladeTexte(bandId, setlist.id);
+      if (sequenz !== ladeSequenzRef.current) {
+        // Ein älterer Ladevorgang darf einen neueren Stand nicht ersetzen.
+        return;
+      }
       const karte: Record<string, TextStand> = {};
       for (const stand of antwort.texts) {
         karte[textSchluessel(stand.object_type, stand.object_uuid, stand.field)] = stand;
@@ -94,6 +101,9 @@ export function useSetlistBearbeitung({
       setRevision((vorher) => Math.max(vorher, antwort.revision));
       setTextFehler(null);
     } catch {
+      if (sequenz !== ladeSequenzRef.current) {
+        return;
+      }
       // Ohne Textzustand bleiben die Felder lokal bearbeitbar, aber sichtbar.
       setTextFehler("Textstände konnten nicht geladen werden.");
     }
