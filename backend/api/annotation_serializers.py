@@ -68,6 +68,7 @@ class AnnotationSerializer(serializers.ModelSerializer):
     can_delete = serializers.SerializerMethodField()
     can_change_visibility = serializers.SerializerMethodField()
     text_epoch = serializers.SerializerMethodField()
+    text_revision = serializers.SerializerMethodField()
     text_state = serializers.SerializerMethodField()
 
     class Meta:
@@ -85,6 +86,7 @@ class AnnotationSerializer(serializers.ModelSerializer):
             "revision",
             "permission_generation",
             "text_epoch",
+            "text_revision",
             "text_state",
             "author_id",
             "created_at",
@@ -116,6 +118,9 @@ class AnnotationSerializer(serializers.ModelSerializer):
 
     def get_text_epoch(self, obj) -> int:
         return self._zustand(obj).epoch
+
+    def get_text_revision(self, obj) -> int:
+        return self._zustand(obj).revision
 
     def get_text_state(self, obj) -> str:
         return zustand_daten(self._zustand(obj))["state"]

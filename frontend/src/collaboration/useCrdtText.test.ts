@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
+import { ApiFehler } from "../api/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 import { useCrdtText } from "./useCrdtText";
@@ -20,6 +21,38 @@ afterEach(() => {
 });
 
 describe("useCrdtText", () => {
+  it("zeigt einen Sendefehler und wiederholt ihn", async () => {
+    vi.useFakeTimers();
+    const basis = stand("A");
+    const server = serverAus(basis);
+    let aufrufe = 0;
+    const senden = (update: string, epoch: number) => {
+      aufrufe += 1;
+      if (aufrufe === 1) {
+        return Promise.reject(new ApiFehler(0, "network"));
+      }
+      Y.applyUpdate(server, bytesAusBase64(update));
+      return Promise.resolve(antwort(server, epoch, 1));
+    };
+    const { result } = renderHook(() =>
+      useCrdtText({ stand: basis, wert: "A", aktiv: true, senden }),
+    );
+    act(() => result.current.setWert("AB"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    expect(result.current.fehler).toContain("Senden fehlgeschlagen");
+    expect(result.current.zustand).toBe("offen");
+
+    act(() => result.current.sendeJetzt());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.fehler).toBeNull();
+    expect(result.current.zustand).toBe("bestaetigt");
+    expect(server.getText("t").toString()).toBe("AB");
+  });
+
   it("bestätigt keine ungesendeten lokalen Zeichen", async () => {
     vi.useFakeTimers();
     const basis = stand("A");

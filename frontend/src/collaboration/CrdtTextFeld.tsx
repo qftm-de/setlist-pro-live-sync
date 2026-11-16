@@ -107,6 +107,14 @@ export function CrdtTextFeld({
           {ZUSTAND_TEXT[crdt.zustand]}
         </span>
       ) : null}
+      {nutztCrdt && crdt.fehler ? (
+        <span className="text-fehler" role="alert">
+          {crdt.fehler}{" "}
+          <button type="button" onClick={crdt.sendeJetzt}>
+            Erneut senden
+          </button>
+        </span>
+      ) : null}
       {nutztCrdt && crdt.zustand === "abgelehnt" ? (
         <button type="button" onClick={crdt.uebernehmen}>
           Entwurf erneut übernehmen

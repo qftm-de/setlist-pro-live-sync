@@ -116,7 +116,7 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
         object_uuid: anmerkung.uuid,
         field: "text" as const,
         epoch: anmerkung.text_epoch,
-        revision: anmerkung.revision,
+        revision: anmerkung.text_revision,
         state: anmerkung.text_state,
       },
       sende: (update: string, epoch: number) =>

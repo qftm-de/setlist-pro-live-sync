@@ -10,7 +10,10 @@ export type SendeFuer = (
 ) => ((update: string, epoch: number) => Promise<TextAntwort>) | undefined;
 
 export interface RemoteFuer {
-  (uuid: string, feld: string): { update: string; epoch: number } | null;
+  (
+    uuid: string,
+    feld: string,
+  ): { update: string; epoch: number; revision?: number } | null;
 }
 
 interface SetlistBlockProps {

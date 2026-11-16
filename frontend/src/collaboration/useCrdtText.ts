@@ -30,6 +30,7 @@ export interface CrdtTextOptionen {
 export interface CrdtTextHandle {
   wert: string;
   zustand: TextZustand;
+  fehler: string | null;
   entwurf: string | null;
   setWert: (wert: string) => void;
   sendeJetzt: () => void;
@@ -83,6 +84,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
 
   const [wert, setWertState] = useState(optionen.wert);
   const [zustand, setZustand] = useState<TextZustand>("bestaetigt");
+  const [fehler, setFehler] = useState<string | null>(null);
   const [entwurf, setEntwurf] = useState<string | null>(null);
   const entwurfRef = useRef<string | null>(null);
   const ausServerstandRef = useRef(Boolean(optionen.stand?.state));
@@ -246,6 +248,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
       return;
     }
     sendetRef.current = true;
+    setFehler(null);
     const gesendeteEpoche = epochRef.current;
     const gesendeteGeneration = docGenerationRef.current;
     setZustand("offen");
@@ -290,6 +293,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         } else {
           setZustand("bestaetigt");
         }
+        setFehler(null);
         bestaetigtCbRef.current?.(antwort.text, antwort.epoch);
         wertCbRef.current?.(text);
       })
@@ -311,6 +315,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
           return;
         }
         if (istApiFehler(fehler) && fehler.code === "conflict") {
+          setFehler(null);
           const aktuell = docRef.current;
           if (aktuell) {
             setzeEntwurf(textAusDokument(aktuell));
@@ -330,6 +335,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
           konfliktCbRef.current?.();
           return;
         }
+        setFehler("Senden fehlgeschlagen. Bitte erneut versuchen.");
         setZustand(aktivRef.current ? "offen" : "pausiert");
       });
   }, [setzeBestaetigt, timerLoeschen]);
@@ -345,6 +351,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
       }
       setzeText(doc, neu);
       lokalGeaendertRef.current = true;
+      setFehler(null);
       setWertState(textAusDokument(doc));
       setZustand(aktivRef.current ? "offen" : "pausiert");
       wertCbRef.current?.(textAusDokument(doc));
@@ -478,5 +485,14 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
     [timerLoeschen],
   );
 
-  return { wert, zustand, entwurf, setWert, sendeJetzt, uebernehmen, wendeRemoteAn };
+  return {
+    wert,
+    zustand,
+    fehler,
+    entwurf,
+    setWert,
+    sendeJetzt,
+    uebernehmen,
+    wendeRemoteAn,
+  };
 }

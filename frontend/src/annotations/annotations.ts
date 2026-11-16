@@ -27,6 +27,7 @@ export interface Anmerkung {
   revision: number;
   permission_generation: number;
   text_epoch: number;
+  text_revision: number;
   text_state: string;
   author_id: number;
   can_edit: boolean;

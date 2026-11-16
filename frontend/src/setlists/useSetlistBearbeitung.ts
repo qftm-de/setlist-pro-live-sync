@@ -221,7 +221,11 @@ export function useSetlistBearbeitung({
     if (!ereignis) {
       return null;
     }
-    return { update: ereignis.update, epoch: ereignis.epoch };
+    return {
+      update: ereignis.update,
+      epoch: ereignis.epoch,
+      revision: ereignis.revision,
+    };
   }
 
   async function speichern() {
