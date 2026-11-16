@@ -88,6 +88,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
   const ausServerstandRef = useRef(Boolean(optionen.stand?.state));
   const lokalGeaendertRef = useRef(false);
   const standAusEreignisRef = useRef(false);
+  const ausgangstextRef = useRef(optionen.wert);
   const docGenerationRef = useRef(0);
 
   const setzeEntwurf = useCallback((wert: string | null) => {
@@ -121,17 +122,32 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         neuerEpoch <= epochRef.current
       ) {
         // Ein Ereignisstand ist neuer als dieser verspätete Lesestand.
+        // Offene lokale Eingaben dürfen jetzt gesendet werden, weil die
+        // Komponente mit dem Stand in den CRDT-Modus wechselt.
+        if (
+          doc &&
+          hatLokaleAenderungen(doc, updateRef.current) &&
+          aktivRef.current &&
+          !sendetRef.current
+        ) {
+          timerLoeschen();
+          timerRef.current = window.setTimeout(() => {
+            timerRef.current = null;
+            sendeJetztRef.current();
+          }, 0);
+        }
         return;
       }
       if (stand?.state && !ausServerstandRef.current) {
         // Erster echter Serverstand: Dokument daraus aufbauen. Nur ein echt
         // getippter Text wird als Unterschied übernommen. Ein unveränderter
         // oder veralteter Prop darf neueren Servertext nicht überschreiben.
-        const angezeigt =
-          lokalGeaendertRef.current && doc ? textAusDokument(doc) : text;
+        const docText = doc ? textAusDokument(doc) : text;
+        const echtGeaendert =
+          lokalGeaendertRef.current && docText !== ausgangstextRef.current;
         const neu = dokumentAusStand(stand, text);
         const serverText = textAusDokument(neu);
-        const ziel = lokalGeaendertRef.current ? angezeigt : serverText;
+        const ziel = echtGeaendert ? docText : serverText;
         if (ziel !== serverText) {
           setzeText(neu, ziel);
         }
@@ -139,6 +155,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
         docGenerationRef.current += 1;
         ausServerstandRef.current = true;
         lokalGeaendertRef.current = false;
+        ausgangstextRef.current = serverText;
         standAusEreignisRef.current = false;
         epochRef.current = neuerEpoch;
         setzeBestaetigt(bytesAusBase64(stand.state));

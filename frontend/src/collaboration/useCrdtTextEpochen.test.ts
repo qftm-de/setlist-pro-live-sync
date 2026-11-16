@@ -205,6 +205,26 @@ describe("useCrdtText Epochen und erster Stand", () => {
     expect(result.current.zustand).toBe("bestaetigt");
   });
 
+  it("überschreibt neueren Servertext nach Tippen und Zurücksetzen nicht", () => {
+    const basis = stand("Alt!");
+    const senden = vi.fn(async () => antwort(serverAus(basis), 0, 1));
+    const { result, rerender } = renderHook(
+      (optionen: { standWert: TextStand | null; wert: string }) =>
+        useCrdtText({
+          stand: optionen.standWert,
+          wert: optionen.wert,
+          aktiv: true,
+          senden,
+        }),
+      { initialProps: { standWert: null as TextStand | null, wert: "Alt" } },
+    );
+    act(() => result.current.setWert("AltX"));
+    act(() => result.current.setWert("Alt"));
+    rerender({ standWert: basis, wert: "Alt" });
+    expect(result.current.wert).toBe("Alt!");
+    expect(senden).not.toHaveBeenCalled();
+  });
+
   it("lässt neueren Servertext bei unverändertem Prop stehen", () => {
     const basis = stand("Alt!");
     const senden = vi.fn(async () => antwort(serverAus(basis), 0, 1));

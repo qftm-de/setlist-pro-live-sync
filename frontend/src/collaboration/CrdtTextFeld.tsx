@@ -56,7 +56,7 @@ export function CrdtTextFeld({
   });
 
   useEffect(() => {
-    if (nutztCrdt && remote) {
+    if (remote) {
       crdt.wendeRemoteAn(remote.update, remote.epoch);
     }
     // Nur ein neues Remote-Update wird übernommen.
