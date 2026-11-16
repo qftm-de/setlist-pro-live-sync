@@ -104,6 +104,22 @@ export function DokumentAnsicht({
         }
         dokumentRef.current = geladen;
         setDokument(geladen);
+        // Vorwahl im selben Durchlauf wie das Dokument setzen. Ein spaeterer
+        // Effekt wuerde die bereits gerenderten Versionsknoepfe ersetzen und
+        // einen Klick in diesem Moment verschlucken.
+        const vorwahl = naechsteVersion(geladen, initialVersionId);
+        if (
+          initialVersionId !== null &&
+          !geladen.versions.some((eintrag) => eintrag.id === initialVersionId) &&
+          vorwahl !== null
+        ) {
+          setVersionHinweis("Diese Version existiert nicht. Es wird eine verfügbare Version angezeigt.");
+        }
+        setVersionId((vorher) =>
+          vorher !== null && geladen.versions.some((eintrag) => eintrag.id === vorher)
+            ? vorher
+            : vorwahl,
+        );
         setLaedt(false);
       })
       .catch((ursache: unknown) => {
@@ -144,7 +160,13 @@ export function DokumentAnsicht({
     setVersionHinweis(
       fehlt ? "Diese Version existiert nicht. Es wird eine verfügbare Version angezeigt." : null,
     );
-    setVersionId(ziel);
+    // Eine bereits gueltige Auswahl bleibt stehen, damit dieser spaete Effekt
+    // keinen Klick des Nutzers ueberschreibt.
+    setVersionId((vorher) =>
+      vorher !== null && dokument.versions.some((eintrag) => eintrag.id === vorher)
+        ? vorher
+        : ziel,
+    );
   }, [dokument, initialVersionId, versionId]);
 
   useEffect(() => {

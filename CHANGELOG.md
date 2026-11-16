@@ -131,6 +131,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- Song-PDF: Die Vorwahl der Version läuft im selben Durchlauf wie das
+  Dokument, und eine bereits getroffene Auswahl bleibt stehen. Vorher
+  ersetzte ein später Effekt die Versionsknöpfe, ein Klick in diesem Moment
+  ging verloren. R11.
 - Browser-Smoke: Das Anmelden im E2E-Test wartet, bis Anmeldeformular oder
   Band-Auswahl sichtbar ist, statt einmalig zu prüfen. Auf langsamen Runnern
   wurde die Anmeldung sonst übersprungen. R11, R12.
