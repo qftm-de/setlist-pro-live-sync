@@ -381,6 +381,31 @@ class SetlistMitarbeitTest(TestCase):
         self.assertEqual(wieder.status_code, 200)
         self.assertEqual(wieder.json()["text"], "Neu!")
 
+    def test_randleerzeichen_umgehen_die_grenze_nicht(self):
+        """Die Feldgrenze gilt für den Rohtext, nicht den getrimmten (R14-G1)."""
+        self.put([{"name": "A", "kind": "set"}], 0)
+        stand = next(
+            eintrag
+            for eintrag in self.client.get(f"{self.basis}texts/").json()["texts"]
+            if eintrag["object_type"] == "section"
+        )
+        basis = base64.b64decode(stand["state"])
+        # 119 Zeichen anhängen ergibt genau 120, ein weiteres Leerzeichen 121.
+        antwort = self.client.post(
+            f"{self.basis}text/",
+            data=json.dumps(
+                {
+                    "object_type": "section",
+                    "object_uuid": stand["object_uuid"],
+                    "field": "name",
+                    "epoch": stand["epoch"],
+                    "update": b64(yjs_update(basis, "x" * 119, " ")),
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(antwort.status_code, 400)
+
     def test_befehl_trimmt_abschnittsnamen(self):
         """Der Befehlspfad trimmt wie der REST-Weg (R14)."""
         self.put([{"name": "A", "kind": "set"}], 0)

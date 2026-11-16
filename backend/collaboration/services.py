@@ -127,12 +127,14 @@ def update_anwenden(
         if obj.epoch != erwartete_epoche:
             raise EpocheVeraltet("Der Text wurde inzwischen ersetzt.", obj.epoch)
         neu, text = wende_update_an(bytes(obj.state), update)
+        # Die Feldgrenze gilt für den Rohtext, sonst umgeht ein Randleerzeichen
+        # die Grenze. Gespeichert wird der getrimmte Text in der Spalte.
+        pruefe_laenge(feld, text)
         # Beide Wege legen denselben Text in die Spalte: der REST-Weg über
         # DRF (CharField trimmt), der Textweg hier. Ohne diesen Trim erzeugt
         # ein Randleerzeichen beim nächsten Gesamt-PUT einen Epochenwechsel
         # und verwirft die zusammengeführte Arbeit aller Teilnehmer.
         text = text.strip()
-        pruefe_laenge(feld, text)
         if len(neu) > MAX_ZUSTAND_BYTES:
             raise TextFehler("Der Textzustand ist zu groß.")
         obj.state = neu

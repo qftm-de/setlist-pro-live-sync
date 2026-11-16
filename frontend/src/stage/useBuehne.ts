@@ -33,6 +33,10 @@ function neueKennung(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function gleichesZiel(a: Ziel | null, b: Ziel | null): boolean {
+  return a?.entryUuid === b?.entryUuid && a?.page === b?.page;
+}
+
 export function useBuehne({
   sitzung,
   verbunden,
@@ -55,6 +59,12 @@ export function useBuehne({
   sendeRef.current = sende;
   verbundenRef.current = verbunden;
   aktualisierenRef.current = onSitzungAktualisieren;
+  // Der zuletzt gesendete Zielstand und ein während eines laufenden Befehls
+  // gewünschter Zielstand. Ohne den Wunsch geht ein zweiter Schritt verloren,
+  // wenn er im Roundtrip-Fenster des ersten kommt.
+  const gesendetRef = useRef<Ziel | null>(null);
+  const wunschRef = useRef<Ziel | null>(null);
+  const navigiereRef = useRef<(neu: Ziel | null) => void>(() => {});
 
   const istLeitung = Boolean(
     sitzung.state === "active" && sitzung.actions.can_control,
@@ -116,12 +126,19 @@ export function useBuehne({
         nummerRef.current = bestaetigteNummer + 1;
       }
       setHinweis(null);
+      // Während des Befehls kam ein weiterer Schritt: jetzt nachsenden.
+      const offen = wunschRef.current;
+      wunschRef.current = null;
+      if (offen && !gleichesZiel(offen, gesendetRef.current)) {
+        navigiereRef.current(offen);
+      }
       return;
     }
     if (antwort.status === "rejected") {
       antwortTimerLoeschen();
       ausstehendRef.current = false;
       setAusstehend(false);
+      wunschRef.current = null;
       const abgelehnteNummer = Number(antwort.number);
       if (Number.isFinite(abgelehnteNummer)) {
         // Die Nummer wurde nicht verbraucht.
@@ -155,9 +172,16 @@ export function useBuehne({
       setZiel(neu);
       setFolgen(false);
       setHinweis(null);
-      if (!istLeitung || !verbundenRef.current || ausstehendRef.current) {
+      if (!istLeitung || !verbundenRef.current) {
         return;
       }
+      if (ausstehendRef.current) {
+        // Befehl läuft noch: Wunsch merken, Bestätigung sendet nach.
+        wunschRef.current = neu;
+        return;
+      }
+      wunschRef.current = null;
+      gesendetRef.current = neu;
       ausstehendRef.current = true;
       setAusstehend(true);
       sendeRef.current({
@@ -180,12 +204,18 @@ export function useBuehne({
         }
         ausstehendRef.current = false;
         setAusstehend(false);
+        const offen = wunschRef.current;
+        wunschRef.current = null;
         setHinweis("Keine Antwort auf den Steuerbefehl. Der Stand wird neu geladen.");
         aktualisierenRef.current();
+        if (offen && !gleichesZiel(offen, gesendetRef.current)) {
+          navigiereRef.current(offen);
+        }
       }, ANTWORT_TIMEOUT_MS);
     },
     [istLeitung, sitzung.id, sitzung.state],
   );
+  navigiereRef.current = navigiere;
 
   const weiterBlaettern = useCallback(() => {
     if (ziel) {
