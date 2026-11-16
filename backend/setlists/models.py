@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -15,7 +17,9 @@ def name_frei(band, name: str, ausser_id: int | None = None) -> bool:
 
 class Setlist(models.Model):
     band = models.ForeignKey("bands.Band", on_delete=models.CASCADE, related_name="setlists")
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     name = models.CharField("Name", max_length=120)
+    revision = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -40,6 +44,7 @@ class Section(models.Model):
     ]
 
     setlist = models.ForeignKey(Setlist, on_delete=models.CASCADE, related_name="sections")
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     name = models.CharField("Name", max_length=120, blank=True)
     kind = models.CharField(max_length=16, choices=KIND_CHOICES, default=KIND_SET)
     position = models.PositiveIntegerField()
@@ -67,6 +72,7 @@ class Entry(models.Model):
     ]
 
     section = models.ForeignKey(Section, on_delete=models.CASCADE, related_name="entries")
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     position = models.PositiveIntegerField()
     entry_type = models.CharField(max_length=16, choices=TYP_CHOICES, default=TYP_SONG)
     song = models.ForeignKey(
@@ -91,3 +97,32 @@ class Entry(models.Model):
 
     def __str__(self) -> str:
         return self.label or (self.song.title if self.song else self.get_entry_type_display())
+
+
+class SetlistCommand(models.Model):
+    """Dauerhaftes Befehlsprotokoll für idempotente Einzelbefehle."""
+
+    command_id = models.UUIDField()
+    setlist = models.ForeignKey(
+        Setlist, on_delete=models.CASCADE, related_name="befehle"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
+    kind = models.CharField(max_length=32)
+    signature = models.CharField(max_length=64)
+    result = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["setlist", "command_id"], name="befehl_kennung_einmal"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.kind} {self.command_id}"

@@ -1,4 +1,4 @@
-export type AppBereich = "start" | "songs" | "setlists" | "gigs" | "document";
+export type AppBereich = "start" | "songs" | "setlists" | "gigs" | "document" | "stage";
 
 export interface AppRoute {
   bereich: AppBereich;
@@ -6,6 +6,7 @@ export interface AppRoute {
   setlistId: number | null;
   songId: number | null;
   versionId: number | null;
+  stageSessionId?: number | null;
   bandFehler?: string;
 }
 
@@ -25,6 +26,24 @@ function leereRoute(bereich: AppBereich): AppRoute {
 
 export function parseRoute(pfad: string): AppRoute {
   const rein = ohneAnhang(pfad);
+  const buehne = rein.match(/^\/stage\/([^/]+)(?:\/(\d+))?\/?$/);
+  if (buehne) {
+    try {
+      return {
+        bereich: "stage",
+        bandId: decodeURIComponent(buehne[1]),
+        setlistId: null,
+        songId: null,
+        versionId: null,
+        stageSessionId: buehne[2] ? Number(buehne[2]) : null,
+      };
+    } catch {
+      return {
+        ...leereRoute("stage"),
+        bandFehler: "Diese Band ist für dich nicht sichtbar.",
+      };
+    }
+  }
   const direkt = rein.match(/^\/setlists\/([^/]+)\/(\d+)\/?$/);
   if (direkt) {
     try {

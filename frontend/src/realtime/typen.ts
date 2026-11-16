@@ -39,6 +39,8 @@ export interface SyncOptionen {
   beiZustand: (zustand: Verbindungszustand) => void;
   beiAbgleich?: (daten: unknown) => void;
   beiVerbindungsverlust?: () => void;
+  beiBereit?: (info: { connection?: string; counters: Zaehler }) => void;
+  beiAntwort?: (nachricht: Record<string, unknown>) => void;
   socketBauen?: (url: string) => WebSocketLike;
   zeit?: Zeitgeber;
   zufall?: () => number;

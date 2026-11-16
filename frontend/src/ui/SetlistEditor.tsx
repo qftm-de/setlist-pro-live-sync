@@ -1,16 +1,11 @@
-import { useState } from "react";
-import { behandleFehler } from "../api/client";
-import type { Song } from "../bands/bands";
+import { CrdtTextFeld } from "../collaboration/CrdtTextFeld";
+import { textSchluessel, type TextEreignis } from "../collaboration/texte";
+import { verschiebe } from "../setlists/inhalt";
 import type { Setlist, SetlistAdapter } from "../setlists/setlists";
-import {
-  artName,
-  bloeckeAusSetlist,
-  eingabeAusBloecken,
-  neuerSchluessel,
-  verschiebe,
-  type Block,
-} from "../setlists/inhalt";
-import { StatusAnzeige, type SpeicherZustand } from "./StatusAnzeige";
+import { useSetlistBearbeitung } from "../setlists/useSetlistBearbeitung";
+import type { Song } from "../bands/bands";
+import { SetlistBlock } from "./SetlistBlock";
+import { StatusAnzeige } from "./StatusAnzeige";
 
 interface SetlistEditorProps {
   bandId: string;
@@ -18,6 +13,8 @@ interface SetlistEditorProps {
   songs: Song[];
   adapter: SetlistAdapter;
   geloescht?: boolean;
+  verbunden?: boolean;
+  textEreignisse?: Record<string, TextEreignis>;
   onSitzungAbgelaufen?: () => void;
   onGespeichert?: (setlist: Setlist) => void;
 }
@@ -28,257 +25,156 @@ export function SetlistEditor({
   songs,
   adapter,
   geloescht = false,
+  verbunden = true,
+  textEreignisse = {},
   onSitzungAbgelaufen,
   onGespeichert,
 }: SetlistEditorProps) {
-  const [bloecke, setBloecke] = useState<Block[]>(() => bloeckeAusSetlist(setlist));
-  const [zustand, setZustand] = useState<SpeicherZustand>("gespeichert");
-  const [fehler, setFehler] = useState<string | null>(null);
-  const [songWahl, setSongWahl] = useState<string>(String(songs[0]?.id ?? ""));
-  const [notizen, setNotizen] = useState<Record<string, string>>({});
+  const bearbeitung = useSetlistBearbeitung({
+    bandId,
+    setlist,
+    songs,
+    adapter,
+    verbunden,
+    textEreignisse,
+    onSitzungAbgelaufen,
+    onGespeichert,
+  });
+  const {
+    bloecke,
+    name,
+    setName,
+    zustand,
+    fehler,
+    konflikt,
+    texte,
+    songWahl,
+    setSongWahl,
+    notizen,
+    setNotizen,
+    aendern,
+    blockHinzufuegen,
+    blockAendern,
+    blockStand,
+    zeileStand,
+    zeileAendern,
+    songHinzufuegen,
+    notizHinzufuegen,
+    zeileVerschieben,
+    zeileEntfernen,
+    sendeFuer,
+    remoteFuer,
+    speichern,
+    zusammenfuehren,
+  } = bearbeitung;
 
-  function aendern(neu: Block[]) {
-    setBloecke(neu);
-    setZustand("entwurf");
-  }
-
-  function blockHinzufuegen(kind: Block["kind"]) {
-    aendern([
-      ...bloecke,
-      { schluessel: neuerSchluessel(), name: artName(kind), kind, zeilen: [] },
-    ]);
-  }
-
-  function blockAendern(schluessel: string, aenderung: Partial<Block>) {
-    aendern(
-      bloecke.map((block) =>
-        block.schluessel === schluessel ? { ...block, ...aenderung } : block,
-      ),
-    );
-  }
-
-  function zeileHinzufuegen(schluessel: string, zeile: Block["zeilen"][number]) {
-    aendern(
-      bloecke.map((block) =>
-        block.schluessel === schluessel
-          ? { ...block, zeilen: [...block.zeilen, zeile] }
-          : block,
-      ),
-    );
-  }
-
-  function songHinzufuegen(block: Block) {
-    const song = songs.find((eintrag) => String(eintrag.id) === songWahl);
-    if (!song) {
-      setFehler("Bitte einen Song wählen.");
-      return;
-    }
-    setFehler(null);
-    zeileHinzufuegen(block.schluessel, {
-      schluessel: neuerSchluessel(),
-      art: "song",
-      songId: song.id,
-      titel: song.title,
-    });
-  }
-
-  function notizHinzufuegen(block: Block) {
-    const text = (notizen[block.schluessel] ?? "").trim();
-    zeileHinzufuegen(block.schluessel, {
-      schluessel: neuerSchluessel(),
-      art: text ? "notiz" : "pause",
-      titel: text || "Pause",
-    });
-    setNotizen((vorher) => ({ ...vorher, [block.schluessel]: "" }));
-  }
-
-  function zeileVerschieben(block: Block, index: number, delta: number) {
-    blockAendern(block.schluessel, {
-      zeilen: verschiebe(block.zeilen, index, index + delta),
-    });
-  }
-
-  function zeileEntfernen(block: Block, index: number) {
-    blockAendern(block.schluessel, {
-      zeilen: block.zeilen.filter((_, position) => position !== index),
-    });
-  }
-
-  async function speichern() {
-    setZustand("speichert");
-    setFehler(null);
-    try {
-      const gespeichert = await adapter.speichereInhalt(
-        bandId,
-        setlist.id,
-        eingabeAusBloecken(bloecke),
-      );
-      setBloecke(bloeckeAusSetlist(gespeichert));
-      setZustand("gespeichert");
-      onGespeichert?.(gespeichert);
-    } catch (ursache) {
-      setFehler(behandleFehler(ursache, onSitzungAbgelaufen));
-      setZustand("fehler");
-    }
-  }
+  const sendeSetlistName = setlist.uuid
+    ? sendeFuer("setlist", setlist.uuid, "name")
+    : undefined;
 
   return (
     <section className="setlist-editor" aria-labelledby="setlist-titel">
-      <h2 id="setlist-titel">{setlist.name}</h2>
+      <h2 id="setlist-titel">{name}</h2>
       {geloescht ? (
         <p role="alert">
           Diese Setlist wurde inzwischen gelöscht. Dein Entwurf bleibt erhalten.
         </p>
       ) : null}
-      <fieldset className="setlist-feld" disabled={zustand === "speichert"}>
-      {bloecke.length === 0 ? (
-        <p>Noch keine Abschnitte. Beginne mit einem Set.</p>
+      {!verbunden ? (
+        <p className="songmeta" role="status">
+          Ohne Verbindung ist die gemeinsame Bearbeitung pausiert. Der Entwurf
+          bleibt in diesem Tab.
+        </p>
       ) : null}
-      {bloecke.map((block, blockIndex) => (
-        <article className="setlist-block" key={block.schluessel}>
-          <header>
-            <label>
-              {`Abschnitt ${blockIndex + 1}`}
-              <input
-                name={`abschnitt-${blockIndex}`}
-                value={block.name}
-                maxLength={120}
-                onChange={(ereignis) =>
-                  blockAendern(block.schluessel, { name: ereignis.target.value })
-                }
-              />
-            </label>
-            <span className="songmeta">{artName(block.kind)}</span>
-            <button
-              type="button"
-              onClick={() =>
-                aendern(verschiebe(bloecke, blockIndex, blockIndex - 1))
-              }
-              disabled={blockIndex === 0}
-            >
-              {`Abschnitt ${blockIndex + 1} nach oben`}
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                aendern(verschiebe(bloecke, blockIndex, blockIndex + 1))
-              }
-              disabled={blockIndex === bloecke.length - 1}
-            >
-              {`Abschnitt ${blockIndex + 1} nach unten`}
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                aendern(bloecke.filter((eintrag) => eintrag !== block))
-              }
-            >
-              {`Abschnitt ${blockIndex + 1} entfernen`}
-            </button>
-          </header>
-
-          {block.zeilen.length === 0 ? (
-            <p className="songmeta">Noch keine Einträge.</p>
-          ) : (
-            <ol className="setlist-eintraege">
-              {block.zeilen.map((zeile, zeilenIndex) => (
-                <li key={zeile.schluessel}>
-                  <span className="songtitel">{zeile.titel}</span>
-                  <span className="songmeta">{zeile.art}</span>
-                  {zeile.art === "song" && zeile.songId ? (
-                    <a
-                      href={`/songs/${encodeURIComponent(bandId)}/${zeile.songId}/pdf`}
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      {`${zeile.titel} PDF in neuem Tab öffnen`}
-                    </a>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => zeileVerschieben(block, zeilenIndex, -1)}
-                    disabled={zeilenIndex === 0}
-                  >
-                    {`${zeile.titel} an Position ${zeilenIndex + 1} nach oben`}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => zeileVerschieben(block, zeilenIndex, 1)}
-                    disabled={zeilenIndex === block.zeilen.length - 1}
-                  >
-                    {`${zeile.titel} an Position ${zeilenIndex + 1} nach unten`}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => zeileEntfernen(block, zeilenIndex)}
-                  >
-                    {`${zeile.titel} an Position ${zeilenIndex + 1} entfernen`}
-                  </button>
-                </li>
-              ))}
-            </ol>
-          )}
-
-          <div className="setlist-hinzufuegen">
-            <label>
-              Song
-              <select
-                value={songWahl}
-                onChange={(ereignis) => setSongWahl(ereignis.target.value)}
-              >
-                {songs.length === 0 ? <option value="">Keine Songs</option> : null}
-                {songs.map((song) => (
-                  <option key={song.id} value={song.id}>
-                    {song.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="button" onClick={() => songHinzufuegen(block)}>
-              {`Song in Abschnitt ${blockIndex + 1}`}
-            </button>
-            <label>
-              {`Notiz für Abschnitt ${blockIndex + 1} (leer ergibt Pause)`}
-              <input
-                name={`notiz-${blockIndex}`}
-                value={notizen[block.schluessel] ?? ""}
-                maxLength={200}
-                onChange={(ereignis) =>
-                  setNotizen((vorher) => ({
-                    ...vorher,
-                    [block.schluessel]: ereignis.target.value,
-                  }))
-                }
-              />
-            </label>
-            <button type="button" onClick={() => notizHinzufuegen(block)}>
-              {`Eintrag in Abschnitt ${blockIndex + 1}`}
-            </button>
-          </div>
-        </article>
-      ))}
-
-      <div className="setlist-werkzeuge">
-        <button type="button" onClick={() => blockHinzufuegen("set")}>
-          Set hinzufügen
-        </button>
-        <button type="button" onClick={() => blockHinzufuegen("pause")}>
-          Pause hinzufügen
-        </button>
-        <button type="button" onClick={() => blockHinzufuegen("zugabe")}>
-          Zugabe hinzufügen
-        </button>
+      <div className="setlist-name">
+        <CrdtTextFeld
+          label="Setlist-Name"
+          wert={name}
+          stand={
+            setlist.uuid
+              ? texte[textSchluessel("setlist", setlist.uuid, "name")] ?? null
+              : null
+          }
+          aktiv={verbunden && !geloescht}
+          senden={sendeSetlistName}
+          onWert={setName}
+          onStand={setName}
+          remote={setlist.uuid ? remoteFuer(setlist.uuid, "name") : null}
+          maxLength={120}
+          disabled={geloescht}
+        />
       </div>
+      <fieldset className="setlist-feld" disabled={zustand === "speichert"}>
+        {bloecke.length === 0 ? (
+          <p>Noch keine Abschnitte. Beginne mit einem Set.</p>
+        ) : null}
+        {bloecke.map((block, blockIndex) => (
+          <SetlistBlock
+            key={block.schluessel}
+            bandId={bandId}
+            block={block}
+            blockIndex={blockIndex}
+            anzahlBloecke={bloecke.length}
+            songs={songs}
+            songWahl={songWahl}
+            notiz={notizen[block.schluessel] ?? ""}
+            texte={texte}
+            verbunden={verbunden}
+            senden={sendeFuer}
+            remote={remoteFuer}
+            onBlockAendern={(aenderung) =>
+              blockAendern(block.schluessel, aenderung)
+            }
+            onBlockStand={(neuerName) => blockStand(block.schluessel, neuerName)}
+            onZeileStand={(index, label) => zeileStand(block, index, label)}
+            onZeileAendern={(index, aenderung) =>
+              zeileAendern(block, index, aenderung)
+            }
+            onZeileVerschieben={(index, delta) =>
+              zeileVerschieben(block, index, delta)
+            }
+            onZeileEntfernen={(index) => zeileEntfernen(block, index)}
+            onSongWahl={setSongWahl}
+            onSongHinzufuegen={() => songHinzufuegen(block)}
+            onNotizWert={(wert) =>
+              setNotizen((vorher) => ({ ...vorher, [block.schluessel]: wert }))
+            }
+            onNotizHinzufuegen={() => notizHinzufuegen(block)}
+            onBlockVerschieben={(delta) =>
+              aendern(verschiebe(bloecke, blockIndex, blockIndex + delta))
+            }
+            onBlockEntfernen={() =>
+              aendern(bloecke.filter((eintrag) => eintrag !== block))
+            }
+          />
+        ))}
+
+        <div className="setlist-werkzeuge">
+          <button type="button" onClick={() => blockHinzufuegen("set")}>
+            Set hinzufügen
+          </button>
+          <button type="button" onClick={() => blockHinzufuegen("pause")}>
+            Pause hinzufügen
+          </button>
+          <button type="button" onClick={() => blockHinzufuegen("zugabe")}>
+            Zugabe hinzufügen
+          </button>
+        </div>
       </fieldset>
       <div className="setlist-werkzeuge">
         <button
           type="button"
           className="setlist-speichern"
           onClick={speichern}
-          disabled={zustand === "speichert" || geloescht}
+          disabled={zustand === "speichert" || geloescht || !verbunden}
         >
           {zustand === "speichert" ? "Speichert …" : "Setlist speichern"}
         </button>
+        {konflikt ? (
+          <button type="button" onClick={zusammenfuehren}>
+            Mit Serverstand zusammenführen
+          </button>
+        ) : null}
       </div>
       <StatusAnzeige zustand={zustand} />
       {fehler ? <p role="alert">{fehler}</p> : null}

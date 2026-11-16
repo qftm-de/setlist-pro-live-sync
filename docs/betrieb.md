@@ -70,6 +70,85 @@ Anmerkungstexte erscheinen nicht in Anwendungsprotokollen oder im Banddetail.
 Für Fehlersuche den HTTP-Status und die Anmerkungs-ID verwenden, nicht den
 Inhalt.
 
+## Gemeinsame Bearbeitung
+
+Setlisten tragen eine Revision und dauerhafte UUIDs je Abschnitt und Eintrag.
+Der Gesamt-PUT `PUT /api/bands/<band_id>/setlists/<id>/content/` verlangt die
+Entwurfsrevision im Rumpf:
+
+```json
+{"revision": 7, "sections": [{"uuid": "...", "name": "Set", "kind": "set", "entries": []}]}
+```
+
+Fehlt `revision`, antwortet die API mit 400. Ist der gespeicherte Stand neuer,
+mit 409 ohne Änderung. Unbekannte, doppelte und gelöschte UUIDs werden
+abgewiesen. Unveränderte Objekte behalten ihre UUIDs.
+
+Einzelbefehle unter `POST .../commands/` ändern eine Struktur idempotent:
+
+```json
+{"command_id": "<uuid>", "kind": "section.move", "payload": {"uuid": "...", "after_section_uuid": null}}
+```
+
+Gleiche Kennung und gleiche Nutzdaten liefern das gespeicherte Ergebnis.
+Andere Nutzdaten mit derselben Kennung ergeben 409. Die Arten heißen
+`section.create`, `section.update`, `section.delete`, `section.move`,
+`entry.create`, `entry.update`, `entry.delete` und `entry.move`.
+`after_*_uuid: null` setzt an den Anfang, ein fehlender Schlüssel hängt an.
+Ein unbekannter Nachbar ergibt 409.
+
+Textfelder führen Yjs-Zustände mit Epoche. Lesen erzeugt keine Zeile; der
+erste bestätigte Update legt sie an. Der Ausgangszustand hat eine feste,
+aus dem Feld abgeleitete Client-ID, damit ein Delta aus dem gelesenen Stand
+nahtlos auf die neue Zeile passt. Der Browser lädt sie über
+`GET .../texts/` und schickt gebündelte Updates an `POST .../text/`.
+Ein REST-Ersatz des Textes erhöht die Epoche; Updates mit alter Epoche
+ergeben 409. Updates über 64 KiB und beschädigte Updates ergeben 400.
+
+Bandweite Anmerkungen dürfen alle aktuellen Mitglieder bearbeiten. Nur der
+Autor ändert die Sichtbarkeit. Der aktuelle Owner löscht zusätzlich bandweite
+Anmerkungen. Beim Wechsel auf persönlich erhöht sich die
+Berechtigungsgeneration; alte Textupdates anderer Mitglieder scheitern.
+Anmerkungstexte laufen über `.../annotations/<id>/text/`. Der WebSocket lehnt
+Textupdates über 90.000 Base64-Zeichen und mehr als 30 Updates in zehn
+Sekunden je Verbindung ab, bevor er dekodiert.
+
+## Bühne
+
+`GET /api/bands/<band_id>/stage-sessions/` liefert `{"session": null}` oder die
+aktive Sitzung. `POST` startet mit `{"setlist_id": ..., "connection_id": ...}`.
+Die Verbindungskennung stammt aus der `ready`-Nachricht des Band-WebSockets.
+Jeder Lifecycle-Aufruf braucht eine aktive Verbindung derselben Django-Sitzung.
+
+- `POST .../<session_id>/join/` tritt bei.
+- `POST .../handover/` übergibt an ein verbundenes Mitglied (`target_user_id`).
+- `POST .../takeover/` lässt nur den aktuellen Band-Owner übernehmen.
+- `POST .../resume/` holt die Leitung nur für die bisherige Leitung zurück,
+  solange niemand übergeben oder übernommen hat.
+- `POST .../end/` beendet für Leitung oder Owner.
+
+Steuerbefehle gehen über den Band-WebSocket:
+
+```json
+{"type": "stage.command", "session_id": 4, "generation": 2, "number": 7,
+ "command_id": "<uuid>", "command": {"kind": "goto", "entry_uuid": "<uuid>", "page": 3}}
+```
+
+Die Antwort heißt `stage.result` mit `status: confirmed`, `rejected` oder
+`unknown`. Abgelehnte Befehle verbrauchen keine Nummer. Der Sitzungsstand
+nennt `last_number` je Generation; nach einer verlorenen Antwort oder einer
+Wiederverbindung setzt der Client seinen Zähler auf `last_number + 1`. Eine alte Generation,
+eine fremde Verbindung, eine übersprungene Nummer, Pausen und Seiten außerhalb
+des Dokuments werden abgelehnt. Genau eine Verbindung leitet; weitere Tabs
+desselben Kontos steuern erst nach Übergabe, Übernahme oder Rückkehr.
+
+Verbindungszeilen älter als 24 Stunden werden beim nächsten WebSocket-Aufbau
+der Band entfernt. Nur Zeilen der letzten 60 Sekunden gelten als verbunden.
+
+Die Bühnenansicht bereitet alle Sitzungs-PDFs samt Seite 1 bis zu 128 MiB vor.
+Ein unvollständiger Vorrat bleibt sichtbar; offline bleiben nur vorbereitete
+Dokumente lesbar. Beim Verlassen werden Dokumente und Anmerkungen freigegeben.
+
 ## Echtzeit
 
 Jeder geöffnete Tab hält eine authentifizierte Verbindung zu
@@ -104,3 +183,7 @@ entfernt das Relay, unveröffentlichte bleiben liegen.
 - `docker compose restart api relay` hilft nach Konfigurationsänderungen.
 - Der WebSocket braucht die Proxy-Route `/ws/` mit Upgrade-Headern. Ohne sie
   antwortet der Browser mit einem fehlgeschlagenen Handshake.
+- `stage.result` mit `status: rejected` nennt den Grund. Häufig ist die
+  Verbindung nicht mehr die Leitung oder die Generation veraltet.
+- Ein leerer Snapshot beim Start bedeutet: Die Setlist hat keinen Song. Pausen
+  und Notizen allein starten keine Bühnensitzung.

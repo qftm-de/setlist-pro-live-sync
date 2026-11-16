@@ -14,6 +14,17 @@ from rest_framework.views import APIView
 
 from annotations.models import Annotation
 from bands.models import Membership
+from collaboration.models import TextState
+from collaboration.services import (
+    EpocheVeraltet,
+    ist_entfernt,
+    merke_entfernt,
+    text_ersetzen,
+    update_anwenden,
+    zustand,
+    zustand_daten,
+)
+from collaboration.text import TextFehler, dekodiere, kodiere
 from documents.models import DocumentVersion
 from realtime.services import band_ereignis, persoenliches_ereignis
 
@@ -48,9 +59,29 @@ def sichtbare(version, user):
     )
 
 
-def daten(annotation: Annotation, request, owner: bool) -> dict:
+def _textzustaende(liste) -> dict:
+    kennungen = [eintrag.uuid for eintrag in liste]
+    if not kennungen:
+        return {}
+    vorhanden = {
+        zeile.object_uuid: zeile
+        for zeile in TextState.objects.filter(
+            object_type=TextState.TYP_ANNOTATION,
+            object_uuid__in=kennungen,
+            field="text",
+        )
+    }
+    return {kennung: vorhanden.get(kennung) for kennung in kennungen}
+
+
+def daten(annotation: Annotation, request, owner: bool, textzustaende=None) -> dict:
     return AnnotationSerializer(
-        annotation, context={"request": request, "ist_owner": owner}
+        annotation,
+        context={
+            "request": request,
+            "ist_owner": owner,
+            "textzustaende": textzustaende,
+        },
     ).data
 
 
@@ -67,9 +98,10 @@ class AnnotationListe(APIView):
     def get(self, request, band_id: int, song_id: int, version_id: int):
         band, version = version_fuer(request.user, band_id, song_id, version_id)
         owner = ist_owner(band, request.user)
-        liste = sichtbare(version, request.user).order_by("id")
+        liste = list(sichtbare(version, request.user).order_by("id"))
+        zustaende = _textzustaende(liste)
         return Response(
-            [daten(eintrag, request, owner) for eintrag in liste]
+            [daten(eintrag, request, owner, zustaende) for eintrag in liste]
         )
 
     def post(self, request, band_id: int, song_id: int, version_id: int):
@@ -80,6 +112,11 @@ class AnnotationListe(APIView):
         )
         eingabe.is_valid(raise_exception=True)
         kennung = eingabe.validated_data["uuid"]
+        if ist_entfernt(TextState.TYP_ANNOTATION, kennung):
+            return Response(
+                {"detail": "Diese UUID wurde gelöscht."},
+                status=status.HTTP_409_CONFLICT,
+            )
         bestehend = Annotation.objects.filter(uuid=kennung).first()
         if bestehend is not None:
             return self._wiederholung(bestehend, eingabe, request, owner, version)
@@ -90,6 +127,12 @@ class AnnotationListe(APIView):
                     document_version=version,
                     author=request.user,
                     **eingabe.validated_data,
+                )
+                zustand(
+                    TextState.TYP_ANNOTATION,
+                    annotation.uuid,
+                    "text",
+                    annotation.text,
                 )
                 self._melde(band, version, annotation)
         except IntegrityError:
@@ -153,8 +196,11 @@ class AnnotationDetail(APIView):
         band, version, annotation = self._objekt(
             request, band_id, song_id, version_id, annotation_id
         )
-        if annotation.author_id != request.user.id:
+        ist_autor = annotation.author_id == request.user.id
+        if not ist_autor and annotation.visibility != Annotation.SICHTBAR_BAND:
             raise PermissionDenied("Nur der Autor darf diese Anmerkung ändern.")
+        if not ist_autor and "visibility" in request.data:
+            raise PermissionDenied("Nur der Autor darf die Sichtbarkeit ändern.")
         if not isinstance(request.data, Mapping):
             return Response(
                 {"detail": "JSON-Objekt erwartet."},
@@ -177,6 +223,7 @@ class AnnotationDetail(APIView):
                     status=status.HTTP_409_CONFLICT,
                 )
             vorher_band = gesperrt.visibility == Annotation.SICHTBAR_BAND
+            alter_text = gesperrt.text
             eingabe = AnnotationAenderungSerializer(
                 instance=gesperrt,
                 data=request.data,
@@ -186,6 +233,12 @@ class AnnotationDetail(APIView):
             eingabe.is_valid(raise_exception=True)
             for feld, wert in eingabe.validated_data.items():
                 setattr(gesperrt, feld, wert)
+            if gesperrt.text != alter_text:
+                text_ersetzen(
+                    TextState.TYP_ANNOTATION, gesperrt.uuid, "text", gesperrt.text
+                )
+            if vorher_band and gesperrt.visibility == Annotation.SICHTBAR_PRIVAT:
+                gesperrt.permission_generation += 1
             gesperrt.revision += 1
             gesperrt.save()
             self._melde_aenderung(band, version, gesperrt, vorher_band)
@@ -248,5 +301,6 @@ class AnnotationDetail(APIView):
                     id=gesperrt.id,
                     version_id=version_id,
                 )
+            merke_entfernt(TextState.TYP_ANNOTATION, gesperrt.uuid)
             gesperrt.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

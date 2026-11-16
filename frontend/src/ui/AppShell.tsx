@@ -12,6 +12,7 @@ interface AppShellProps {
   titel: string;
   pfad: string;
   communityUrl?: string | null;
+  buehne?: boolean;
   onNavigieren: (pfad: string) => void;
   children: ReactNode;
 }
@@ -20,9 +21,23 @@ export function AppShell({
   titel,
   pfad,
   communityUrl,
+  buehne = false,
   onNavigieren,
   children,
 }: AppShellProps) {
+  if (buehne) {
+    return (
+      <div className="huelle huelle-buehne">
+        <header className="kopf kopf-buehne">
+          <strong>{titel}</strong>
+          <button type="button" onClick={() => onNavigieren("/")}>
+            Bühne verlassen
+          </button>
+        </header>
+        <main className="inhalt inhalt-buehne">{children}</main>
+      </div>
+    );
+  }
   return (
     <div className="huelle">
       <header className="kopf">

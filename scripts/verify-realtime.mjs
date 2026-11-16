@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
  * Verify für die Echtzeit-Pakete. R13 prüft Ausgangspuffer, Relay, Abgleich,
- * Rechte und Wiederverbindungslogik gegen echte Container. R14 und R15 sind
- * noch nicht umgesetzt und werden hier bewusst als Fehler gemeldet.
+ * Rechte und Wiederverbindungslogik. R14 prüft Revision, UUID-Abgleich,
+ * Einzelbefehle, zusammengeführte Texte und Anmerkungsrechte. R15 prüft die
+ * gemeinsame Bühnensitzung. Alle Läufe nutzen echte Container.
  */
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -11,15 +12,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Sitzung } from "./lib/verify-session.mjs";
 import { pruefeLast, pruefeWebSocket } from "./lib/verify-realtime/echtzeit.mjs";
+import { pruefeMitarbeit } from "./lib/verify-realtime/mitarbeit.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ziel = process.argv[2];
 if (!["R13", "R14", "R15"].includes(ziel)) {
   console.error("Aufruf: node scripts/verify-realtime.mjs R13|R14|R15");
-  process.exit(1);
-}
-if (ziel !== "R13") {
-  console.error(`${ziel} ist nicht umgesetzt. Der Plan wird paketweise abgearbeitet.`);
   process.exit(1);
 }
 
@@ -79,7 +77,7 @@ function pruefe(bedingung, text) {
 function shell(code) {
   const ausgabe = schritt(
     ["exec", "-T", "api", "python", "manage.py", "shell", "-c", code],
-    "Shell-Aufruf fehlgeschlagen",
+    `Shell-Aufruf fehlgeschlagen: ${code.slice(0, 300)}`,
   );
   // manage.py shell schreibt einen Import-Hinweis vor die eigentliche Ausgabe.
   return ausgabe.split("\n").map((zeile) => zeile.trim()).filter(Boolean).pop() || "";
@@ -149,21 +147,22 @@ async function warteAuf(pruefung, text, versuche = 80) {
   throw new Error(text);
 }
 
-try {
-  frontendPruefen();
-  schritt(["config", "-q"], "Compose-Konfiguration");
-  schritt(["build"], "Images bauen");
-  schritt(["up", "-d", "--wait"], "Core starten");
+async function bandMitgliedAnlegen(erste, zweite, name) {
+  const band = await erste.ruf("/api/bands/", {
+    methode: "POST",
+    koerper: { name: `${name} ${randomUUID().slice(0, 8)}` },
+  });
+  pruefe(band.status === 201, "Band anlegen scheitert");
+  shell(
+    `from bands.models import Membership; from accounts.models import User; ` +
+      `Membership.objects.get_or_create(band_id=${band.daten.id}, user=User.objects.get(username='${zweite}'), defaults={'role':'member'})`,
+  );
+  return band.daten.id;
+}
+
+async function pruefeR13() {
   schritt(
-    [
-      "exec",
-      "-T",
-      "api",
-      "python",
-      "manage.py",
-      "test",
-      "realtime",
-    ],
+    ["exec", "-T", "api", "python", "manage.py", "test", "realtime"],
     "Backend-Tests Echtzeit",
   );
 
@@ -302,10 +301,144 @@ try {
     lastBands.push(neu.daten.id);
   }
   await pruefeLast({ basis, erste, bandIds: lastBands, pruefe });
+}
+
+async function pruefeR14() {
+  schritt(
+    [
+      "exec",
+      "-T",
+      "api",
+      "python",
+      "manage.py",
+      "test",
+      "realtime",
+      "api.test_mitarbeit",
+      "api.test_annotation_mitarbeit",
+      "api.test_setlists",
+      "api.test_annotations",
+      "api.test_annotations_rechte",
+    ],
+    "Backend-Tests R14",
+  );
+
+  kontoAnlegen("mit1");
+  kontoAnlegen("mit2");
+  const erste = await anmelden("mit1");
+  const zweite = await anmelden("mit2");
+  const bandId = await bandMitgliedAnlegen(erste, "mit2", "Mitarbeitsband");
+
+  const songA = await erste.ruf(`/api/bands/${bandId}/songs/`, {
+    methode: "POST",
+    koerper: { title: "Mitarbeit A", bpm: 120 },
+  });
+  const songB = await erste.ruf(`/api/bands/${bandId}/songs/`, {
+    methode: "POST",
+    koerper: { title: "Mitarbeit B", bpm: 100 },
+  });
+  pruefe(songA.status === 201 && songB.status === 201, "Songs anlegen scheitert");
+
+  shell(
+    "from documents.models import Document, DocumentVersion\n" +
+      "from library.models import Song\n" +
+      "from accounts.models import User\n" +
+      "import uuid\n" +
+      `song = Song.objects.get(id=${songA.daten.id})\n` +
+      "dokument, _ = Document.objects.get_or_create(song=song)\n" +
+      "konto = User.objects.get(username='mit1')\n" +
+      "if not DocumentVersion.objects.filter(document=dokument).exists():\n" +
+      "    DocumentVersion.objects.create(document=dokument, number=1, upload_id=uuid.uuid4(), file_key='mit-'+uuid.uuid4().hex, original_name='privat.pdf', byte_size=1, page_count=2, sha256='b'*64, uploaded_by=konto)\n" +
+      "print('ok')",
+  );
+  await warteAuf(
+    () => shell("from realtime.models import OutboxEvent; print(OutboxEvent.objects.filter(published_at__isnull=True).count())") === "0",
+    "Relay veröffentlicht nicht",
+  );
+
+  await pruefeMitarbeit({
+    basis,
+    erste,
+    zweite,
+    bandId,
+    songIdA: songA.daten.id,
+    songIdB: songB.daten.id,
+    pruefe,
+    shell,
+    warteAuf,
+  });
+}
+
+async function pruefeR15() {
+  const { pruefeBuehne } = await import("./lib/verify-realtime/buehne.mjs");
+  schritt(
+    [
+      "exec",
+      "-T",
+      "api",
+      "python",
+      "manage.py",
+      "test",
+      "realtime",
+      "api.test_stage",
+      "api.test_stage_race",
+    ],
+    "Backend-Tests R15",
+  );
+
+  kontoAnlegen("buehne1");
+  kontoAnlegen("buehne2");
+  kontoAnlegen("buehne3");
+  kontoAnlegen("fremd15");
+  const leitung = await anmelden("buehne1");
+  const mitglied = await anmelden("buehne2");
+  const owner = await anmelden("buehne3");
+  const fremd = await anmelden("fremd15");
+  const bandId = await bandMitgliedAnlegen(leitung, "buehne2", "Buehnenband");
+  shell(
+    `from bands.models import Membership; from accounts.models import User; ` +
+      `Membership.objects.get_or_create(band_id=${bandId}, user=User.objects.get(username='buehne3'), defaults={'role':'owner'})`,
+  );
+
+  const songA = await leitung.ruf(`/api/bands/${bandId}/songs/`, {
+    methode: "POST",
+    koerper: { title: "Buehne A", bpm: 120 },
+  });
+  const songB = await leitung.ruf(`/api/bands/${bandId}/songs/`, {
+    methode: "POST",
+    koerper: { title: "Buehne B", bpm: 90 },
+  });
+  pruefe(songA.status === 201 && songB.status === 201, "Bühnensongs scheitern");
+
+  await pruefeBuehne({
+    basis,
+    leitung,
+    mitglied,
+    owner,
+    fremd,
+    bandId,
+    songIds: [songA.daten.id, songB.daten.id],
+    pruefe,
+    shell,
+    warteAuf,
+  });
+}
+
+try {
+  frontendPruefen();
+  schritt(["config", "-q"], "Compose-Konfiguration");
+  schritt(["build"], "Images bauen");
+  schritt(["up", "-d", "--wait"], "Core starten");
+  if (ziel === "R13") {
+    await pruefeR13();
+  } else if (ziel === "R14") {
+    await pruefeR14();
+  } else {
+    await pruefeR15();
+  }
 } catch (fehler) {
   abbruch("Unerwarteter Fehler", fehler?.stack || String(fehler));
 } finally {
   aufraeumen();
 }
 
-console.log("verify-realtime R13 ok");
+console.log(`verify-realtime ${ziel} ok`);

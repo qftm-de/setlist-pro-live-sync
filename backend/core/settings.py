@@ -49,7 +49,9 @@ INSTALLED_APPS = [
     "gigs",
     "documents",
     "annotations",
+    "collaboration",
     "realtime",
+    "stage",
     "api",
 ]
 
@@ -95,6 +97,8 @@ CHANNEL_LAYERS = {
 REALTIME_CHECK_SECONDS = 15
 REALTIME_MAX_CONNECTIONS_PER_USER = 20
 REALTIME_MIN_PING_SECONDS = 5
+STAGE_CONNECTION_TTL_SECONDS = 60
+STAGE_CONNECTION_RETENTION_HOURS = 24
 
 DATABASES = {
     "default": {

@@ -5,7 +5,9 @@ import type { Ereignis, Verbindungszustand } from "./typen";
 
 export interface BandSyncZustand {
   zustand: Verbindungszustand;
+  verbindungId: string | null;
   erneutVersuchen: () => void;
+  sende: (nachricht: Record<string, unknown>) => void;
 }
 
 interface AbgleichAntwort {
@@ -19,15 +21,19 @@ export function useBandSync(
   beiAbgleich: (daten: unknown) => void,
   beiSitzungAbgelaufen: () => void,
   aktiv = true,
+  beiAntwort?: (nachricht: Record<string, unknown>) => void,
 ): BandSyncZustand {
   const [zustand, setZustand] = useState<Verbindungszustand>("verbinden");
+  const [verbindungId, setVerbindungId] = useState<string | null>(null);
   const clientRef = useRef<BandSync | null>(null);
   const ereignisRef = useRef(beiEreignis);
   const abgleichRef = useRef(beiAbgleich);
   const sitzungRef = useRef(beiSitzungAbgelaufen);
+  const antwortRef = useRef(beiAntwort);
   ereignisRef.current = beiEreignis;
   abgleichRef.current = beiAbgleich;
   sitzungRef.current = beiSitzungAbgelaufen;
+  antwortRef.current = beiAntwort;
 
   const pruefeSitzung = useCallback(() => {
     void apiFetch("/api/session/").catch((fehler: unknown) => {
@@ -40,6 +46,7 @@ export function useBandSync(
   useEffect(() => {
     if (bandId === null || !aktiv) {
       setZustand("verbinden");
+      setVerbindungId(null);
       return;
     }
     const client = new BandSync({
@@ -61,6 +68,8 @@ export function useBandSync(
       beiZustand: setZustand,
       beiAbgleich: (daten) => abgleichRef.current(daten),
       beiVerbindungsverlust: pruefeSitzung,
+      beiBereit: (info) => setVerbindungId(info.connection ?? null),
+      beiAntwort: (nachricht) => antwortRef.current?.(nachricht),
     });
     clientRef.current = client;
     client.start();
@@ -76,5 +85,9 @@ export function useBandSync(
     clientRef.current?.erneutVersuchen();
   }, []);
 
-  return { zustand, erneutVersuchen };
+  const sende = useCallback((nachricht: Record<string, unknown>) => {
+    clientRef.current?.sende(nachricht);
+  }, []);
+
+  return { zustand, verbindungId, erneutVersuchen, sende };
 }

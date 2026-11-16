@@ -4,6 +4,7 @@ import "../setlists/setlists.css";
 import type { Song } from "../bands/bands";
 import type { Setlist, SetlistAdapter, SetlistKurz } from "../setlists/setlists";
 import { SetlistEditor } from "./SetlistEditor";
+import type { TextEreignis } from "../collaboration/texte";
 import { StatusAnzeige } from "./StatusAnzeige";
 
 interface SetlistsProps {
@@ -13,6 +14,9 @@ interface SetlistsProps {
   initialSetlistId?: number | null;
   aktualisierung?: number;
   vorgabe?: Array<{ id: number; name: string }> | null;
+  verbunden?: boolean;
+  textEreignisse?: Record<string, TextEreignis>;
+  onBuehneOeffnen?: (setlistId: number) => void;
   onSitzungAbgelaufen?: () => void;
 }
 
@@ -23,6 +27,9 @@ export function Setlists({
   initialSetlistId = null,
   aktualisierung = 0,
   vorgabe = null,
+  verbunden = true,
+  textEreignisse = {},
+  onBuehneOeffnen,
   onSitzungAbgelaufen,
 }: SetlistsProps) {
   const [liste, setListe] = useState<SetlistKurz[] | null>(null);
@@ -245,6 +252,14 @@ export function Setlists({
               >
                 {setlist.name}
               </button>
+              {onBuehneOeffnen ? (
+                <button
+                  type="button"
+                  onClick={() => onBuehneOeffnen(setlist.id)}
+                >
+                  {`Bühne aus ${setlist.name} öffnen`}
+                </button>
+              ) : null}
               <button
                 type="button"
                 disabled={laeuft}
@@ -284,6 +299,8 @@ export function Setlists({
           songs={songs}
           adapter={adapter}
           geloescht={detailGeloescht}
+          verbunden={verbunden}
+          textEreignisse={textEreignisse}
           onSitzungAbgelaufen={onSitzungAbgelaufen}
         />
       ) : null}

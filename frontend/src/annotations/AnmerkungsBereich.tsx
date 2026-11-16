@@ -6,7 +6,15 @@ import { AnmerkungsListe } from "./AnmerkungsListe";
 import { AnmerkungsStatus } from "./AnmerkungsStatus";
 import { AnmerkungsWerkzeuge } from "./AnmerkungsWerkzeuge";
 import { EntwurfsDialog } from "./EntwurfsDialog";
-import { neueAnmerkungsId, type Anmerkung, type AnmerkungAdapter, type AnmerkungsFarbe, type Entwurf, type Schriftgroesse } from "./annotations";
+import {
+  neueAnmerkungsId,
+  type Anmerkung,
+  type AnmerkungAdapter,
+  type AnmerkungsFarbe,
+  type AnmerkungsSichtbarkeit,
+  type Entwurf,
+  type Schriftgroesse,
+} from "./annotations";
 import type { AnmerkungsWerkzeug } from "./PdfAnmerkungsEbene";
 import { useAnmerkungen } from "./useAnmerkungen";
 import "./annotations.css";
@@ -97,7 +105,30 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
       setSeite(1);
     }, [versionId]);
 
-    const sichtbar = useMemo(
+    function textSyncFuer(anmerkung: Anmerkung) {
+    if (!adapter.sendeText || anmerkung.kind !== "text") {
+      return null;
+    }
+    const senden = adapter.sendeText;
+    return {
+      stand: {
+        object_type: "annotation" as const,
+        object_uuid: anmerkung.uuid,
+        field: "text" as const,
+        epoch: anmerkung.text_epoch,
+        revision: anmerkung.revision,
+        state: anmerkung.text_state,
+      },
+      sende: (update: string, epoch: number) =>
+        senden(bandId, songId, versionId, anmerkung.id, {
+          epoch,
+          generation: anmerkung.permission_generation,
+          update,
+        }),
+    };
+  }
+
+  const sichtbar = useMemo(
       () =>
         liste.filter((anmerkung) =>
           anmerkung.visibility === "band" ? ebeneBand : ebeneEigene,
@@ -157,10 +188,20 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
           setEntwurf(null);
           setAusgewaehltId(neu.id);
         } else if (ausgewaehlt) {
+          const aenderung = { ...werte };
+          if (!ausgewaehlt.can_change_visibility) {
+            // Sichtbarkeit bleibt beim Autor. Ein mitgeschicktes Feld würde
+            // serverseitig als fremde Änderung abgelehnt.
+            delete (aenderung as { visibility?: AnmerkungsSichtbarkeit }).visibility;
+          }
+          // Der sichtbare Text ist der zusammengeführte Stand. Der
+          // ausdrückliche Speichern-Klick ersetzt ihn per REST und startet
+          // damit eine neue Epoche; laufende alte Updates werden abgelehnt.
+          delete aenderung.text_live;
           await aendere(
             ausgewaehlt.id,
             revisionRef.current ?? ausgewaehlt.revision,
-            werte,
+            aenderung,
           );
           setAusgewaehltId(null);
         }
@@ -314,6 +355,7 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
           farbe={farbe}
           schriftgroesse={schriftgroesse}
           formRef={formRef}
+          textSyncFuer={textSyncFuer}
           onSpeichern={speichern}
           onLoeschen={loeschen}
           onAbbrechenEntwurf={() => {

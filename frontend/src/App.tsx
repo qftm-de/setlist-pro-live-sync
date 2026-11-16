@@ -15,6 +15,9 @@ import { VerbindungsStatus } from "./realtime/VerbindungsStatus";
 import type { Ereignis } from "./realtime/typen";
 import type { SyncDaten } from "./realtime/daten";
 import { parseRoute } from "./routing";
+import { apiStage } from "./stage/stage";
+import { StageRoute } from "./stage/StageRoute";
+import type { TextEreignis } from "./collaboration/texte";
 import { apiSitzung } from "./session/session";
 import { apiSetlists } from "./setlists/setlists";
 import { AnmeldeFormular } from "./ui/AnmeldeFormular";
@@ -53,6 +56,12 @@ export function App({
   const [ereignisMarke, setEreignisMarke] = useState(0);
   const [dokumentMarke, setDokumentMarke] = useState(0);
   const [setlistMarke, setSetlistMarke] = useState(0);
+  const [textEreignisse, setTextEreignisse] = useState<
+    Record<string, TextEreignis>
+  >({});
+  const [stageMarke, setStageMarke] = useState(0);
+  const [stageAntwort, setStageAntwort] = useState<Record<string, unknown> | null>(null);
+  const [buehnenFehler, setBuehnenFehler] = useState<string | null>(null);
   const [syncStand, setSyncStand] = useState<SyncDaten | null>(null);
   const { navigiere, registriereWaechter, mitWaechter, istGeschuetzt } =
     useNavigationsWaechter((ziel) => {
@@ -157,6 +166,10 @@ export function App({
   const bandDaten = useBandDaten(bandAdapter, bandId, datenVersion);
 
   const beiEchtzeitEreignis = useCallback((ereignis: Ereignis) => {
+    if (ereignis.event.startsWith("stage.")) {
+      setStageMarke((wert) => wert + 1);
+      return;
+    }
     setSyncStand(null);
     setEreignisMarke((wert) => wert + 1);
     if (ereignis.stream === "band") {
@@ -171,6 +184,19 @@ export function App({
     if (ereignis.event.startsWith("setlist.")) {
       setSetlistMarke((wert) => wert + 1);
     }
+    if (ereignis.event === "text.updated") {
+      const objectUuid = String(ereignis.data.object_uuid ?? "");
+      const field = String(ereignis.data.field ?? "");
+      setTextEreignisse((vorher) => ({
+        ...vorher,
+        [`${objectUuid}:${field}`]: {
+          object_uuid: objectUuid,
+          field,
+          update: String(ereignis.data.update ?? ""),
+          epoch: Number(ereignis.data.epoch ?? 0),
+        },
+      }));
+    }
   }, []);
 
   const beiAbgleich = useCallback((daten: unknown) => {
@@ -179,9 +205,18 @@ export function App({
       return;
     }
     setSyncStand(stand);
+    if (stand.stage) {
+      setStageMarke((wert) => wert + 1);
+    }
     setEreignisMarke((wert) => wert + 1);
     setDokumentMarke((wert) => wert + 1);
     setSetlistMarke((wert) => wert + 1);
+  }, []);
+
+  const beiBuehnenAntwort = useCallback((nachricht: Record<string, unknown>) => {
+    if (nachricht.type === "stage.result") {
+      setStageAntwort(nachricht);
+    }
   }, []);
 
   const echtzeit = useBandSync(
@@ -190,6 +225,7 @@ export function App({
     beiAbgleich,
     () => setSitzung({ status: "anonym" }),
     sitzung.status === "angemeldet",
+    beiBuehnenAntwort,
   );
 
   useEffect(() => {
@@ -235,6 +271,36 @@ export function App({
       return;
     }
     erneutVersuchen();
+  }
+
+  async function buehneOeffnen(setlistId: number) {
+    const bandIdJetzt = bandDaten.status === "fertig" ? bandDaten.daten.bandId : null;
+    if (!bandIdJetzt || !echtzeit.verbindungId) {
+      setBuehnenFehler("Die Verbindung ist noch nicht bereit. Bitte kurz warten.");
+      return;
+    }
+    setBuehnenFehler(null);
+    try {
+      const sitzung = await apiStage.start(
+        bandIdJetzt,
+        setlistId,
+        echtzeit.verbindungId,
+      );
+      navigiere(`/stage/${encodeURIComponent(bandIdJetzt)}/${sitzung.id}`);
+    } catch (ursache) {
+      if (istApiFehler(ursache) && ursache.code === "conflict") {
+        try {
+          const aktiv = await apiStage.aktive(bandIdJetzt, echtzeit.verbindungId);
+          if (aktiv) {
+            navigiere(`/stage/${encodeURIComponent(bandIdJetzt)}/${aktiv.id}`);
+            return;
+          }
+        } catch {
+          // unten als sichtbarer Fehler
+        }
+      }
+      setBuehnenFehler(fehlerText(ursache));
+    }
   }
 
   async function bandAnlegen(name: string) {
@@ -303,6 +369,7 @@ export function App({
         </label>
         {kontoZeile}
         {direktFehler ? <FehlerAnzeige text={direktFehler} /> : null}
+        {buehnenFehler ? <FehlerAnzeige text={buehnenFehler} /> : null}
         {bandDaten.status === "laedt" ? <StatusAnzeige zustand="laedt" /> : null}
         {bandDaten.status === "fehler" ? (
           <FehlerAnzeige text={bandDaten.fehler} onWiederholen={erneutVersuchen} />
@@ -317,7 +384,23 @@ export function App({
               zustand={echtzeit.zustand}
               onErneutVersuchen={echtzeit.erneutVersuchen}
             />
-            {route.bereich === "setlists" ? (
+            {route.bereich === "stage" ? (
+              <StageRoute
+                bandId={bandDaten.daten.bandId}
+                sessionId={route.stageSessionId ?? null}
+                verbindungId={echtzeit.verbindungId}
+                verbunden={
+                  echtzeit.zustand !== "unterbrochen" &&
+                  echtzeit.zustand !== "abgleich-fehlgeschlagen"
+                }
+                sende={echtzeit.sende}
+                antwort={stageAntwort}
+                stageMarke={stageMarke}
+                anmerkungsMarke={dokumentMarke}
+                onNavigieren={navigiere}
+                onSitzungAbgelaufen={sitzungAbgelaufen}
+              />
+            ) : route.bereich === "setlists" ? (
               <Setlists
                 key={bandDaten.daten.bandId}
                 bandId={bandDaten.daten.bandId}
@@ -326,6 +409,12 @@ export function App({
                 adapter={setlistAdapter}
                 initialSetlistId={route.setlistId}
                 aktualisierung={setlistMarke}
+                verbunden={
+                  echtzeit.zustand !== "unterbrochen" &&
+                  echtzeit.zustand !== "abgleich-fehlgeschlagen"
+                }
+                textEreignisse={textEreignisse}
+                onBuehneOeffnen={buehneOeffnen}
                 onSitzungAbgelaufen={sitzungAbgelaufen}
               />
             ) : route.bereich === "gigs" ? (
@@ -337,6 +426,7 @@ export function App({
                 aktualisierung={ereignisMarke}
                 vorgabe={syncPasst && syncStand ? syncStand.gigs : null}
                 onNavigieren={navigiere}
+                onBuehneOeffnen={buehneOeffnen}
                 onSitzungAbgelaufen={sitzungAbgelaufen}
               />
             ) : route.bereich === "document" ? (
@@ -379,6 +469,7 @@ export function App({
       communityUrl={
         konfiguration.status === "fertig" ? konfiguration.konfiguration.communityUrl : null
       }
+      buehne={route.bereich === "stage"}
       onNavigieren={navigiere}
     >
       {inhalt}

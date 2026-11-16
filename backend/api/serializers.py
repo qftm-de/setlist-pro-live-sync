@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from rest_framework import serializers
 
 from bands.models import Band
@@ -33,7 +35,7 @@ class SetlistNamePruefung:
 class SetlistKurzSerializer(SetlistNamePruefung, serializers.ModelSerializer):
     class Meta:
         model = Setlist
-        fields = ["id", "name", "updated_at"]
+        fields = ["id", "uuid", "name", "revision", "updated_at"]
 
 
 class EintragSerializer(serializers.ModelSerializer):
@@ -41,7 +43,15 @@ class EintragSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Entry
-        fields = ["id", "position", "entry_type", "song", "label", "duration_seconds"]
+        fields = [
+            "id",
+            "uuid",
+            "position",
+            "entry_type",
+            "song",
+            "label",
+            "duration_seconds",
+        ]
 
 
 class AbschnittSerializer(serializers.ModelSerializer):
@@ -49,7 +59,7 @@ class AbschnittSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Section
-        fields = ["id", "name", "kind", "position", "entries"]
+        fields = ["id", "uuid", "name", "kind", "position", "entries"]
 
 
 class SetlistSerializer(SetlistNamePruefung, serializers.ModelSerializer):
@@ -57,10 +67,11 @@ class SetlistSerializer(SetlistNamePruefung, serializers.ModelSerializer):
 
     class Meta:
         model = Setlist
-        fields = ["id", "name", "sections"]
+        fields = ["id", "uuid", "name", "revision", "sections"]
 
 
 class EintragEingabeSerializer(serializers.Serializer):
+    uuid = serializers.UUIDField(required=False, allow_null=True)
     entry_type = serializers.ChoiceField(choices=Entry.TYP_CHOICES)
     song_id = serializers.IntegerField(required=False, allow_null=True)
     label = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
@@ -98,6 +109,7 @@ class EintragEingabeSerializer(serializers.Serializer):
 
 
 class AbschnittEingabeSerializer(serializers.Serializer):
+    uuid = serializers.UUIDField(required=False, allow_null=True)
     name = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
     kind = serializers.ChoiceField(choices=Section.KIND_CHOICES)
     entries = EintragEingabeSerializer(many=True, required=False, default=list)
@@ -109,6 +121,7 @@ class AbschnittEingabeSerializer(serializers.Serializer):
 
 
 class InhaltEingabeSerializer(serializers.Serializer):
+    revision = serializers.IntegerField(min_value=0)
     sections = AbschnittEingabeSerializer(many=True)
 
     def validate_sections(self, abschnitte):
@@ -117,3 +130,24 @@ class InhaltEingabeSerializer(serializers.Serializer):
         if len(abschnitte) > 50:
             raise serializers.ValidationError("Höchstens 50 Abschnitte.")
         return abschnitte
+
+
+class BefehlEingabeSerializer(serializers.Serializer):
+    command_id = serializers.UUIDField()
+    kind = serializers.CharField(max_length=32)
+    payload = serializers.DictField()
+
+    def to_internal_value(self, data):
+        if not isinstance(data, Mapping):
+            raise serializers.ValidationError({"detail": "JSON-Objekt erwartet."})
+        return super().to_internal_value(data)
+
+
+class TextUpdateEingabeSerializer(serializers.Serializer):
+    object_type = serializers.ChoiceField(
+        choices=["setlist", "section", "entry"],
+    )
+    object_uuid = serializers.UUIDField()
+    field = serializers.ChoiceField(choices=["name", "label", "text"])
+    epoch = serializers.IntegerField(min_value=0)
+    update = serializers.CharField(allow_blank=False)

@@ -46,6 +46,7 @@ class Annotation(models.Model):
     text = models.TextField(blank=True, default="")
     font_size = models.FloatField(null=True, blank=True)
     revision = models.PositiveIntegerField(default=0)
+    permission_generation = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

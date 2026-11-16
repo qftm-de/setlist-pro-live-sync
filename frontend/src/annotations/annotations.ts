@@ -1,4 +1,5 @@
 import { apiFetch } from "../api/client";
+import type { TextAntwort } from "../collaboration/texte";
 import { neueUuid } from "../uuid";
 
 export type AnmerkungsArt = "text" | "marker";
@@ -24,9 +25,13 @@ export interface Anmerkung {
   text: string;
   font_size: Schriftgroesse | null;
   revision: number;
+  permission_generation: number;
+  text_epoch: number;
+  text_state: string;
   author_id: number;
   can_edit: boolean;
   can_delete: boolean;
+  can_change_visibility: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +86,13 @@ export interface AnmerkungAdapter {
     annotationId: number,
     revision: number,
   ): Promise<void>;
+  sendeText?(
+    bandId: string,
+    songId: number,
+    versionId: number,
+    annotationId: number,
+    eingabe: { epoch: number; generation: number; update: string },
+  ): Promise<TextAntwort>;
 }
 
 export const FARBEN: AnmerkungsFarbe[] = ["gelb", "orange", "blau", "gruen"];
@@ -120,6 +132,12 @@ export const apiAnmerkungen: AnmerkungAdapter = {
     await apiFetch<void>(
       `${basis(bandId, songId, versionId)}${annotationId}/?revision=${revision}`,
       { method: "DELETE" },
+    );
+  },
+  sendeText(bandId, songId, versionId, annotationId, eingabe) {
+    return apiFetch<TextAntwort>(
+      `${basis(bandId, songId, versionId)}${annotationId}/text/`,
+      { method: "POST", body: JSON.stringify(eingabe) },
     );
   },
 };

@@ -17,6 +17,7 @@ interface AuftrittZeileProps {
   onSpeichern: (gig: Gig, eingabe: GigEingabe) => Promise<void>;
   onLoeschen: (gig: Gig) => void;
   onSetlistOeffnen: (setlistId: number) => void;
+  onBuehneOeffnen?: (setlistId: number) => void;
   onSitzungAbgelaufen?: () => void;
 }
 
@@ -33,6 +34,7 @@ export function AuftrittZeile({
   onSpeichern,
   onLoeschen,
   onSetlistOeffnen,
+  onBuehneOeffnen,
   onSitzungAbgelaufen,
 }: AuftrittZeileProps) {
   const [bearbeiten, setBearbeiten] = useState(starteBearbeitung);
@@ -84,6 +86,15 @@ export function AuftrittZeile({
         >
           {gig.setlist_name ?? "Setlist"}
         </a>
+      ) : null}
+      {setlistId !== null && onBuehneOeffnen ? (
+        <button
+          type="button"
+          disabled={gesperrt}
+          onClick={() => onBuehneOeffnen(setlistId)}
+        >
+          {`Bühne aus ${gig.title} öffnen`}
+        </button>
       ) : null}
       <button
         type="button"

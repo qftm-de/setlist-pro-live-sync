@@ -232,8 +232,9 @@ class AnnotationCrudTest(AnnotationTestBasis):
         mitglied = self.mitglied_client()
         sichtbar = mitglied.get(self.pfad()).json()
         self.assertEqual(len(sichtbar), 1)
-        self.assertFalse(sichtbar[0]["can_edit"])
+        self.assertTrue(sichtbar[0]["can_edit"])
         self.assertFalse(sichtbar[0]["can_delete"])
+        self.assertFalse(sichtbar[0]["can_change_visibility"])
 
         wieder = self.client.patch(
             self.pfad(annotation_id=angelegt["id"]),

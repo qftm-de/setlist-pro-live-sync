@@ -9,4 +9,5 @@ export interface SyncDaten {
   gigs: GigGruppen;
   counters: Zaehler;
   server_time: string;
+  stage?: unknown | null;
 }

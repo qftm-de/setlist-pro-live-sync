@@ -243,6 +243,7 @@ try {
   const inhalt = await erste.ruf(`${setlistPfad}/content/`, {
     methode: "PUT",
     koerper: {
+      revision: setlist.daten.revision,
       sections: [
         {
           name: "Set 1",
@@ -275,6 +276,7 @@ try {
   const umsortiert = await erste.ruf(`${setlistPfad}/content/`, {
     methode: "PUT",
     koerper: {
+      revision: inhalt.daten.revision,
       sections: [
         { name: "Zugabe", kind: "zugabe", entries: [{ entry_type: "notiz", label: "Zugabe offen" }] },
       ],

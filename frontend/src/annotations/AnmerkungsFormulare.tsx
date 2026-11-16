@@ -6,7 +6,12 @@ import type {
   Schriftgroesse,
 } from "./annotations";
 import { AnmerkungLesen } from "./AnmerkungLesen";
-import { AnmerkungsFormular, type FormularHandle, type FormularWerte } from "./AnmerkungsFormular";
+import {
+  AnmerkungsFormular,
+  type FormularHandle,
+  type FormularWerte,
+  type TextSync,
+} from "./AnmerkungsFormular";
 
 interface FormulareProps {
   entwurf: Entwurf | null;
@@ -16,6 +21,7 @@ interface FormulareProps {
   farbe: AnmerkungsFarbe;
   schriftgroesse: Schriftgroesse;
   formRef: RefObject<FormularHandle | null>;
+  textSyncFuer?: (anmerkung: Anmerkung) => TextSync | null;
   onSpeichern: (werte: FormularWerte) => Promise<void>;
   onLoeschen: () => Promise<void>;
   onAbbrechenEntwurf: () => void;
@@ -32,6 +38,7 @@ export function AnmerkungsFormulare({
   farbe,
   schriftgroesse,
   formRef,
+  textSyncFuer,
   onSpeichern,
   onLoeschen,
   onAbbrechenEntwurf,
@@ -80,6 +87,7 @@ export function AnmerkungsFormulare({
         art="bearbeiten"
         anmerkung={angezeigt}
         geloescht={ausgewaehlt === null}
+        textSync={textSyncFuer?.(angezeigt) ?? null}
         start={{
           page_number: angezeigt.page_number,
           color: angezeigt.color,

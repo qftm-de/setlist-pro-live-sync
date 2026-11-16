@@ -88,6 +88,46 @@
   - Drittreview R13 behoben: Löschmarken für entfernte Auftritte und Setlists (vergangene Auftritte bleiben in ihrer Gruppe), Verbindungs- und Ping-Grenzen am WebSocket, schnellere Relay-Abfrage für die Latenzgrenze, lokale PDFs unter `docs/` ignoriert, begrenzte Test-Worker gegen Lastflackern.
   - Zweitreview R13 behoben: Root-`npm ci` im CI-Job `kern`, eingefrorene Bearbeitungsrevision für Anmerkungen, Löschmarke für entfernte Anmerkungen mit erhaltenem Entwurf, Setlist-Hinweis nur bei `setlist.`-Ereignissen, robuste Origin-Prüfung bei manipulierten Ports. R14 und R15 folgen als eigene Pakete mit eigenen R-Zeilen.
 
+- Paket 7 umgesetzt (R14, 16.11.2026):
+  - `collaboration` speichert Yjs-Textzustände mit Epoche und Revision, dazu
+    Löschmarken. `pycrdt` läuft auf Python 3.13; der Interop-Nachweis mit Yjs
+    deckt Merge, Unicode-Grenzen, parallele Änderungen und Kompaktierung ab.
+  - Setlists tragen Revision und UUIDs. Der Gesamt-PUT verlangt die
+    Entwurfsrevision (400/409) und gleicht Zeilen über UUIDs ab. Gelöschte
+    UUIDs bleiben gesperrt. Einzelbefehle sind über `command_id` und
+    Nutzdaten-Signatur idempotent.
+  - Textupdates laufen über REST und den Band-WebSocket durch denselben
+    Schreibdienst. Das Backend wendet sie isoliert an, begrenzt sie auf
+    64 KiB und speichert Zustand, Revision und Ereignis gemeinsam.
+  - Bandweite Anmerkungen darf jedes Mitglied bearbeiten; nur der Autor
+    ändert die Sichtbarkeit. Privatisierung erhöht die
+    Berechtigungsgeneration und sperrt alte Textupdates. `can_change_visibility`
+    kommt vom Server.
+  - Frontend: CRDT-Textfelder für Setlist-, Abschnitts- und Eintragsnamen,
+    250-ms-Bündelung, sichtbare Zustände offen/bestätigt/abgelehnt,
+    Konfliktzusammenführung beim PUT und pausierte Bearbeitung ohne Verbindung.
+  - `scripts/verify-realtime.mjs R14` prüft Backend-Tests, Revision und UUIDs,
+    Befehle, Textepochen, Anmerkungsrechte und beide WebSocket-Schreibwege.
+- Paket 8 umgesetzt (R15, 16.11.2026):
+  - `stage` hält eine aktive Sitzung je Band mit Snapshot aus Abschnitten,
+    Eintrags-UUIDs, Songmetadaten und konkreten PDF-Versionen. Spätere
+    Setlist-Änderungen, Löschungen und PDF-Aktivierungen verändern ihn nicht.
+  - Das Verbindungsregister liegt in PostgreSQL, wird beim WebSocket-Aufbau
+    erzeugt, per Heartbeat berührt und beim Schließen beendet. `ready` liefert
+    die Kennung; HTTP-Lebenszyklus und Steuerbefehle prüfen sie je Aufruf.
+  - Start, Beitritt, Übergabe, Owner-Übernahme, Rückkehr und Ende sind
+    serverseitig geprüft. Steuerbefehle tragen Generation und Nummer, sind
+    idempotent, lehnen Pausen, Seiten außerhalb und fremde Verbindungen ab.
+  - Die Bühnenansicht folgt freiwillig, navigiert lokal ohne Umlauf, hält Zoom
+    und Drehung je Gerät, zeigt bandweite Anmerkungen und bereitet PDFs samt
+    Seite 1 in einer Lesereserve bis 128 MiB vor. Wake Lock und Vollbild sind
+    optional und aufräumbar.
+  - Einstiege aus Setlist und Auftritt starten oder öffnen die laufende
+    Sitzung; der Direktlink zeigt denselben Snapshot. `stage.*`-Ereignisse
+    lösen keinen Bandabgleich aus.
+  - `scripts/verify-realtime.mjs R15` prüft Snapshot, Startrennen, Rechte,
+    CSRF, Nummern, Generationen, Übergabe, Übernahme, Rückkehr, Ende,
+    Mitgliedschaftsentzug, PDF-Zugriff und beide Leitungsverluste.
 - Gate und Review beschleunigt (15.11.2026): gleiche Verify-Befehle laufen
   einmal statt pro R-Zeile, Schritte mit `parallel: true` starten zusammen mit
   dem Gate, und ein zweiter Gutachter (ein externes Modell, direkte API) prüft
@@ -109,9 +149,9 @@
 ## Als Nächstes
 
 1. Sichtprüfung der Auftritte und PDFs auf Mobilformat und Desktop nachholen; die Chromium-Smokes prüfen die Funktion, nicht die Gestaltung.
-2. R14 gemeinsame Bearbeitung umsetzen: Setlist-UUIDs, Revision, Einzelbefehle, CRDT-Texte und Anmerkungsrechte.
-3. R15 Bühnensitzung umsetzen: Snapshot, Leitung, Folgen.
-4. Danach Export als eigene R-Zeile.
+2. R14 und R15 sind umgesetzt und passing. Vor Push oder Merge Request Review und Voll-Gate laufen lassen.
+3. Bühnenansicht auf einem echten Tablet prüfen: Lesereserve mit mehr als 128 MiB, Wake Lock, Vollbild und sehr kleine Displays.
+4. Export als eigene R-Zeile.
 5. Paket 10 und 11: Betrieb, private Auslieferung, Pilot-Abnahme.
 6. Erst danach der Hub als eigene Instanz.
 

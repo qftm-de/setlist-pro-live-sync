@@ -8,6 +8,7 @@ import type {
 
 export interface Zeile {
   schluessel: string;
+  uuid?: string;
   art: EintragsArt;
   songId?: number;
   titel: string;
@@ -16,6 +17,7 @@ export interface Zeile {
 
 export interface Block {
   schluessel: string;
+  uuid?: string;
   name: string;
   kind: AbschnittsArt;
   zeilen: Zeile[];
@@ -45,7 +47,8 @@ function zeileAusEintrag(abschnitt: Abschnitt, index: number): Zeile {
       ? (eintrag.song?.title ?? eintrag.label)
       : eintrag.label;
   return {
-    schluessel: `s${abschnitt.id}-e${eintrag.id}`,
+    schluessel: eintrag.uuid ? `e${eintrag.uuid}` : `s${abschnitt.id}-e${eintrag.id}`,
+    uuid: eintrag.uuid,
     art: eintrag.entry_type,
     songId: eintrag.song?.id,
     titel,
@@ -55,7 +58,8 @@ function zeileAusEintrag(abschnitt: Abschnitt, index: number): Zeile {
 
 export function bloeckeAusSetlist(setlist: Setlist): Block[] {
   return setlist.sections.map((abschnitt) => ({
-    schluessel: `a${abschnitt.id}`,
+    schluessel: abschnitt.uuid ? `a${abschnitt.uuid}` : `a${abschnitt.id}`,
+    uuid: abschnitt.uuid,
     name: abschnitt.name,
     kind: abschnitt.kind,
     zeilen: abschnitt.entries.map((_, index) => zeileAusEintrag(abschnitt, index)),
@@ -64,9 +68,11 @@ export function bloeckeAusSetlist(setlist: Setlist): Block[] {
 
 export function eingabeAusBloecken(bloecke: Block[]): AbschnittEingabe[] {
   return bloecke.map((block) => ({
+    ...(block.uuid ? { uuid: block.uuid } : {}),
     name: block.name,
     kind: block.kind,
     entries: block.zeilen.map((zeile) => ({
+      ...(zeile.uuid ? { uuid: zeile.uuid } : {}),
       ...(zeile.art === "song"
         ? { entry_type: "song" as const, song_id: zeile.songId }
         : { entry_type: zeile.art, label: zeile.titel }),

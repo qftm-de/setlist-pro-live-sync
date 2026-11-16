@@ -16,6 +16,8 @@ import {
 } from "./annotations";
 import { alsProzent, gueltig } from "./geometrie";
 import type { Geometrie } from "./annotations";
+import { CrdtTextFeld } from "../collaboration/CrdtTextFeld";
+import type { TextAntwort, TextStand } from "../collaboration/texte";
 import { GeometrieFelder } from "./GeometrieFelder";
 
 export interface FormularWerte {
@@ -25,6 +27,12 @@ export interface FormularWerte {
   geometry: Geometrie;
   text: string;
   font_size: number | null;
+  text_live?: boolean;
+}
+
+export interface TextSync {
+  stand: TextStand;
+  sende: (update: string, epoch: number) => Promise<TextAntwort>;
 }
 
 export interface FormularHandle {
@@ -38,6 +46,7 @@ interface FormularProps {
   geloescht?: boolean;
   start: FormularWerte | null;
   seiten: number;
+  textSync?: TextSync | null;
   onSpeichern: (werte: FormularWerte) => Promise<void>;
   onLoeschen?: () => Promise<void>;
   onAbbrechen: () => void;
@@ -52,6 +61,7 @@ function FormularInner(
     geloescht = false,
     start,
     seiten,
+    textSync = null,
     onSpeichern,
     onLoeschen,
     onAbbrechen,
@@ -81,6 +91,7 @@ function FormularInner(
   const [speichert, setSpeichert] = useState(false);
   const [loeschenBestaetigen, setLoeschenBestaetigen] = useState(false);
   const artWert = anmerkung?.kind ?? "text";
+  const darfSichtbarkeit = art === "neu" || Boolean(anmerkung?.can_change_visibility);
 
   function aendern(neu: Partial<FormularWerte>) {
     if (neu.text !== undefined) setText(neu.text);
@@ -120,6 +131,7 @@ function FormularInner(
         geometry: geometrie,
         text: artWert === "text" ? text.trim() : "",
         font_size: artWert === "text" ? groesse : null,
+        text_live: Boolean(textSync),
       });
       setDirty(false);
       onDirtyChange?.(false);
@@ -165,7 +177,21 @@ function FormularInner(
       <h4 id="anmerkung-formular-titel">
         {art === "neu" ? "Neue Textanmerkung" : "Anmerkung bearbeiten"}
       </h4>
-      {artWert === "text" ? (
+      {artWert === "text" && textSync ? (
+        <CrdtTextFeld
+          label="Text"
+          wert={text}
+          stand={textSync.stand}
+          aktiv
+          senden={textSync.sende}
+          onWert={(wert) => aendern({ text: wert })}
+          onStand={(wert) => setText(wert)}
+          maxLength={2000}
+          disabled={speichert}
+          mehrzeilig
+          rows={3}
+        />
+      ) : artWert === "text" ? (
         <label>
           Text
           <textarea
@@ -214,7 +240,7 @@ function FormularInner(
         Sichtbarkeit
         <select
           value={sichtbarkeit}
-          disabled={speichert}
+          disabled={speichert || !darfSichtbarkeit}
           onChange={(ereignis) =>
             aendern({ visibility: ereignis.target.value as AnmerkungsSichtbarkeit })
           }
@@ -223,6 +249,12 @@ function FormularInner(
           <option value="band">Band</option>
         </select>
       </label>
+      {!darfSichtbarkeit ? (
+        <p className="anmerkung-hinweis">
+          Nur der Autor ändert die Sichtbarkeit. Du bearbeitest den bandweiten
+          Inhalt.
+        </p>
+      ) : null}
       {sichtbarkeit === "band" ? (
         <p className="anmerkung-hinweis">
           Alle aktuellen Bandmitglieder sehen diesen Inhalt. Der Autor bleibt

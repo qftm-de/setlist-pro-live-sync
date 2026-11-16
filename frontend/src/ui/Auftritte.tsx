@@ -16,6 +16,7 @@ interface AuftritteProps {
   onNavigieren: (pfad: string) => void;
   aktualisierung?: number;
   vorgabe?: GigGruppen | null;
+  onBuehneOeffnen?: (setlistId: number) => void;
   onSitzungAbgelaufen?: () => void;
 }
 
@@ -26,6 +27,7 @@ export function Auftritte({
   onNavigieren,
   aktualisierung = 0,
   vorgabe = null,
+  onBuehneOeffnen,
   onSitzungAbgelaufen,
 }: AuftritteProps) {
   const { zustand, abgleichFehler, ladeNeu } = useGigs(
@@ -184,6 +186,7 @@ export function Auftritte({
                     onSpeichern={speichern}
                     onLoeschen={(eintrag) => void loeschen(eintrag)}
                     onSetlistOeffnen={oeffneSetlist}
+                    onBuehneOeffnen={onBuehneOeffnen}
                     onSitzungAbgelaufen={onSitzungAbgelaufen}
                   />
                 ))}
@@ -209,6 +212,7 @@ export function Auftritte({
                     onSpeichern={speichern}
                     onLoeschen={(eintrag) => void loeschen(eintrag)}
                     onSetlistOeffnen={oeffneSetlist}
+                    onBuehneOeffnen={onBuehneOeffnen}
                     onSitzungAbgelaufen={onSitzungAbgelaufen}
                   />
                 ))}
@@ -234,6 +238,7 @@ export function Auftritte({
                     onSpeichern={speichern}
                     onLoeschen={(eintrag) => void loeschen(eintrag)}
                     onSetlistOeffnen={oeffneSetlist}
+                    onBuehneOeffnen={onBuehneOeffnen}
                     onSitzungAbgelaufen={onSitzungAbgelaufen}
                   />
                 ))}

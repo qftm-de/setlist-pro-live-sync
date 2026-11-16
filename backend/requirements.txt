@@ -7,3 +7,5 @@ pypdf>=6.0,<7
 channels>=4.3,<5
 channels-redis>=4.3,<5
 daphne>=4.2,<5
+
+pycrdt>=0.14,<1

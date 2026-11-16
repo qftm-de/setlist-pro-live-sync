@@ -53,6 +53,17 @@ export class BandSync {
     }
   }
 
+  sende(nachricht: Record<string, unknown>): void {
+    if (!this.socket) {
+      return;
+    }
+    try {
+      this.socket.send(JSON.stringify(nachricht));
+    } catch {
+      // Ein geschlossener Socket wird über onclose behandelt.
+    }
+  }
+
   /** Erneuter Abgleich nach sichtbarem Fehler. Startet die Verbindung neu. */
   erneutVersuchen(): void {
     if (!this.laeuft) {
@@ -241,11 +252,33 @@ export class BandSync {
       this.verarbeiteEreignis(nachricht);
       return;
     }
-    if (nachricht.type === "ready" || nachricht.type === "pong") {
+    if (nachricht.type === "ready") {
+      const zahlen = nachricht.counters as Zaehler | undefined;
+      this.optionen.beiBereit?.({
+        connection:
+          typeof nachricht.connection === "string" ? nachricht.connection : undefined,
+        counters: zahlen ?? { band: 0, personal: 0 },
+      });
+      if (zahlen) {
+        this.pruefeZaehler(zahlen);
+      }
+      return;
+    }
+    if (nachricht.type === "pong") {
       const zahlen = nachricht.counters as Zaehler | undefined;
       if (zahlen) {
         this.pruefeZaehler(zahlen);
       }
+      return;
+    }
+    if (
+      nachricht.type === "stage.result" ||
+      nachricht.type === "text.result" ||
+      nachricht.type === "text.error" ||
+      nachricht.type === "command.result" ||
+      nachricht.type === "command.error"
+    ) {
+      this.optionen.beiAntwort?.(nachricht);
       return;
     }
     if (nachricht.type === "closed") {

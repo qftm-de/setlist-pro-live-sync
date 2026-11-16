@@ -4,6 +4,12 @@ from collections.abc import Mapping
 from rest_framework import serializers
 
 from annotations.models import Annotation
+from collaboration.models import TextState
+from collaboration.services import (
+    zustand_daten,
+    zustand_initial,
+    zustand_lesen,
+)
 
 
 def _zahl(wert, feld: str) -> float:
@@ -60,6 +66,9 @@ class AnnotationSerializer(serializers.ModelSerializer):
     author_id = serializers.IntegerField(read_only=True)
     can_edit = serializers.SerializerMethodField()
     can_delete = serializers.SerializerMethodField()
+    can_change_visibility = serializers.SerializerMethodField()
+    text_epoch = serializers.SerializerMethodField()
+    text_state = serializers.SerializerMethodField()
 
     class Meta:
         model = Annotation
@@ -74,15 +83,49 @@ class AnnotationSerializer(serializers.ModelSerializer):
             "text",
             "font_size",
             "revision",
+            "permission_generation",
+            "text_epoch",
+            "text_state",
             "author_id",
             "created_at",
             "updated_at",
             "can_edit",
             "can_delete",
+            "can_change_visibility",
         ]
         read_only_fields = fields
 
+    def _zustand(self, obj):
+        # Pro Anmerkung genau eine Abfrage je Serializer-Lauf (Liste, Detail).
+        cache = getattr(self, "_textzustand_cache", None)
+        if cache is None:
+            cache = {}
+            self._textzustand_cache = cache
+        if obj.pk not in cache:
+            karte = self.context.get("textzustaende")
+            if karte is not None and obj.uuid in karte:
+                vorhanden = karte[obj.uuid]
+                cache[obj.pk] = vorhanden or zustand_initial(
+                    TextState.TYP_ANNOTATION, obj.uuid, "text", obj.text
+                )
+            else:
+                cache[obj.pk] = zustand_lesen(
+                    TextState.TYP_ANNOTATION, obj.uuid, "text", obj.text
+                )
+        return cache[obj.pk]
+
+    def get_text_epoch(self, obj) -> int:
+        return self._zustand(obj).epoch
+
+    def get_text_state(self, obj) -> str:
+        return zustand_daten(self._zustand(obj))["state"]
+
     def get_can_edit(self, obj) -> bool:
+        if obj.author_id == self.context["request"].user.id:
+            return True
+        return obj.visibility == Annotation.SICHTBAR_BAND
+
+    def get_can_change_visibility(self, obj) -> bool:
         return obj.author_id == self.context["request"].user.id
 
     def get_can_delete(self, obj) -> bool:

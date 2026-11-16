@@ -52,13 +52,18 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Setlist speichern" }));
     await waitFor(() => expect(speichern).toHaveBeenCalledTimes(1));
-    expect(speichern).toHaveBeenCalledWith("a", 1, [
-      {
-        name: "Set",
-        kind: "set",
-        entries: [{ entry_type: "song", song_id: 1, duration_seconds: null }],
-      },
-    ]);
+    expect(speichern).toHaveBeenCalledWith(
+      "a",
+      1,
+      [
+        {
+          name: "Set",
+          kind: "set",
+          entries: [{ entry_type: "song", song_id: 1, duration_seconds: null }],
+        },
+      ],
+      0,
+    );
   });
 
   it("zeigt Setlists nicht auf der Startseite", async () => {

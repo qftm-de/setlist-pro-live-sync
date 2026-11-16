@@ -14,7 +14,9 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 
 - Core-Anmeldung ohne allauth: eigene Kontoentität `accounts.User` (E-Mail eindeutig, Anzeigename), Django-Session, Anmeldung und Abmeldung als Django-Views mit CSRF. Grund: Der Core braucht nur lokale Anmeldung. Registrierung und E-Mail-Verifikation gehören zum Hub und kommen mit ihm.
 
-- Setlist-Inhalt wird als Ganzes per `PUT .../content/` ersetzt, nicht über sechs Einzel-Endpunkte. Grund: atomar, keine halb umsortierten Listen, und der Client hat den vollständigen Stand.
+- Setlist-Inhalt wird als Ganzes per `PUT .../content/` mit Entwurfsrevision ersetzt; Einzelbefehle ergänzen ihn. Grund: atomar, keine halb umsortierten Listen, und konkurrierende Änderungen bleiben getrennt nachvollziehbar.
+- Abschnitte und Einträge tragen dauerhafte UUIDs, Textfelder Yjs-Zustände mit Epoche. Grund: strukturierte Änderungen bleiben idempotent, Texte lassen sich zusammenführen, und ein REST-Ersatz kann alte Updates nicht wiederbeleben.
+- Bandweite Anmerkungen darf jedes Mitglied bearbeiten, die Sichtbarkeit nur der Autor. Grund: gemeinsames Arbeiten am selben Stand ohne Aufgabe der Privatsphäre. Löschrecht bleibt beim Autor und beim aktuellen Owner.
 
 ## Lizenz
 
@@ -46,6 +48,9 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 - Jeder sichtbare Strom hat einen eigenen Zähler, erhöht unter Zeilensperre. Grund: Eine globale Datenbanksequenz erzeugt scheinbare Lücken, sobald persönliche Ereignisse getrennt laufen.
 - Band- und persönliche Ereignisse nutzen getrennte Channels-Gruppen. Bandereignisse tragen keine persönlichen Inhalte oder Kennungen. Grund: Privatisierte Anmerkungen dürfen im Bandstrom nicht nachträglich auftauchen.
 - WebSocket-Aufbau verlangt exakten Origin, aktive Session und Mitgliedschaft; Rechte werden alle 15 Sekunden und vor jeder Auslieferung neu geprüft. Grund: Eine offene Verbindung ist keine dauerhafte Berechtigung.
+- Eine Bühnensitzung ist ein fester Snapshot je Band. Bühnen-Lesezeichen und Setlist-Änderungen während des Auftritts würden sonst Song, Seite und PDF unbemerkt verschieben. Grund: Auf der Bühne zählt ein stabiler Stand.
+- Bühnensitzung und Leitung liegen in PostgreSQL, nicht im Consumer-Prozess. Grund: API- oder Relay-Neustarts dürfen Leitung, Verbindungskennung und bestätigten Stand nicht verlieren.
+- Steuerbefehle tragen Generation und Nummer und sind idempotent. Grund: Wiederverbindung, doppelte Bestätigungen und eine Übernahme während des Befehls dürfen keinen zweiten Vorschub auslösen.
 
 ## GitHub
 

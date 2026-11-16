@@ -36,10 +36,12 @@ class SetlistsTest(TestCase):
             content_type="application/json",
         )
 
-    def inhalt(self, sections):
+    def inhalt(self, sections, revision=None):
+        if revision is None:
+            revision = Setlist.objects.get(pk=self.setlist.pk).revision
         return self.client.put(
             f"/api/bands/{self.band.id}/setlists/{self.setlist.id}/content/",
-            data=json.dumps({"sections": sections}),
+            data=json.dumps({"revision": revision, "sections": sections}),
             content_type="application/json",
         )
 

@@ -15,6 +15,7 @@ from .gig_serializers import GigSerializer
 from .gigs import sortierschluessel
 from .serializers import SetlistSerializer, SongSerializer
 from realtime.services import zaehler
+from stage.dienste import aktive_sitzung, sitzung_daten
 
 
 class BandAbgleich(APIView):
@@ -53,6 +54,7 @@ class BandAbgleich(APIView):
             (gig for gig in gigs if gig.date < heute),
             key=lambda gig: sortierschluessel(gig, absteigend=True),
         )
+        sitzung = aktive_sitzung(band)
         return {
             "band": {"id": band.id, "name": band.name},
             "songs": SongSerializer(songs, many=True).data,
@@ -61,6 +63,7 @@ class BandAbgleich(APIView):
                 "upcoming": GigSerializer(kommend, many=True).data,
                 "past": GigSerializer(vergangen, many=True).data,
             },
+            "stage": sitzung_daten(sitzung, user) if sitzung is not None else None,
             "counters": zahlen,
             "server_time": timezone.now().isoformat(),
         }

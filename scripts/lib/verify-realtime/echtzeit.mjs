@@ -19,7 +19,7 @@ function kopfzeilen(sitzung, origin) {
   return werte;
 }
 
-function verbinde(basis, bandId, sitzung, origin = basis) {
+export function verbinde(basis, bandId, sitzung, origin = basis) {
   return new Promise((fertig, scheitern) => {
     const socket = new WebSocket(url(basis, bandId), {
       headers: kopfzeilen(sitzung, origin),
@@ -84,7 +84,7 @@ function verbinde(basis, bandId, sitzung, origin = basis) {
   });
 }
 
-function erwarteAblehnung(basis, bandId, sitzung, origin) {
+export function erwarteAblehnung(basis, bandId, sitzung, origin) {
   return new Promise((fertig) => {
     let erledigt = false;
     const ende = (abgelehnt) => {

@@ -1,0 +1,267 @@
+.buehne {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--grund);
+  color: var(--text);
+  padding: 0.75rem;
+  min-height: 100vh;
+}
+
+.buehne-kopf {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  border-bottom: 2px solid var(--signal);
+  padding-bottom: 0.5rem;
+}
+
+.buehne-marke {
+  margin: 0;
+  color: var(--signal);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.buehne-kopf h1 {
+  margin: 0.1rem 0;
+  font-size: clamp(1.4rem, 3.2vw, 2.2rem);
+}
+
+.buehne-meta {
+  margin: 0;
+  color: var(--meta);
+}
+
+.buehne-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.buehne-status span {
+  border: 1px solid var(--linie);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  background: var(--flaeche);
+}
+
+.buehne-inhalt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .buehne-inhalt {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.buehne-pdf {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.buehne-pdf-werkzeuge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.buehne-blatt {
+  position: relative;
+  background: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.buehne-blatt canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.buehne-songinfo {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.buehne-songinfo dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+}
+
+.buehne-songinfo dt {
+  color: var(--sekundaer);
+}
+
+.buehne-songinfo dd {
+  margin: 0;
+}
+
+.buehne-uebersicht {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: 8px;
+  padding: 0.5rem;
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.buehne-uebersicht h2 {
+  font-size: 0.95rem;
+  margin: 0.5rem 0 0.25rem;
+  color: var(--signal);
+}
+
+.buehne-uebersicht ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.buehne-uebersicht button {
+  width: 100%;
+  text-align: left;
+  min-height: 44px;
+  background: var(--flaeche-hoch);
+  color: var(--text);
+  border: 1px solid var(--linie);
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+.buehne-uebersicht button[aria-pressed="true"] {
+  border-color: var(--signal);
+  box-shadow: inset 4px 0 0 var(--signal);
+}
+
+.buehne-keinziel {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  color: var(--sekundaer);
+  border-left: 2px dashed var(--linie);
+}
+
+.buehne-art {
+  color: var(--sekundaer);
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+}
+
+.buehne-fuss {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  justify-content: space-between;
+  position: sticky;
+  bottom: 0;
+  background: var(--grund);
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--linie);
+}
+
+.buehne-gross {
+  min-width: 8rem;
+  min-height: 44px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: var(--signal);
+  color: var(--signal-text);
+  border: 0;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+}
+
+.buehne-gross:disabled {
+  opacity: 0.5;
+}
+
+.buehne-schalter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.buehne-aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.buehne button {
+  min-height: 44px;
+  background: var(--flaeche-hoch);
+  color: var(--text);
+  border: 1px solid var(--linie);
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+}
+
+.buehne button:hover {
+  border-color: var(--signal);
+}
+
+.buehne-hinweis {
+  background: var(--flaeche);
+  border-left: 4px solid var(--warnung);
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+}
+
+.buehne-start {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 40rem;
+}
+
+.buehne-startliste {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.huelle-buehne {
+  background: var(--grund);
+}
+
+.kopf-buehne {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--linie);
+  padding: 0.5rem 0.75rem;
+}
+
+.inhalt-buehne {
+  padding: 0;
+}
+
+.kopf-buehne button {
+  min-height: 44px;
+}
