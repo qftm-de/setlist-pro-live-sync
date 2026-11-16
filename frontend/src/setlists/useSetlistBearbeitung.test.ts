@@ -1,5 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import * as Y from "yjs";
+import { base64AusBytes } from "../collaboration/texte";
 import { textSchluessel } from "../collaboration/texte";
 import type { Setlist, SetlistAdapter } from "./setlists";
 import { useSetlistBearbeitung } from "./useSetlistBearbeitung";
@@ -20,20 +22,22 @@ const saved: Setlist = {
     {
       id: 2,
       uuid: "new-section",
-      name: "Neu",
+      name: "Alt",
       kind: "set",
       position: 1,
       entries: [],
     },
   ],
 };
+const standDoc = new Y.Doc();
+standDoc.getText("t").insert(0, "Neu");
 const sectionStand = {
   object_type: "section" as const,
   object_uuid: "new-section",
   field: "name" as const,
   epoch: 0,
   revision: 0,
-  state: "",
+  state: base64AusBytes(Y.encodeStateAsUpdate(standDoc)),
 };
 
 function adapterMit(ladeTexte: SetlistAdapter["ladeTexte"]): SetlistAdapter {
@@ -75,6 +79,36 @@ describe("useSetlistBearbeitung", () => {
         textSchluessel("section", "new-section", "name")
       ],
     ).toBeDefined();
+    expect(result.current.bloecke[0].name).toBe("Neu");
+  });
+
+  it("lädt nach der Wiederverbindung Textstände nach", async () => {
+    const mitAlt = {
+      ...saved,
+      revision: 0,
+      sections: [{ ...saved.sections[0], name: "Alt" }],
+    };
+    const ladeTexte = vi
+      .fn<NonNullable<SetlistAdapter["ladeTexte"]>>()
+      .mockResolvedValueOnce({ revision: 0, texts: [] })
+      .mockResolvedValue({ revision: 1, texts: [sectionStand] });
+    const adapter = adapterMit(ladeTexte);
+    const { result, rerender } = renderHook(
+      (optionen: { verbunden: boolean }) =>
+        useSetlistBearbeitung({
+          bandId: "b1",
+          setlist: mitAlt,
+          songs: [],
+          adapter,
+          verbunden: optionen.verbunden,
+          textEreignisse: {},
+        }),
+      { initialProps: { verbunden: false } },
+    );
+    await waitFor(() => expect(ladeTexte).toHaveBeenCalledTimes(1));
+    rerender({ verbunden: true });
+    await waitFor(() => expect(ladeTexte).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.bloecke[0].name).toBe("Neu"));
   });
 
   it("verwirft eine überholte Ladeantwort", async () => {

@@ -53,6 +53,7 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
   const sendetRef = useRef(false);
   const sendenRef = useRef(optionen.senden);
   const aktivRef = useRef(optionen.aktiv);
+  const warAktivRef = useRef(optionen.aktiv);
   const bestaetigtCbRef = useRef(optionen.onBestaetigt);
   const wertCbRef = useRef(optionen.onWert);
   const standCbRef = useRef(optionen.onStand);
@@ -224,6 +225,20 @@ export function useCrdtText(optionen: CrdtTextOptionen): CrdtTextHandle {
     optionen.stand?.revision,
     optionen.stand?.state,
   ]);
+
+  useEffect(() => {
+    const vorher = warAktivRef.current;
+    warAktivRef.current = optionen.aktiv;
+    if (
+      !vorher &&
+      optionen.aktiv &&
+      docRef.current &&
+      hatLokaleAenderungen(docRef.current, updateRef.current)
+    ) {
+      // Nach einer Unterbrechung pausierte lokale Änderungen nachsenden.
+      planeSenden(true);
+    }
+  }, [optionen.aktiv, planeSenden]);
 
   const sendeJetzt = useCallback(() => {
     timerLoeschen();

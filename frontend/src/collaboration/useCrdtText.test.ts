@@ -21,6 +21,39 @@ afterEach(() => {
 });
 
 describe("useCrdtText", () => {
+  it("sendet pausierte Änderungen nach der Wiederverbindung", async () => {
+    vi.useFakeTimers();
+    const basis = stand("A");
+    const server = serverAus(basis);
+    const sends: number[] = [];
+    const senden = (update: string, epoch: number) => {
+      sends.push(epoch);
+      Y.applyUpdate(server, bytesAusBase64(update));
+      return Promise.resolve(antwort(server, epoch, 1));
+    };
+    const { result, rerender } = renderHook(
+      (optionen: { aktiv: boolean }) =>
+        useCrdtText({
+          stand: basis,
+          wert: "A",
+          aktiv: optionen.aktiv,
+          senden,
+        }),
+      { initialProps: { aktiv: false } },
+    );
+    act(() => result.current.setWert("AB"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    expect(sends).toEqual([]);
+    rerender({ aktiv: true });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(sends).toEqual([0]);
+    expect(server.getText("t").toString()).toBe("AB");
+  });
+
   it("behält den lokalen Text bei einem Namenskonflikt", async () => {
     vi.useFakeTimers();
     const basis = stand("A");

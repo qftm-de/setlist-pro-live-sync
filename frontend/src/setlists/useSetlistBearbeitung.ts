@@ -17,6 +17,8 @@ import {
 } from "../setlists/zusammenfuehren";
 import type { Setlist, SetlistAdapter } from "../setlists/setlists";
 import {
+  dokumentAusStand,
+  textAusDokument,
   textSchluessel,
   type TextAntwort,
   type TextEreignis,
@@ -33,6 +35,17 @@ interface Optionen {
   textEreignisse: Record<string, TextEreignis>;
   onSitzungAbgelaufen?: () => void;
   onGespeichert?: (setlist: Setlist) => void;
+}
+
+function textAusStand(stand: TextStand | undefined): string | null {
+  if (!stand?.state) {
+    return null;
+  }
+  try {
+    return textAusDokument(dokumentAusStand(stand));
+  } catch {
+    return null;
+  }
 }
 
 export function useSetlistBearbeitung({
@@ -53,6 +66,8 @@ export function useSetlistBearbeitung({
   const [textFehler, setTextFehler] = useState<string | null>(null);
   const [konflikt, setKonflikt] = useState(false);
   const [texte, setTexte] = useState<Record<string, TextStand>>({});
+  const texteRef = useRef<Record<string, TextStand>>({});
+  texteRef.current = texte;
   const ladeSequenzRef = useRef(0);
   const [songWahl, setSongWahl] = useState<string>(String(songs[0]?.id ?? ""));
   const [notizen, setNotizen] = useState<Record<string, string>>({});
@@ -97,6 +112,41 @@ export function useSetlistBearbeitung({
       for (const stand of antwort.texts) {
         karte[textSchluessel(stand.object_type, stand.object_uuid, stand.field)] = stand;
       }
+      const alt = texteRef.current;
+      setBloecke((vorher) =>
+        vorher.map((block) => {
+          const nameSchluessel = block.uuid
+            ? textSchluessel("section", block.uuid, "name")
+            : "";
+          const neuerName = nameSchluessel ? textAusStand(karte[nameSchluessel]) : null;
+          const alterName = nameSchluessel ? textAusStand(alt[nameSchluessel]) : null;
+          const name =
+            neuerName !== null && (alterName === null || block.name === alterName)
+              ? neuerName
+              : block.name;
+          return {
+            ...block,
+            name,
+            zeilen: block.zeilen.map((zeile) => {
+              const labelSchluessel = zeile.uuid
+                ? textSchluessel("entry", zeile.uuid, "label")
+                : "";
+              const neuesLabel = labelSchluessel
+                ? textAusStand(karte[labelSchluessel])
+                : null;
+              const altesLabel = labelSchluessel
+                ? textAusStand(alt[labelSchluessel])
+                : null;
+              const titel =
+                neuesLabel !== null &&
+                (altesLabel === null || zeile.titel === altesLabel)
+                  ? neuesLabel
+                  : zeile.titel;
+              return { ...zeile, titel };
+            }),
+          };
+        }),
+      );
       setTexte(karte);
       setRevision((vorher) => Math.max(vorher, antwort.revision));
       setTextFehler(null);
@@ -112,6 +162,16 @@ export function useSetlistBearbeitung({
   useEffect(() => {
     void ladeTexte();
   }, [ladeTexte]);
+
+  const warVerbundenRef = useRef(verbunden);
+  useEffect(() => {
+    if (!warVerbundenRef.current && verbunden) {
+      // Nach einer Lücke die bestätigten Texte nachladen, bevor ein PUT
+      // veraltete Namen zurückschreibt.
+      void ladeTexte();
+    }
+    warVerbundenRef.current = verbunden;
+  }, [ladeTexte, verbunden]);
 
   function aendern(neu: Block[]) {
     setBloecke(neu);
