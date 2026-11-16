@@ -111,6 +111,36 @@ describe("useSetlistBearbeitung", () => {
     await waitFor(() => expect(result.current.bloecke[0].name).toBe("Neu"));
   });
 
+  it("lädt die Textstände nach einem Abgleich nach", async () => {
+    const mitAlt = {
+      ...saved,
+      revision: 0,
+      sections: [{ ...saved.sections[0], name: "Alt" }],
+    };
+    const ladeTexte = vi
+      .fn<NonNullable<SetlistAdapter["ladeTexte"]>>()
+      .mockResolvedValueOnce({ revision: 0, texts: [] })
+      .mockResolvedValue({ revision: 1, texts: [sectionStand] });
+    const adapter = adapterMit(ladeTexte);
+    const { result, rerender } = renderHook(
+      (optionen: { syncMarke: number }) =>
+        useSetlistBearbeitung({
+          bandId: "b1",
+          setlist: mitAlt,
+          songs: [],
+          adapter,
+          verbunden: true,
+          syncMarke: optionen.syncMarke,
+          textEreignisse: {},
+        }),
+      { initialProps: { syncMarke: 0 } },
+    );
+    await waitFor(() => expect(ladeTexte).toHaveBeenCalledTimes(1));
+    rerender({ syncMarke: 1 });
+    await waitFor(() => expect(ladeTexte).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.bloecke[0].name).toBe("Neu"));
+  });
+
   it("verwirft eine überholte Ladeantwort", async () => {
     let ersterAufloeser!: (wert: {
       revision: number;

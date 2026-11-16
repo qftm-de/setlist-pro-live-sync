@@ -15,6 +15,7 @@ interface SetlistsProps {
   aktualisierung?: number;
   vorgabe?: Array<{ id: number; name: string }> | null;
   verbunden?: boolean;
+  syncMarke?: number;
   textEreignisse?: Record<string, TextEreignis>;
   onBuehneOeffnen?: (setlistId: number) => void;
   onSitzungAbgelaufen?: () => void;
@@ -28,6 +29,7 @@ export function Setlists({
   aktualisierung = 0,
   vorgabe = null,
   verbunden = true,
+  syncMarke = 0,
   textEreignisse = {},
   onBuehneOeffnen,
   onSitzungAbgelaufen,
@@ -300,6 +302,7 @@ export function Setlists({
           adapter={adapter}
           geloescht={detailGeloescht}
           verbunden={verbunden}
+          syncMarke={syncMarke}
           textEreignisse={textEreignisse}
           onSitzungAbgelaufen={onSitzungAbgelaufen}
         />

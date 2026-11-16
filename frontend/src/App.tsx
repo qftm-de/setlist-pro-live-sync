@@ -60,6 +60,7 @@ export function App({
     Record<string, TextEreignis>
   >({});
   const [stageMarke, setStageMarke] = useState(0);
+  const [syncMarke, setSyncMarke] = useState(0);
   const [stageAntwort, setStageAntwort] = useState<Record<string, unknown> | null>(null);
   const [buehnenFehler, setBuehnenFehler] = useState<string | null>(null);
   const [syncStand, setSyncStand] = useState<SyncDaten | null>(null);
@@ -206,6 +207,7 @@ export function App({
       return;
     }
     setSyncStand(stand);
+    setSyncMarke((wert) => wert + 1);
     if (stand.stage) {
       setStageMarke((wert) => wert + 1);
     }
@@ -414,6 +416,7 @@ export function App({
                   echtzeit.zustand !== "unterbrochen" &&
                   echtzeit.zustand !== "abgleich-fehlgeschlagen"
                 }
+                syncMarke={syncMarke}
                 textEreignisse={textEreignisse}
                 onBuehneOeffnen={buehneOeffnen}
                 onSitzungAbgelaufen={sitzungAbgelaufen}

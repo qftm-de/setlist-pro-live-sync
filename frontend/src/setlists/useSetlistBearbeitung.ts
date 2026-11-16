@@ -32,6 +32,7 @@ interface Optionen {
   songs: Song[];
   adapter: SetlistAdapter;
   verbunden: boolean;
+  syncMarke?: number;
   textEreignisse: Record<string, TextEreignis>;
   onSitzungAbgelaufen?: () => void;
   onGespeichert?: (setlist: Setlist) => void;
@@ -54,6 +55,7 @@ export function useSetlistBearbeitung({
   songs,
   adapter,
   verbunden,
+  syncMarke = 0,
   textEreignisse,
   onSitzungAbgelaufen,
   onGespeichert,
@@ -172,6 +174,13 @@ export function useSetlistBearbeitung({
     }
     warVerbundenRef.current = verbunden;
   }, [ladeTexte, verbunden]);
+
+  useEffect(() => {
+    if (syncMarke > 0) {
+      // Ein vollständiger Abgleich kann gepufferte Textereignisse überholen.
+      void ladeTexte();
+    }
+  }, [ladeTexte, syncMarke]);
 
   function aendern(neu: Block[]) {
     setBloecke(neu);

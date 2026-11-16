@@ -14,6 +14,7 @@ interface SetlistEditorProps {
   adapter: SetlistAdapter;
   geloescht?: boolean;
   verbunden?: boolean;
+  syncMarke?: number;
   textEreignisse?: Record<string, TextEreignis>;
   onSitzungAbgelaufen?: () => void;
   onGespeichert?: (setlist: Setlist) => void;
@@ -26,6 +27,7 @@ export function SetlistEditor({
   adapter,
   geloescht = false,
   verbunden = true,
+  syncMarke = 0,
   textEreignisse = {},
   onSitzungAbgelaufen,
   onGespeichert,
@@ -36,6 +38,7 @@ export function SetlistEditor({
     songs,
     adapter,
     verbunden,
+    syncMarke,
     textEreignisse,
     onSitzungAbgelaufen,
     onGespeichert,
