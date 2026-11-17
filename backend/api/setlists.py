@@ -385,6 +385,12 @@ class SetlistTextUpdate(APIView):
                 spalte = "label" if daten["object_type"] == TextState.TYP_ENTRY else "name"
                 setattr(gesperrt, spalte, text)
                 gesperrt.save(update_fields=[spalte])
+                # Textänderungen zählen als Inhaltsänderung: ohne Zähler
+                # besteht ein veralteter Gesamt-PUT die Prüfung und ersetzt
+                # den bestätigten Text über einen Epochenwechsel.
+                gesperrt_setlist.revision += 1
+                gesperrt_setlist.save(update_fields=["revision", "updated_at"])
+                setlist.revision = gesperrt_setlist.revision
                 band_ereignis(
                     setlist.band,
                     "text.updated",

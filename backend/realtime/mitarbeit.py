@@ -106,6 +106,10 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
             spalte = "label" if typ == TextState.TYP_ENTRY else "name"
             setattr(gesperrt, spalte, text)
             gesperrt.save(update_fields=[spalte])
+            # Textänderungen zählen als Inhaltsänderung, siehe api/setlists.py.
+            gesperrt_setlist.revision += 1
+            gesperrt_setlist.save(update_fields=["revision", "updated_at"])
+            setlist.revision = gesperrt_setlist.revision
             band_ereignis(
                 setlist.band,
                 "text.updated",

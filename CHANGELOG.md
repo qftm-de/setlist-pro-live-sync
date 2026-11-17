@@ -40,8 +40,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - Gemeinsame Bearbeitung (R14): `text_ersetzen` baut den Zustand neu auf,
   statt den alten mit Grabsteinen zu leeren. Damit wächst der Zustand bei
   wiederholtem REST-Ersatz nicht mehr und die Größe bleibt geprüft. R14.
-- Gemeinsame Bearbeitung (R14): Alle Textwege sperren in der Reihenfolge des
-  Gesamt-PUTs: Setlist, Strukturzeile, TextState. R14.
+- Gemeinsame Bearbeitung (R14): Eine bestätigte Textänderung erhöht die
+  Revision der Setlist. Ein veralteter Gesamt-PUT läuft dadurch in 409 und
+  kann den bestätigten Text nicht über einen Epochenwechsel ersetzen. Die
+  REST-Revision einer Anmerkung bleibt für Geometrie und Sichtbarkeit stabil.
+  Alle Textwege sperren in der Reihenfolge des Gesamt-PUTs: Setlist,
+  Strukturzeile, TextState. R14.
 - Bühne (R15): Die Verbindungsfrische wird zusätzlich serverseitig im Takt
   der Rechteprüfung erneuert. Ein gedrosselter Browser-Tab verliert die
   Leitung damit nicht mehr nach 60 Sekunden ohne Ping. R15.

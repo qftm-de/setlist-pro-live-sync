@@ -114,10 +114,9 @@ class AnnotationTexte(APIView):
                     raise TextFehler("Eine Textanmerkung braucht Text.")
                 gesperrt.text = text.strip()
                 # Textänderungen sind über Epoche und Generation geschützt.
-                # Die Revision steigt mit, sonst überschreibt ein veralteter
-                # PATCH den bestätigten Text.
-                gesperrt.revision += 1
-                gesperrt.save(update_fields=["text", "revision", "updated_at"])
+                # Die REST-Revision bleibt für Geometrie, Farbe und
+                # Sichtbarkeit stabil, sonst laufen deren PATCHs in 409.
+                gesperrt.save(update_fields=["text", "updated_at"])
                 daten = {
                     "id": gesperrt.id,
                     "version_id": version.id,

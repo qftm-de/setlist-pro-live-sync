@@ -184,6 +184,38 @@ class SetlistTextTest(MitarbeitBasis):
         )
         self.assertEqual(antwort.status_code, 400)
 
+    def test_text_update_erhoeht_setlist_revision(self):
+        """Eine Textänderung sperrt veraltete Struktur-PUTs (R14)."""
+        self.put([{"name": "A", "kind": "set"}], 0)
+        vorher = Setlist.objects.get(pk=self.setlist.pk).revision
+        stand = next(
+            eintrag
+            for eintrag in self.client.get(f"{self.basis}texts/").json()["texts"]
+            if eintrag["object_type"] == "section"
+        )
+        basis = base64.b64decode(stand["state"])
+        antwort = self.client.post(
+            f"{self.basis}text/",
+            data=json.dumps(
+                {
+                    "object_type": "section",
+                    "object_uuid": stand["object_uuid"],
+                    "field": "name",
+                    "epoch": stand["epoch"],
+                    "update": b64(yjs_update(basis, " Neu")),
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(antwort.status_code, 200)
+        self.assertEqual(
+            Setlist.objects.get(pk=self.setlist.pk).revision, vorher + 1
+        )
+        # Ein PUT mit der alten Revision wird abgewiesen.
+        self.assertEqual(
+            self.put([{"name": "B", "kind": "set"}], vorher).status_code, 409
+        )
+
     def test_text_update_trimmt_wie_der_restweg(self):
         """Randleerzeichen im Textweg erzeugen keinen Epochenwechsel (R14)."""
         self.put([{"name": "A", "kind": "set"}], 0)

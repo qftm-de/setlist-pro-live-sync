@@ -42,18 +42,11 @@ class AnnotationMitarbeitTest(AnnotationTestBasis):
         self.assertEqual(aktuell.author_id, self.benutzer.id)
         self.assertEqual(aktuell.text, "Leiser spielen gemeinsam")
 
-        # Der Textupdate erhöht die REST-Revision. Ein PATCH mit der beim
-        # Öffnen eingefrorenen Revision wird abgewiesen, mit der neuen geht er.
-        veraltet = mitglied.patch(
-            self.pfad(annotation_id=angelegt["id"]),
-            data=json.dumps({"revision": 0, "color": "blau"}),
-            content_type="application/json",
-        )
-        self.assertEqual(veraltet.status_code, 409)
-
+        # Der Textupdate lässt die REST-Revision stabil. Ein PATCH mit der beim
+        # Öffnen eingefrorenen Revision bleibt damit gültig.
         farbe = mitglied.patch(
             self.pfad(annotation_id=angelegt["id"]),
-            data=json.dumps({"revision": aktuell.revision, "color": "blau"}),
+            data=json.dumps({"revision": 0, "color": "blau"}),
             content_type="application/json",
         )
         self.assertEqual(farbe.status_code, 200)
