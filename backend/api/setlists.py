@@ -308,11 +308,20 @@ class SetlistTextUpdate(APIView):
                 if daten["object_type"] == TextState.TYP_SETLIST:
                     gesperrt = gesperrt_setlist
                 elif daten["object_type"] == TextState.TYP_SECTION:
-                    gesperrt = Section.objects.select_for_update().get(
-                        uuid=kennung
+                    gesperrt = (
+                        Section.objects.select_for_update()
+                        .filter(uuid=kennung)
+                        .first()
                     )
                 else:
-                    gesperrt = Entry.objects.select_for_update().get(uuid=kennung)
+                    gesperrt = (
+                        Entry.objects.select_for_update().filter(uuid=kennung).first()
+                    )
+                if gesperrt is None:
+                    return Response(
+                        {"detail": "Das Feld wurde inzwischen gelöscht."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
                 obj, text = update_anwenden(
                     daten["object_type"],
                     kennung,
@@ -340,6 +349,7 @@ class SetlistTextUpdate(APIView):
                     revision=obj.revision,
                     # Empfänger ziehen ihre Revision nach, sonst laufen sie
                     # beim nächsten Struktur-Save in ein 409.
+                    setlist_id=setlist.id,
                     setlist_revision=setlist.revision,
                     # Vollzustand statt Delta: das Frontend vergleicht den
                     # bestätigten Stand mit der vollen Kodierung. Ein Delta

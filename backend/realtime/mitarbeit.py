@@ -87,9 +87,17 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
             if typ == TextState.TYP_SETLIST:
                 gesperrt = gesperrt_setlist
             elif typ == TextState.TYP_SECTION:
-                gesperrt = Section.objects.select_for_update().get(uuid=obj_uuid)
+                gesperrt = (
+                    Section.objects.select_for_update()
+                    .filter(uuid=obj_uuid)
+                    .first()
+                )
             else:
-                gesperrt = Entry.objects.select_for_update().get(uuid=obj_uuid)
+                gesperrt = (
+                    Entry.objects.select_for_update().filter(uuid=obj_uuid).first()
+                )
+            if gesperrt is None:
+                raise MitarbeitFehler(409, "Das Feld wurde inzwischen gelöscht.")
             obj, text = update_anwenden(
                 typ, obj_uuid, feld, epoche, dekodiere(nachricht.get("update")), initial
             )
@@ -110,6 +118,7 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
                 revision=obj.revision,
                 # Empfänger ziehen ihre Revision nach, sonst laufen sie beim
                 # nächsten Struktur-Save in ein 409.
+                setlist_id=setlist.id,
                 setlist_revision=setlist.revision,
                 update=kodiere(bytes(obj.state)),
             )

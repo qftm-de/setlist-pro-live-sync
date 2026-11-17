@@ -107,4 +107,6 @@ export interface TextEreignis {
   revision: number;
   /** Revision der Setlist nach dieser Textänderung, für Empfänger. */
   setlist_revision?: number;
+  /** Setlist der Änderung, damit fremde Setlists die Revision nicht heben. */
+  setlist_id?: number;
 }

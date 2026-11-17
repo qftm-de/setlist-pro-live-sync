@@ -424,6 +424,7 @@ describe("useSetlistBearbeitung", () => {
           epoch: 0,
           revision: 2,
           setlist_revision: 5,
+          setlist_id: 1,
         },
       },
     });

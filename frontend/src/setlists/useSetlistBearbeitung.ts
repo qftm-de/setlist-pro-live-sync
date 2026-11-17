@@ -108,7 +108,8 @@ export function useSetlistBearbeitung({
   useEffect(() => {
     const neueste = Object.values(textEreignisse).reduce(
       (hoechste, ereignis) =>
-        typeof ereignis.setlist_revision === "number"
+        typeof ereignis.setlist_revision === "number" &&
+        (ereignis.setlist_id === undefined || ereignis.setlist_id === setlist.id)
           ? Math.max(hoechste, ereignis.setlist_revision)
           : hoechste,
       0,
@@ -116,7 +117,7 @@ export function useSetlistBearbeitung({
     if (neueste > 0) {
       setRevision((vorher) => Math.max(vorher, neueste));
     }
-  }, [textEreignisse]);
+  }, [textEreignisse, setlist.id]);
 
   const ladeTexte = useCallback(async () => {
     if (!adapter.ladeTexte) {
