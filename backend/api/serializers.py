@@ -1,3 +1,4 @@
+import json
 from collections.abc import Mapping
 
 from rest_framework import serializers
@@ -142,6 +143,12 @@ class BefehlEingabeSerializer(serializers.Serializer):
         if not isinstance(data, Mapping):
             raise serializers.ValidationError({"detail": "JSON-Objekt erwartet."})
         return super().to_internal_value(data)
+
+    def validate_payload(self, payload):
+        # Gleiche Grenze wie im WebSocket-Pfad.
+        if len(json.dumps(payload, default=str)) > 16 * 1024:
+            raise serializers.ValidationError("Nutzdaten sind zu groß.")
+        return payload
 
 
 class TextUpdateEingabeSerializer(serializers.Serializer):

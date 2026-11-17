@@ -137,7 +137,7 @@ REST_FRAMEWORK = {
     ],
     # Schreibbremse für Textenden (REST-Gegenstück zur WebSocket-Bremse).
     # Beim Tippen sendet der Editor alle 250 ms, daher 300 je Minute.
-    "DEFAULT_THROTTLE_RATES": {"text": "300/min"},
+    "DEFAULT_THROTTLE_RATES": {"text": "300/min", "commands": "120/min"},
 }
 
 LANGUAGE_CODE = "de"

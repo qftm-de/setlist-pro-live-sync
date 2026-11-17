@@ -129,6 +129,18 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
             if not erlaubt:
                 await self._schliesse_ohne_recht()
                 return
+            # Frische serverseitig erneuern: ein gedrosselter oder
+            # ausgeschalteter Browser pausiert seine Timer, die Verbindung
+            # besteht aber weiter. Sonst verfällt die Leitung nach der TTL.
+            verbindung = getattr(self, "stage_verbindung", None)
+            if verbindung is not None:
+                from stage.dienste import beruehre_verbindung
+
+                try:
+                    await database_sync_to_async(beruehre_verbindung)(verbindung.id)
+                except Exception:
+                    # Ein Datenbankfehler darf die Verbindung nicht beenden.
+                    pass
 
     async def _zugriff_ok(self) -> bool:
         konto_id = await database_sync_to_async(zugriff_gueltig)(

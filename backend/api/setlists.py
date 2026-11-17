@@ -228,6 +228,9 @@ class SetlistInhalt(generics.GenericAPIView):
 class SetlistBefehle(APIView):
     """Idempotenter Einzelbefehl. Gleiche Kennung und Daten wiederholen sich."""
 
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "commands"
+
     def post(self, request, band_id: int, setlist_id: int):
         setlist = setlist_fuer(request.user, band_id, setlist_id)
         eingabe = BefehlEingabeSerializer(data=request.data)

@@ -42,6 +42,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   wiederholtem REST-Ersatz nicht mehr und die Größe bleibt geprüft. R14.
 - Gemeinsame Bearbeitung (R14): Alle Textwege sperren in der Reihenfolge des
   Gesamt-PUTs: Setlist, Strukturzeile, TextState. R14.
+- Bühne (R15): Die Verbindungsfrische wird zusätzlich serverseitig im Takt
+  der Rechteprüfung erneuert. Ein gedrosselter Browser-Tab verliert die
+  Leitung damit nicht mehr nach 60 Sekunden ohne Ping. R15.
+- Gemeinsame Bearbeitung (R14): Auch der REST-Befehlsendpunkt hat eine
+  Mengenbremse (120 je Minute und Benutzer) und dieselbe 16-KiB-Grenze für
+  Nutzdaten wie der WebSocket-Weg. R14.
 - Gemeinsame Bearbeitung (R14): Ein PATCH auf den Setlist-Namen verlangt die
   Revision, auf der er beruht: ohne Revision 400, bei Abweichung 409. Ein
   veralteter Name überschreibt damit keinen bestätigten Text mehr. R14.

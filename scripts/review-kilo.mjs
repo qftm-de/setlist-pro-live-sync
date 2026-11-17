@@ -97,6 +97,24 @@ if ((r.status ?? 1) !== 0) {
   process.exit(r.status ?? 1);
 }
 
+// Der Stand wird vom Modell im Bericht zitiert und dabei gelegentlich falsch
+// abgetippt. Dann scheitert das Gate an einem Zeichen, obwohl der Bericht zum
+// richtigen Diff gehört. Deshalb schreibt das Skript die Stand-Zeilen selbst.
+function standSchreiben(st) {
+  const text = fs.readFileSync(findingsPath, "utf8");
+  const zeilen = text.split("\n").filter(
+    (zeile) => !/^(HEAD|BASE|DIFF) \S*$/.test(zeile.trim()),
+  );
+  const block = [`HEAD ${st.head.slice(5)}`];
+  if (st.base) {
+    block.push(`BASE ${st.base.slice(5)}`);
+  }
+  block.push(`DIFF ${st.diff.slice(5)}`);
+  fs.writeFileSync(findingsPath, `${block.join("\n")}\n\n${zeilen.join("\n").trimStart()}`);
+}
+
+standSchreiben(stand());
+
 if (!findingsAktuell(stand())) {
   process.stderr.write(`kilo run lief, aber ${findingsRel} passt nicht zum aktuellen Stand\n`);
   process.exit(1);
