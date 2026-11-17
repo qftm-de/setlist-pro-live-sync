@@ -52,6 +52,10 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 - Bühnensitzung und Leitung liegen in PostgreSQL, nicht im Consumer-Prozess. Grund: API- oder Relay-Neustarts dürfen Leitung, Verbindungskennung und bestätigten Stand nicht verlieren.
 - Steuerbefehle tragen Generation und Nummer und sind idempotent. Grund: Wiederverbindung, doppelte Bestätigungen und eine Übernahme während des Befehls dürfen keinen zweiten Vorschub auslösen.
 
+## Zusammenarbeit
+
+- Die Revision einer Setlist schützt die Struktur, Textfelder haben ihren eigenen Stand mit Epoche und Revision. Eine bestätigte Textänderung erhöht zusätzlich die Setlist-Revision, damit ein veralteter Gesamt-PUT in 409 läuft statt den Text über einen Epochenwechsel zu ersetzen. Tabs ziehen die Revision **nicht** aus fremden Textereignissen nach: Übernahmen ließen einen veralteten PUT durch, der fremde Abschnitte löscht. Ein 409 führt in den vorhandenen Zusammenführungsweg.
+
 ## GitHub
 
 - `main` ist geschützt: Force-Push und Löschen sind aus, Pflicht-Checks sind `gate`, `frontend` und `backend`. Admins kommen im Notfall vorbei, damit eine Reparatur nicht an der Regel scheitert.
