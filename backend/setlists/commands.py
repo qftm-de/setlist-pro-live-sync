@@ -324,7 +324,12 @@ def fuehre_befehl_aus(
         raise BefehlUngueltig("Nutzdaten müssen ein Objekt sein.")
     unterschrift = signatur(kind, payload)
     with transaction.atomic():
-        gesperrt = Setlist.objects.select_for_update().get(pk=setlist.pk)
+        gesperrt = (
+            Setlist.objects.select_for_update().filter(pk=setlist.pk).first()
+        )
+        if gesperrt is None:
+            # Zwischen Prüfung und Sperre gelöscht: kontrolliert abweisen.
+            raise BefehlUngueltig("Die Setlist wurde inzwischen gelöscht.")
         vorher = SetlistCommand.objects.filter(
             setlist=gesperrt, command_id=command_id
         ).first()

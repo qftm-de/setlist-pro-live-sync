@@ -81,9 +81,11 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
         with transaction.atomic():
             # Sperrreihenfolge wie in ersetze_inhalt: Setlist-Zeile, dann
             # Strukturzeile, dann TextState, sonst Deadlock mit dem PUT.
-            gesperrt_setlist = Setlist.objects.select_for_update().get(
-                pk=setlist.pk
+            gesperrt_setlist = (
+                Setlist.objects.select_for_update().filter(pk=setlist.pk).first()
             )
+            if gesperrt_setlist is None:
+                raise MitarbeitFehler(409, "Die Setlist wurde inzwischen gelöscht.")
             if typ == TextState.TYP_SETLIST:
                 gesperrt = gesperrt_setlist
             elif typ == TextState.TYP_SECTION:

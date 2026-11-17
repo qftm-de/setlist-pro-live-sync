@@ -302,9 +302,14 @@ class SetlistTextUpdate(APIView):
                 # Sperrreihenfolge wie in ersetze_inhalt: Setlist-Zeile, dann
                 # Strukturzeile, dann TextState. Andersherum entsteht mit dem
                 # Gesamt-PUT ein Deadlock.
-                gesperrt_setlist = Setlist.objects.select_for_update().get(
-                    pk=setlist.pk
+                gesperrt_setlist = (
+                    Setlist.objects.select_for_update().filter(pk=setlist.pk).first()
                 )
+                if gesperrt_setlist is None:
+                    return Response(
+                        {"detail": "Die Setlist wurde inzwischen gelöscht."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
                 if daten["object_type"] == TextState.TYP_SETLIST:
                     gesperrt = gesperrt_setlist
                 elif daten["object_type"] == TextState.TYP_SECTION:

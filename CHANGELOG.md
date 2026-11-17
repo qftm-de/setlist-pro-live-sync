@@ -47,6 +47,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   die neue Revision ebenfalls, damit Empfänger sie nachziehen. Alle Textwege
   sperren in der Reihenfolge des Gesamt-PUTs: Setlist, Strukturzeile,
   TextState. R14.
+- Gemeinsame Bearbeitung (R14): Wird die Setlist, ein Abschnitt oder ein
+  Eintrag im selben Moment gelöscht, antworten Text- und Befehlspfad
+  kontrolliert mit 409 beziehungsweise 400, statt mit 500 abzubrechen. Die
+  WebSocket-Verbindung bleibt erhalten. Befehlsnutzdaten sind auf 16 KiB
+  begrenzt. R14.
 - Gemeinsame Bearbeitung (R14): Der Editor prüft den bestätigten Stand über
   den Textinhalt statt über kodierte Bytes. yjs im Browser und Yrs auf dem
   Server kodieren dasselbe Dokument nicht zwingend gleich; gleicher Inhalt

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 
 from channels.db import database_sync_to_async
@@ -141,6 +142,14 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
         finally:
             await self.close(code=4403)
 
+    @staticmethod
+    def _nutzdaten_ok(nutzdaten: dict) -> bool:
+        """Befehlsnutzdaten begrenzen, sonst flutet ein Mitglied den Strom."""
+        try:
+            return len(json.dumps(nutzdaten, default=str)) <= 16 * 1024
+        except (TypeError, ValueError):
+            return False
+
     def _gebremst(self, art: str, grenze: int) -> bool:
         """Mengenbremse je Nachrichtenart: höchstens grenze je 10 Sekunden."""
         jetzt = time.monotonic()
@@ -173,6 +182,17 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
                         "type": "text.error",
                         "status": 429,
                         "detail": "Zu viele Textupdates.",
+                    }
+                )
+                return
+        if art in ("setlist.command", "stage.command"):
+            nutzdaten = content.get("payload")
+            if isinstance(nutzdaten, dict) and not self._nutzdaten_ok(nutzdaten):
+                await self.send_json(
+                    {
+                        "type": "command.error",
+                        "status": 413,
+                        "detail": "Nutzdaten sind zu groß.",
                     }
                 )
                 return
