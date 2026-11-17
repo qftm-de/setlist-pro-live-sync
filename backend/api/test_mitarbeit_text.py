@@ -112,7 +112,12 @@ class SetlistTextTest(MitarbeitBasis):
         # REST-Ersetzung des Setlist-Namens startet eine neue Epoche.
         umbenannt = self.client.patch(
             self.basis,
-            data=json.dumps({"name": "Neu"}),
+            data=json.dumps(
+                {
+                    "name": "Neu",
+                    "revision": Setlist.objects.get(pk=self.setlist.pk).revision,
+                }
+            ),
             content_type="application/json",
         )
         self.assertEqual(umbenannt.status_code, 200)

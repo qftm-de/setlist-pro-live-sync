@@ -135,6 +135,9 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
+    # Schreibbremse für Textenden (REST-Gegenstück zur WebSocket-Bremse).
+    # Beim Tippen sendet der Editor alle 250 ms, daher 300 je Minute.
+    "DEFAULT_THROTTLE_RATES": {"text": "300/min"},
 }
 
 LANGUAGE_CODE = "de"

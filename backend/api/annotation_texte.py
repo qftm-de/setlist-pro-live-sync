@@ -8,6 +8,7 @@ from django.db import transaction
 from django.http import Http404
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from annotations.models import Annotation
@@ -26,6 +27,9 @@ from .annotations import revision_aus, sichtbare, version_fuer
 
 class AnnotationTexte(APIView):
     """CRDT-Text einer Anmerkung. Rechte und Generation werden je Aufruf geprüft."""
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "text"
 
     def _objekt(self, request, band_id, song_id, version_id, annotation_id):
         band, version = version_fuer(request.user, band_id, song_id, version_id)
@@ -110,8 +114,10 @@ class AnnotationTexte(APIView):
                     raise TextFehler("Eine Textanmerkung braucht Text.")
                 gesperrt.text = text.strip()
                 # Textänderungen sind über Epoche und Generation geschützt.
-                # Die REST-Revision bleibt für Geometrie, Farbe usw. stabil.
-                gesperrt.save(update_fields=["text", "updated_at"])
+                # Die Revision steigt mit, sonst überschreibt ein veralteter
+                # PATCH den bestätigten Text.
+                gesperrt.revision += 1
+                gesperrt.save(update_fields=["text", "revision", "updated_at"])
                 daten = {
                     "id": gesperrt.id,
                     "version_id": version.id,

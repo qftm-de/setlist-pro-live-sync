@@ -251,10 +251,15 @@ export async function pruefeMitarbeit({
   });
   pruefe(zuGross.status === 400, "Update über 64 KiB wird nicht abgewiesen");
 
-  await erste.ruf(`${basisPfad}`, {
+  const vorPatch = await erste.ruf(`${basisPfad}`);
+  const umbenannt = await erste.ruf(`${basisPfad}`, {
     methode: "PATCH",
-    koerper: { name: `Neu ${randomUUID().slice(0, 4)}` },
+    koerper: {
+      name: `Neu ${randomUUID().slice(0, 4)}`,
+      revision: vorPatch.daten.revision,
+    },
   });
+  pruefe(umbenannt.status === 200, "Umbenennen über REST scheitert");
   const alteEpoche = await erste.ruf(`${basisPfad}text/`, {
     methode: "POST",
     koerper: {

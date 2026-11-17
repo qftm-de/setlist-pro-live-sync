@@ -47,6 +47,15 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   die neue Revision ebenfalls, damit Empfänger sie nachziehen. Alle Textwege
   sperren in der Reihenfolge des Gesamt-PUTs: Setlist, Strukturzeile,
   TextState. R14.
+- Gemeinsame Bearbeitung (R14): Ein PATCH auf den Setlist-Namen verlangt die
+  Revision, auf der er beruht: ohne Revision 400, bei Abweichung 409. Ein
+  veralteter Name überschreibt damit keinen bestätigten Text mehr. R14.
+- Anmerkungen (R12, R14): Eine bestätigte Textänderung erhöht die
+  REST-Revision der Anmerkung. Ein veralteter PATCH auf Geometrie oder
+  Sichtbarkeit läuft in 409 statt den Text still zu überschreiben. R12, R14.
+- Gemeinsame Bearbeitung (R14): Die Textenden für Setlist und Anmerkung haben
+  eine Schreibbremse von 300 Anfragen je Minute und Benutzer, analog zur
+  WebSocket-Bremse. R14.
 - Gemeinsame Bearbeitung (R14): Beim Löschen einer Setlist werden ihre
   UUIDs als gelöscht vermerkt. Ein späterer Abschnitt oder Eintrag mit
   derselben UUID erbt damit keinen alten Textstand mehr. R14-N2.

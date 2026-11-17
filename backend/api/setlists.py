@@ -2,6 +2,7 @@ from django.db import IntegrityError, transaction
 from django.http import Http404
 from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from collaboration.models import TextState
@@ -30,6 +31,7 @@ from setlists.content import (
 )
 from setlists.models import NAME_VERGEBEN, Entry, Section, Setlist
 
+from .annotations import revision_aus
 from .bands import band_fuer
 from .serializers import (
     BefehlEingabeSerializer,
@@ -90,38 +92,58 @@ class SetlistDetail(generics.RetrieveUpdateDestroyAPIView):
     http_method_names = ["get", "patch", "delete", "head", "options"]
 
     def update(self, request, *args, **kwargs):
+        # Ein PATCH braucht die Revision, auf der er beruht. Sonst überschreibt
+        # ein veralteter Name den bestätigten Text der anderen Mitglieder.
+        try:
+            erwartet = revision_aus(request.data.get("revision"))
+        except (TypeError, ValueError):
+            return Response(
+                {"revision": ["Erwartete Revision fehlt."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        instance = self.get_object()
         try:
             with transaction.atomic():
-                return super().update(request, *args, **kwargs)
+                gesperrt = (
+                    Setlist.objects.select_for_update().filter(pk=instance.pk).first()
+                )
+                if gesperrt is None:
+                    raise Http404
+                if gesperrt.revision != erwartet:
+                    return Response(
+                        {"detail": "Die Setlist wurde inzwischen geändert."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                alter_name = gesperrt.name
+                serializer = self.get_serializer(
+                    gesperrt, data=request.data, partial=True
+                )
+                serializer.is_valid(raise_exception=True)
+                setlist = serializer.save()
+                if setlist.name != alter_name:
+                    from collaboration.services import epoche_erhoehen
+
+                    epoche_erhoehen(
+                        TextState.TYP_SETLIST, setlist.uuid, "name", setlist.name
+                    )
+                    # Eine Namensänderung ist eine Inhaltsänderung.
+                    setlist.revision += 1
+                    setlist.save(update_fields=["revision", "updated_at"])
+                band_ereignis(
+                    setlist.band,
+                    "setlist.updated",
+                    id=setlist.id,
+                )
         except IntegrityError:
             return Response(
                 {"name": [NAME_VERGEBEN]}, status=status.HTTP_400_BAD_REQUEST
             )
+        return Response(self.get_serializer(setlist).data)
 
     def get_object(self):
         return setlist_fuer(
             self.request.user, self.kwargs["band_id"], self.kwargs["setlist_id"]
         )
-
-    def perform_update(self, serializer):
-        alter_name = serializer.instance.name
-        with transaction.atomic():
-            setlist = serializer.save()
-            if setlist.name != alter_name:
-                from collaboration.services import epoche_erhoehen
-
-                epoche_erhoehen(
-                    TextState.TYP_SETLIST, setlist.uuid, "name", setlist.name
-                )
-                # Eine Namensänderung ist eine Inhaltsänderung. Ohne Zähler
-                # bleibt ein veralteter Gesamt-PUT revisionsgültig.
-                setlist.revision += 1
-                setlist.save(update_fields=["revision", "updated_at"])
-            band_ereignis(
-                setlist.band,
-                "setlist.updated",
-                id=setlist.id,
-            )
 
     def perform_destroy(self, instance):
         with transaction.atomic():
@@ -296,6 +318,9 @@ class SetlistTexte(APIView):
 
 
 class SetlistTextUpdate(APIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "text"
+
     def post(self, request, band_id: int, setlist_id: int):
         setlist = setlist_fuer(request.user, band_id, setlist_id)
         eingabe = TextUpdateEingabeSerializer(data=request.data)

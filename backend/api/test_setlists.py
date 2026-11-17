@@ -63,7 +63,9 @@ class SetlistsTest(TestCase):
         self.setlist = Setlist.objects.get(id=self.anlegen().json()["id"])
         antwort = self.client.patch(
             f"/api/bands/{self.band.id}/setlists/{self.setlist.id}/",
-            data=json.dumps({"name": "Zweites Set"}),
+            data=json.dumps(
+                {"name": "Zweites Set", "revision": self.setlist.revision}
+            ),
             content_type="application/json",
         )
         self.assertEqual(antwort.status_code, 200)
@@ -74,7 +76,9 @@ class SetlistsTest(TestCase):
         self.anlegen("Zweites Set")
         antwort = self.client.patch(
             f"/api/bands/{self.band.id}/setlists/{self.setlist.id}/",
-            data=json.dumps({"name": "Zweites Set"}),
+            data=json.dumps(
+                {"name": "Zweites Set", "revision": self.setlist.revision}
+            ),
             content_type="application/json",
         )
         self.assertEqual(antwort.status_code, 400)
