@@ -102,23 +102,6 @@ export function useSetlistBearbeitung({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setlist.id, setlist.revision, setlist.name]);
 
-  // Empfänger: Jede bestätigte Textänderung erhöht die Serverrevision. Ohne
-  // Nachziehen scheitert der nächste Struktur-Save mit 409, obwohl der Stand
-  // aktuell ist.
-  useEffect(() => {
-    const neueste = Object.values(textEreignisse).reduce(
-      (hoechste, ereignis) =>
-        typeof ereignis.setlist_revision === "number" &&
-        (ereignis.setlist_id === undefined || ereignis.setlist_id === setlist.id)
-          ? Math.max(hoechste, ereignis.setlist_revision)
-          : hoechste,
-      0,
-    );
-    if (neueste > 0) {
-      setRevision((vorher) => Math.max(vorher, neueste));
-    }
-  }, [textEreignisse, setlist.id]);
-
   const ladeTexte = useCallback(async () => {
     if (!adapter.ladeTexte) {
       return;
@@ -332,22 +315,13 @@ export function useSetlistBearbeitung({
       return undefined;
     }
     return (update, epoch) =>
-      adapter
-        .sendeText!(bandId, setlist.id, {
-          object_type: typ,
-          object_uuid: uuid,
-          field: feld,
-          epoch,
-          update,
-        })
-        .then((antwort) => {
-          // Textänderungen erhöhen die Setlist-Revision. Ohne das Nachziehen
-          // scheitert der nächste Struktur-Save mit 409.
-          if (typeof antwort.setlist_revision === "number") {
-            setRevision(antwort.setlist_revision);
-          }
-          return antwort;
-        });
+      adapter.sendeText!(bandId, setlist.id, {
+        object_type: typ,
+        object_uuid: uuid,
+        field: feld,
+        epoch,
+        update,
+      });
   }
 
   function remoteFuer(uuid: string, feld: string) {

@@ -14,8 +14,6 @@ export interface TextAntwort {
   epoch: number;
   revision: number;
   update: string;
-  /** Revision der Setlist nach dieser Textänderung. */
-  setlist_revision?: number;
 }
 
 export function bytesAusBase64(wert: string): Uint8Array {
@@ -105,8 +103,4 @@ export interface TextEreignis {
   update: string;
   epoch: number;
   revision: number;
-  /** Revision der Setlist nach dieser Textänderung, für Empfänger. */
-  setlist_revision?: number;
-  /** Setlist der Änderung, damit fremde Setlists die Revision nicht heben. */
-  setlist_id?: number;
 }

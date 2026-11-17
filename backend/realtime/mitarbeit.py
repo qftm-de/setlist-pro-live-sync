@@ -106,10 +106,6 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
             spalte = "label" if typ == TextState.TYP_ENTRY else "name"
             setattr(gesperrt, spalte, text)
             gesperrt.save(update_fields=[spalte])
-            # Textänderungen zählen als Inhaltsänderung, siehe api/setlists.py.
-            gesperrt_setlist.revision += 1
-            gesperrt_setlist.save(update_fields=["revision", "updated_at"])
-            setlist.revision = gesperrt_setlist.revision
             band_ereignis(
                 setlist.band,
                 "text.updated",
@@ -118,10 +114,6 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
                 field=obj.field,
                 epoch=obj.epoch,
                 revision=obj.revision,
-                # Empfänger ziehen ihre Revision nach, sonst laufen sie beim
-                # nächsten Struktur-Save in ein 409.
-                setlist_id=setlist.id,
-                setlist_revision=setlist.revision,
                 update=kodiere(bytes(obj.state)),
             )
     except IntegrityError as fehler:
@@ -140,7 +132,6 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
         "field": feld,
         "epoch": obj.epoch,
         "revision": obj.revision,
-        "setlist_revision": setlist.revision,
         "text": text,
         "update": kodiere(bytes(obj.state)),
     }

@@ -147,18 +147,24 @@ class SetlistDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_destroy(self, instance):
         with transaction.atomic():
-            band = instance.band
-            kennung = instance.id
+            # Gleiche Sperrreihenfolge wie die anderen Wege: Setlist zuerst.
+            gesperrt = (
+                Setlist.objects.select_for_update().filter(pk=instance.pk).first()
+            )
+            if gesperrt is None:
+                raise Http404
+            band = gesperrt.band
+            kennung = gesperrt.id
             from collaboration.services import merke_entfernt
 
             # Gelöschte UUIDs nie wiederverwenden: sonst hängt an einem neuen
             # Abschnitt derselben UUID der alte Textstand.
-            merke_entfernt(TextState.TYP_SETLIST, instance.uuid)
-            for abschnitt in instance.sections.all():
+            merke_entfernt(TextState.TYP_SETLIST, gesperrt.uuid)
+            for abschnitt in gesperrt.sections.all():
                 merke_entfernt(TextState.TYP_SECTION, abschnitt.uuid)
                 for eintrag in abschnitt.entries.all():
                     merke_entfernt(TextState.TYP_ENTRY, eintrag.uuid)
-            instance.delete()
+            gesperrt.delete()
             band_ereignis(
                 band,
                 "setlist.deleted",
@@ -376,12 +382,6 @@ class SetlistTextUpdate(APIView):
                 spalte = "label" if daten["object_type"] == TextState.TYP_ENTRY else "name"
                 setattr(gesperrt, spalte, text)
                 gesperrt.save(update_fields=[spalte])
-                # Textänderungen zählen als Inhaltsänderung. Ohne das bleibt
-                # ein veralteter Gesamt-PUT revisionsgültig und überschreibt
-                # den bestätigten Text über die Epoche.
-                gesperrt_setlist.revision += 1
-                gesperrt_setlist.save(update_fields=["revision", "updated_at"])
-                setlist.revision = gesperrt_setlist.revision
                 band_ereignis(
                     setlist.band,
                     "text.updated",
@@ -390,10 +390,6 @@ class SetlistTextUpdate(APIView):
                     field=obj.field,
                     epoch=obj.epoch,
                     revision=obj.revision,
-                    # Empfänger ziehen ihre Revision nach, sonst laufen sie
-                    # beim nächsten Struktur-Save in ein 409.
-                    setlist_id=setlist.id,
-                    setlist_revision=setlist.revision,
                     # Vollzustand statt Delta: das Frontend vergleicht den
                     # bestätigten Stand mit der vollen Kodierung. Ein Delta
                     # erzeugt dort eine Rücksende-Schleife. Die Größe deckelt
@@ -425,7 +421,6 @@ class SetlistTextUpdate(APIView):
                 "field": obj.field,
                 "epoch": obj.epoch,
                 "revision": obj.revision,
-                "setlist_revision": setlist.revision,
                 "text": text,
                 "update": kodiere(bytes(obj.state)),
             }

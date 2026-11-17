@@ -144,7 +144,7 @@ def _song(payload: dict, band, alt: Entry | None) -> Song | None:
         return None
     try:
         return Song.objects.get(id=song_id, band=band)
-    except Song.DoesNotExist as fehler:
+    except (Song.DoesNotExist, TypeError, ValueError) as fehler:
         raise BefehlUngueltig("Song gehört nicht zu dieser Band.") from fehler
 
 
@@ -153,7 +153,10 @@ def _eintrag_werte(payload: dict, band, alt: Entry | None = None) -> dict:
     if art not in dict(Entry.TYP_CHOICES):
         raise BefehlUngueltig("Unbekannte Eintragsart.")
     song = _song(payload, band, alt)
-    label = (payload.get("label", alt.label if alt else "") or "").strip()
+    roh = payload.get("label", alt.label if alt else "")
+    if roh is not None and not isinstance(roh, str):
+        raise BefehlUngueltig("Bezeichnung muss Text sein.")
+    label = (roh or "").strip()
     if art == Entry.TYP_SONG and song is None:
         raise BefehlUngueltig("Song ist Pflicht.")
     if art != Entry.TYP_SONG and song is not None:

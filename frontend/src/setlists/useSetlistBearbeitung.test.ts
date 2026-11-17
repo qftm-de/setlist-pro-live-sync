@@ -4,7 +4,6 @@ import * as Y from "yjs";
 import { ApiFehler } from "../api/client";
 import { base64AusBytes } from "../collaboration/texte";
 import { textSchluessel } from "../collaboration/texte";
-import type { TextEreignis } from "../collaboration/texte";
 import type { Setlist, SetlistAdapter } from "./setlists";
 import { useSetlistBearbeitung } from "./useSetlistBearbeitung";
 
@@ -395,45 +394,4 @@ describe("useSetlistBearbeitung", () => {
     await waitFor(() => expect(result.current.textFehler).not.toBeNull());
   });
 
-  it("übernimmt die Revision aus einer fremden Textänderung", async () => {
-    const speichern = vi.fn(async () => saved);
-    const ladeTexte = vi
-      .fn<NonNullable<SetlistAdapter["ladeTexte"]>>()
-      .mockResolvedValue({ revision: 0, texts: [] });
-    const adapter = { ...adapterMit(ladeTexte), speichereInhalt: speichern };
-    const { result, rerender } = renderHook(
-      (optionen: { textEreignisse: Record<string, TextEreignis> }) =>
-        useSetlistBearbeitung({
-          bandId: "b1",
-          setlist: initial,
-          songs: [],
-          adapter,
-          verbunden: true,
-          textEreignisse: optionen.textEreignisse,
-        }),
-      { initialProps: { textEreignisse: {} as Record<string, TextEreignis> } },
-    );
-    await waitFor(() => expect(ladeTexte).toHaveBeenCalled());
-
-    rerender({
-      textEreignisse: {
-        "s1:name": {
-          object_uuid: "s1",
-          field: "name",
-          update: "",
-          epoch: 0,
-          revision: 2,
-          setlist_revision: 5,
-          setlist_id: 1,
-        },
-      },
-    });
-
-    act(() => result.current.blockHinzufuegen("set"));
-    await act(async () => {
-      await result.current.speichern();
-    });
-    // Ohne das Nachziehen ginge Revision 1 raus und der Server antwortet 409.
-    expect(speichern).toHaveBeenCalledWith("b1", 1, expect.anything(), 5);
-  });
 });
