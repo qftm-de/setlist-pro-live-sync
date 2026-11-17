@@ -134,7 +134,7 @@ def sitzung_daten(session: StageSession, user, verbindung_id=None) -> dict:
             "can_handover": bool(aktiv and ist_leitung),
             "can_takeover": bool(aktiv and owner),
             "can_resume": bool(
-                aktiv and ist_leitung and not session.leadership_locked and not leader_aktiv
+                aktiv and ist_leitung and not leader_aktiv
             ),
             "can_end": bool(aktiv and (ist_leitung or owner)),
         },

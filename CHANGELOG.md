@@ -5,6 +5,28 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- `SUPPORT.md` nennt Meldeweg für Schwachstellen, Antwortzeiten, Art der
+  Veröffentlichungen und die Grenze des Supports. `README.md` verweist darauf.
+- Das Gate kennt `doku-sync` als eingebauten Schritt. Er läuft auch ohne lokale
+  `harness/`-Konfiguration, also in einem frischen Clone. R2.
+
+### Fixed
+
+- Aufbewahrung räumt neben veröffentlichten Ereignissen auch das
+  Befehlsprotokoll und geschlossene Bühnenverbindungen ab. Textstände,
+  Löschmarken und Setlisten bleiben unberührt. R14, R15.
+- Nach einer Leitungsübergabe darf die neue Leitung nach einem
+  Verbindungsverlust zurückkehren. Das Sperrmerkmal `leadership_locked` ist
+  entfallen, die Prüfung auf die Leitung genügt. R15.
+- Ein PATCH auf eine Setlist mit einem Nicht-Objekt als JSON antwortet mit 400
+  statt mit 500. Die Textnutzlast ist schon im Serialisierer auf 90 000 Zeichen
+  begrenzt. R14.
+- Der Bühnenhinweis erkennt die Serverbegründungen unabhängig von der
+  Groß- und Kleinschreibung. Vorher blieb „Die Leitungsgeneration ist veraltet"
+  ohne Nachladen. R15.
+
 ### Changed
 
 - Lastlauf-Verify `scripts/lib/verify-realtime/echtzeit.mjs` prüft den Median

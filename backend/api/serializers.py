@@ -158,4 +158,4 @@ class TextUpdateEingabeSerializer(serializers.Serializer):
     object_uuid = serializers.UUIDField()
     field = serializers.ChoiceField(choices=["name", "label", "text"])
     epoch = serializers.IntegerField(min_value=0)
-    update = serializers.CharField(allow_blank=False)
+    update = serializers.CharField(max_length=90_000)

@@ -172,14 +172,12 @@ def uebergebe(session, user, verbindung_id, session_key, ziel_user_id) -> None:
             raise NichtErlaubt("Nur die Leitung darf übergeben.")
         gesperrt.leader_user_id = ziel_user_id
         gesperrt.leader_connection = ziel.id
-        gesperrt.leadership_locked = True
         gesperrt.generation += 1
         gesperrt.revision += 1
         gesperrt.save(
             update_fields=[
                 "leader_user",
                 "leader_connection",
-                "leadership_locked",
                 "generation",
                 "revision",
             ]
@@ -212,14 +210,12 @@ def uebernehme(session, user, verbindung_id, session_key) -> None:
             raise NichtErlaubt("Nur ein aktueller Band-Owner darf übernehmen.")
         gesperrt.leader_user_id = user.id
         gesperrt.leader_connection = eigene.id
-        gesperrt.leadership_locked = True
         gesperrt.generation += 1
         gesperrt.revision += 1
         gesperrt.save(
             update_fields=[
                 "leader_user",
                 "leader_connection",
-                "leadership_locked",
                 "generation",
                 "revision",
             ]
@@ -238,8 +234,6 @@ def kehre_zurueck(session, user, verbindung_id, session_key) -> None:
         raise Konflikt("Die Bühnensitzung ist beendet.")
     if session.leader_user_id != user.id:
         raise NichtErlaubt("Nur die bisherige Leitung darf zurückkehren.")
-    if session.leadership_locked:
-        raise Konflikt("Die Leitung wurde inzwischen übergeben oder übernommen.")
     eigene = _eigene_verbindung(session.band_id, user.id, verbindung_id, session_key)
     if verbindung_aktiv(session.band_id, session.leader_user_id, session.leader_connection):
         raise Konflikt("Die Leitung ist weiterhin verbunden.")
@@ -249,10 +243,6 @@ def kehre_zurueck(session, user, verbindung_id, session_key) -> None:
             raise Konflikt("Die Bühnensitzung ist beendet.")
         if gesperrt.leader_user_id != user.id:
             raise NichtErlaubt("Nur die bisherige Leitung darf zurückkehren.")
-        if gesperrt.leadership_locked:
-            raise Konflikt(
-                "Die Leitung wurde inzwischen übergeben oder übernommen."
-            )
         if verbindung_aktiv(
             gesperrt.band_id, gesperrt.leader_user_id, gesperrt.leader_connection
         ):

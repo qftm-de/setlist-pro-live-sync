@@ -140,16 +140,15 @@
 
 - Firebase und Firestore sind abgekündigt. Der alte Bestand bleibt als lokaler Export in `.tmp/fb/` und ist keine Projektaufgabe mehr. Offen bleibt nur die persönliche Hygiene: ein in der Alt-App sichtbares Passwort bei anderer Gelegenheit rotieren.
 - Hub-Domain, Name und Moderationsverantwortung festlegen.
-- Support- und Release-Rhythmus festlegen, inklusive Reaktionszeit auf Sicherheitsmeldungen. Dazu SUPPORT.md.
+- Release-Rhythmus und die Antwortzeit in `SUPPORT.md` stehen. Offen ist nur noch, wer die Meldungen tatsächlich bearbeitet.
 - Governance festlegen: wer reviewt, wer merged, wer releast. CODEOWNERS, sobald ein Team steht.
 - Gitleaks lokal installieren, damit das Voll-Gate den Schritt prüft statt ihn als optional zu überspringen (in CI läuft er bereits).
-- `doku-sync` in die Builtin-Liste der Harness-Quelle aufnehmen, damit `node scripts/gate.mjs --schnell` auch ohne lokale Harness-Konfiguration prüft. Bis dahin prüft der CI-Schritt.
 - Namen „Setlist Pro“ vor öffentlicher Veröffentlichung prüfen.
 
 ## Als Nächstes
 
 1. Sichtprüfung der Auftritte und PDFs auf Mobilformat und Desktop nachholen; die Chromium-Smokes prüfen die Funktion, nicht die Gestaltung.
-2. R14 und R15 sind umgesetzt und passing. Vor Push oder Merge Request Review und Voll-Gate laufen lassen.
+2. Push offen: das Voll-Gate stoppt an einer Designfrage, nicht an einem Defekt. Die Gutachter fordern abwechselnd die Revisionerhöhung im Textpfad und die Rücknahme der Übernahme im Client. Die geltende Entscheidung steht in `DECISIONS.md` unter Zusammenarbeit.
 3. Bühnenansicht auf einem echten Tablet prüfen: Lesereserve mit mehr als 128 MiB, Wake Lock, Vollbild und sehr kleine Displays.
 4. Export als eigene R-Zeile.
 5. Paket 10 und 11: Betrieb, private Auslieferung, Pilot-Abnahme.

@@ -121,6 +121,39 @@ class StageTest(StageBasis, TestCase):
         )
         self.assertEqual(alt["status"], "rejected")
 
+    def test_neue_leitung_kehrt_nach_uebergabe_zurueck(self):
+        """Nach einer Übergabe darf die neue Leitung zurückkehren (R15)."""
+        self.starte()
+        session = self._sitzung()
+        leitung_verbindung = StageConnection.objects.get(
+            id=session.leader_connection
+        )
+        mitglied_verbindung = self._verbindung(self.mitglied_client, self.mitglied)
+        self.assertEqual(
+            self.leitung_client.post(
+                self.pfad(session.id, "handover/"),
+                data=json.dumps(
+                    {
+                        "connection_id": str(leitung_verbindung.id),
+                        "target_user_id": self.mitglied.id,
+                    }
+                ),
+                content_type="application/json",
+            ).status_code,
+            200,
+        )
+        StageConnection.objects.filter(pk=mitglied_verbindung.pk).update(
+            closed_at="2026-01-01T00:00:00Z"
+        )
+        neue = self._verbindung(self.mitglied_client, self.mitglied)
+        antwort = self.mitglied_client.post(
+            self.pfad(session.id, "resume/"),
+            data=json.dumps({"connection_id": str(neue.id)}),
+            content_type="application/json",
+        )
+        self.assertEqual(antwort.status_code, 200)
+        self.assertEqual(antwort.json()["leader_user_id"], self.mitglied.id)
+
     def test_owner_uebernahme_und_rueckkehr(self):
         self.starte()
         session = self._sitzung()

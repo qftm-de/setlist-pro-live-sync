@@ -22,6 +22,7 @@ if (args.includes("--help")) {
 const DEFAULT_SCHNELL = [
   "requirements-gate",
   "review-constraints",
+  "doku-sync",
   "lint-file-size",
   "verify-affected",
   "harness",
@@ -29,6 +30,7 @@ const DEFAULT_SCHNELL = [
 const DEFAULT_VOLL = [
   "requirements-gate",
   "review-constraints",
+  "doku-sync",
   "lint-file-size",
   "verify-all",
   "gitleaks",
@@ -336,6 +338,7 @@ const builtins = {
   "lint-colors": () => schrittNode("lint-colors", "scripts/lint-colors.mjs"),
   "content-validate": () => schrittNode("content-validate", "scripts/content-validate.mjs"),
   "lint-file-size": () => schrittNode("lint-file-size", "scripts/lint-file-size.mjs"),
+  "doku-sync": () => schrittNode("doku-sync", "scripts/docs-sync.mjs"),
   "verify-affected": () => schrittVerify("affected"),
   "verify-all": () => schrittVerify("all"),
   gitleaks: schrittGitleaks,

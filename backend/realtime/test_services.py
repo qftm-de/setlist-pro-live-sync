@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -7,6 +8,7 @@ from django.utils import timezone
 
 from bands.models import Band, Membership
 from realtime.models import OutboxEvent, Stream
+from setlists.models import Setlist, SetlistCommand
 from realtime.services import (
     band_ereignis,
     persoenliches_ereignis,
@@ -83,6 +85,31 @@ class AusgangspufferTest(TestCase):
         )
         self.assertGreaterEqual(raeume_auf(), 1)
         self.assertEqual(list(OutboxEvent.objects.values_list("pk", flat=True)), [offen.pk])
+
+    def test_aufbewahrung_raeumt_befehlsprotokolle_ab(self):
+        setlist = Setlist.objects.create(band=self.band, name="Aufraeumen")
+        alt = SetlistCommand.objects.create(
+            setlist=setlist,
+            user=self.benutzer,
+            command_id=uuid.uuid4(),
+            kind="entry.add",
+            signature="a" * 64,
+        )
+        frisch = SetlistCommand.objects.create(
+            setlist=setlist,
+            user=self.benutzer,
+            command_id=uuid.uuid4(),
+            kind="entry.add",
+            signature="b" * 64,
+        )
+        SetlistCommand.objects.filter(pk=alt.pk).update(
+            created_at=timezone.now() - timedelta(days=8)
+        )
+        raeume_auf()
+        self.assertEqual(
+            list(SetlistCommand.objects.values_list("pk", flat=True)), [frisch.pk]
+        )
+        self.assertTrue(Setlist.objects.filter(pk=setlist.pk).exists())
 
     def test_persoenlicher_strom_gehoert_zum_konto(self):
         konto = strom(self.band, self.benutzer)

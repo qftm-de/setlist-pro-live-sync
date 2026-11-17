@@ -12,6 +12,9 @@ from django.utils import timezone
 
 from .models import OutboxEvent, Stream
 
+from setlists.models import SetlistCommand
+from stage.models import StageCommand, StageConnection
+
 
 def strom(band, user=None) -> Stream:
     art = Stream.ART_PERSOENLICH if user is not None else Stream.ART_BAND
@@ -119,9 +122,21 @@ def verarbeite_offene(
 
 
 def raeume_auf(tage: int = 7) -> int:
-    """Entfernt nur veröffentlichte Ereignisse jenseits der Aufbewahrung."""
+    """Entfernt Protokolle und Sitzungsspuren jenseits der Aufbewahrung.
+
+    Zustand bleibt: Textstände, Löschmarken und Setlisten werden nicht
+    angetastet. Die Frist ist die Idempotenzspanne für wiederholte Befehle.
+    """
     grenze = timezone.now() - timedelta(days=tage)
-    geloescht, _ = OutboxEvent.objects.filter(
-        published_at__isnull=False, created_at__lt=grenze
-    ).delete()
-    return geloescht
+    gesamt = 0
+    for modell, feld, bedingung in (
+        (OutboxEvent, "created_at", {"published_at__isnull": False}),
+        (SetlistCommand, "created_at", {}),
+        (StageCommand, "created_at", {}),
+        (StageConnection, "closed_at", {"closed_at__isnull": False}),
+    ):
+        geloescht, _ = modell.objects.filter(
+            **{f"{feld}__lt": grenze}, **bedingung
+        ).delete()
+        gesamt += geloescht
+    return gesamt

@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from django.db import IntegrityError, transaction
 from django.http import Http404
 from rest_framework import generics, status
@@ -94,6 +96,11 @@ class SetlistDetail(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         # Ein PATCH braucht die Revision, auf der er beruht. Sonst überschreibt
         # ein veralteter Name den bestätigten Text der anderen Mitglieder.
+        if not isinstance(request.data, Mapping):
+            return Response(
+                {"detail": "JSON-Objekt erwartet."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             erwartet = revision_aus(request.data.get("revision"))
         except (TypeError, ValueError):

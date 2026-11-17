@@ -146,12 +146,16 @@ export function useBuehne({
       }
       const grund = String(antwort.reason ?? "Der Befehl wurde abgelehnt.");
       setHinweis(grund);
+      // Die Serverbegründungen (backend/stage/steuerung.py) tragen die
+      // Schlüsselwörter in Kleinschreibung, etwa "Leitungsgeneration".
+      const klein = grund.toLowerCase();
       if (
-        grund.includes("Generation") ||
-        grund.includes("leitet") ||
-        grund.includes("beendet") ||
-        grund.includes("Nummer") ||
-        grund.includes("Verbindung")
+        klein.includes("generation") ||
+        klein.includes("veraltet") ||
+        klein.includes("leitet") ||
+        klein.includes("beendet") ||
+        klein.includes("nummer") ||
+        klein.includes("verbindung")
       ) {
         aktualisierenRef.current();
       }

@@ -173,7 +173,10 @@ Abgleich, verliert aber keinen bestätigten Fachstand. Nach einem
 Redis-Neustart genügt Warten; keine Fachdaten zurücksetzen.
 
 Ereignisse bleiben sieben Tage erhalten. Veröffentlichte ältere Ereignisse
-entfernt das Relay, unveröffentlichte bleiben liegen.
+entfernt das Relay, unveröffentlichte bleiben liegen. Dieselbe Frist gilt für
+das Befehlsprotokoll (Idempotenz wiederholter Befehle) und für geschlossene
+Bühnenverbindungen. Fachzustand bleibt unberührt: Textstände, Löschmarken und
+Setlisten werden nie weggeräumt.
 
 ### Diagnose
 

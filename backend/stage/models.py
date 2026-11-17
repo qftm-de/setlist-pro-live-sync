@@ -36,7 +36,7 @@ class StageSession(models.Model):
         related_name="+",
     )
     leader_connection = models.UUIDField(null=True, blank=True)
-    leadership_locked = models.BooleanField(default=False)
+    leadership_locked = models.BooleanField(default=False)  # ungenutzt, Bestand
     generation = models.PositiveIntegerField(default=1)
     revision = models.PositiveIntegerField(default=0)
     current_entry_uuid = models.UUIDField(null=True, blank=True)

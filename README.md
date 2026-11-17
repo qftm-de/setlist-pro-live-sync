@@ -114,6 +114,10 @@ Bandcodes, Projekt-IDs, API-Keys, Nutzernamen oder Server-Adressen.
 Sicherheitslücken bitte nicht als öffentliches Issue melden. Der Weg steht in
 [SECURITY.md](SECURITY.md).
 
+Für Fehler, Wünsche, Veröffentlichungen und Antwortzeiten gilt
+[SUPPORT.md](SUPPORT.md). Es gibt keinen bezahlten Support. Betriebsfragen
+deckt [`docs/betrieb.md`](docs/betrieb.md) ab.
+
 ## Herkunft und Betrieb
 
 Die Idee und die erste Fassung der App stammen von P. Beuster. Die Urapp liegt
