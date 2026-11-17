@@ -241,6 +241,19 @@ class SetlistMitarbeitTest(MitarbeitBasis):
             Entry.objects.filter(section=abschnitt).count(), MAX_EINTRAEGE
         )
 
+        # Verschieben in den vollen Abschnitt wird ebenfalls abgewiesen.
+        zweiter = Section.objects.create(setlist=self.setlist, name="B", position=999)
+        einzeln = Entry.objects.create(
+            section=zweiter, entry_type="pause", position=1, duration_seconds=30
+        )
+        verschieben = self.befehl(
+            "entry.move",
+            {"uuid": str(einzeln.uuid), "section_uuid": str(abschnitt.uuid)},
+        )
+        self.assertEqual(verschieben.status_code, 400)
+        einzeln.refresh_from_db()
+        self.assertEqual(einzeln.section_id, zweiter.id)
+
     def test_befehl_mit_ungueltiger_dauer_wird_abgewiesen(self):
         """Dauer wird im Befehlspfad wie im REST-Weg geprüft (R14)."""
         self.put([{"name": "A", "kind": "set"}], 0)

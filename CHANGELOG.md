@@ -188,6 +188,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   wie der Gesamt-PUT, 50 Abschnitte und 200 Einträge je Abschnitt. Beide Wege
   lesen die Grenzen aus `setlists/content.py`. Vorher nahm ein Befehl mehr an,
   als der PUT danach wieder speichern konnte.
+- Gemeinsame Bearbeitung (R14): Auch das Verschieben eines Eintrags prüft die
+  Menge des Zielabschnitts. Vorher konnte ein Abschnitt über 200 Einträge
+  sammeln, und danach scheiterte jeder Gesamt-PUT des Editors.
+- Gate: Scheitert `git ls-files`, enden `lint-file-size` und
+  `review-constraints` mit Fehler statt mit grün.
 - Gemeinsame Bearbeitung (R14): Kennungen im Befehlspfad werden normalisiert.
   Eine ungeformte UUID ergab bisher 500, jetzt 400. Das gilt auch für den
   Nachbarvergleich beim Einfügen.

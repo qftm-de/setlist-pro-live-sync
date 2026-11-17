@@ -312,6 +312,8 @@ def _wende_an(setlist: Setlist, kind: str, payload: dict) -> None:
         eintrag = _suche_eintrag(setlist, payload.get("uuid"))
         ziel = _suche_abschnitt(setlist, payload.get("section_uuid"))
         gleicher_abschnitt = eintrag.section_id == ziel.id
+        if not gleicher_abschnitt and len(_eintraege(ziel)) >= MAX_EINTRAEGE:
+            raise BefehlUngueltig("Höchstens 200 Einträge je Abschnitt.")
         alt = [zeile for zeile in _eintraege(eintrag.section) if zeile.pk != eintrag.pk]
         neu = [zeile for zeile in _eintraege(ziel) if zeile.pk != eintrag.pk]
         _parke_eintraege(eintrag.section, ziel)

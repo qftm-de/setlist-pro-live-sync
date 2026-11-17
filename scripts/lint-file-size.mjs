@@ -36,11 +36,17 @@ function collectFiles(rootDir) {
   }
   // Git kennt getrackte und neue, aber nicht ignorierte Dateien. Werkzeug-
   // ausgaben lokaler Agenten bleiben damit aus dem Schritt heraus.
-  const liste = spawnSync(
+  const ausgabe = spawnSync(
     "git",
     ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
     { cwd: rootDir, encoding: "utf8" },
-  ).stdout || "";
+  );
+  if (ausgabe.status !== 0) {
+    // Kein Repo oder kein git: nicht stillschweigend grün melden.
+    console.error("git ls-files fehlgeschlagen:", (ausgabe.stderr || "").trim());
+    process.exit(1);
+  }
+  const liste = ausgabe.stdout || "";
   return liste
     .split("\0")
     .filter(Boolean)
