@@ -227,10 +227,10 @@
 }
 
 .buehne-hinweis {
-  background: var(--flaeche);
-  border-left: 4px solid var(--warnung);
+  background: color-mix(in oklab, var(--warnung) 10%, var(--flaeche));
+  border: 1px solid color-mix(in oklab, var(--warnung) 32%, var(--linie));
   padding: 0.5rem 0.75rem;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .buehne-start {

@@ -3,6 +3,7 @@
 // Schritte kommen aus harness/projekt.yaml, sonst die Builtin-Liste.
 
 import { spawn, spawnSync } from "node:child_process";
+import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +14,9 @@ const args = process.argv.slice(2);
 const listOnly = args.includes("--list");
 const voll = args.includes("--voll");
 const schnell = args.includes("--schnell") || (!voll && !listOnly);
+// --nur ui-slop  startet nur diese Schritte, zum Iterieren an einem Schritt.
+const nurIndex = args.indexOf("--nur");
+const nur = nurIndex >= 0 ? (args[nurIndex + 1] || "").split(",").filter(Boolean) : [];
 
 if (args.includes("--help")) {
   console.log("node scripts/gate.mjs --schnell|--voll [--list]");
@@ -35,6 +39,7 @@ const DEFAULT_VOLL = [
   "verify-all",
   "gitleaks",
   "harness",
+  "ui-slop",
   "review-stand",
   "review-stand-2",
 ];
@@ -53,7 +58,9 @@ const gateCfg = projekt.gate || {};
 const SCHNELL = normalizeSteps(gateCfg.schnell || DEFAULT_SCHNELL);
 const VOLL = normalizeSteps(gateCfg.voll || DEFAULT_VOLL);
 const modus = voll ? "voll" : "schnell";
-const schritte = voll ? VOLL : SCHNELL;
+const schritte = (voll ? VOLL : SCHNELL).filter(
+  (s) => nur.length === 0 || nur.includes(s.name),
+);
 
 function normalizeSteps(list) {
   return (list || []).map((item) => {
@@ -289,6 +296,72 @@ function parseFindings(text) {
   return befunde;
 }
 
+
+// Regeln, die "sieht aus wie von der KI gebaut" abdecken. Verstoss = rot.
+// Barrierefreiheit und Abstaende laufen absichtlich nicht hier, die sind
+// eigene Baustellen und wuerden den Gate dauerhaft rot halten.
+const SLOP_REGELN = new Set([
+  "side-tab", "border-accent-on-rounded", "overused-font", "flat-type-hierarchy",
+  "gradient-text", "ai-color-palette", "cream-palette", "nested-cards",
+  "monotonous-spacing", "bounce-easing", "pulsing-dot", "blinking-cursor",
+  "shape-assembled-illustration", "organic-clip-path", "hard-offset-shadow",
+  "dark-glow", "radial-halo", "radial-spotlight-glow", "marquee", "icon-tile-stack",
+  "italic-serif-display", "hero-eyebrow-chip", "kicker-above-heading",
+  "numbered-section-labels", "em-dash-overuse", "marketing-buzzword",
+  "aphoristic-cadence", "oversized-h1", "extreme-negative-tracking",
+]);
+
+function impeccableLauncher() {
+  if (process.env.IMPECCABLE_LAUNCHER) {
+    return process.env.IMPECCABLE_LAUNCHER;
+  }
+  const kandidat = path.join(
+    os.homedir(), ".hermes", "profiles", "david_ryzon",
+    "skills", "creative", "impeccable", "scripts", "impeccable",
+  );
+  return fs.existsSync(kandidat) ? kandidat : null;
+}
+
+function slopZiel() {
+  if (process.env.UI_SLOP_TARGET) {
+    return process.env.UI_SLOP_TARGET;
+  }
+  for (const rel of ["frontend/dist", "dist", "public", "build"]) {
+    if (fs.existsSync(path.join(root, rel))) {
+      return rel;
+    }
+  }
+  return ".";
+}
+
+function schrittUiSlop() {
+  const name = "ui-slop";
+  const launcher = impeccableLauncher();
+  if (!launcher) {
+    mark(name, "nicht geprüft", "impeccable nicht installiert", true);
+    return;
+  }
+  const ziel = slopZiel();
+  // shortcut: ganzes Verzeichnis, kein Browser. Fuer URLs waere der Scan
+  // langsamer und braeuchte einen laufenden Server.
+  const r = run(launcher, ["detect", ziel, "--json", "--no-advisory"]);
+  let befunde;
+  try {
+    befunde = JSON.parse(r.stdout || "[]");
+  } catch {
+    mark(name, "nicht geprüft", kurz(r.stderr || r.stdout), true);
+    return;
+  }
+  const slop = befunde.filter((b) => SLOP_REGELN.has(b.antipattern));
+  const rest = befunde.length - slop.length;
+  if (slop.length > 0) {
+    const arten = [...new Set(slop.map((b) => b.antipattern))].join(", ");
+    mark(name, "rot", `${slop.length} Slop-Befund(e): ${arten}`);
+    return;
+  }
+  mark(name, "grün", `${ziel}: 0 Slop${rest ? `, ${rest} andere` : ""}`);
+}
+
 function schrittGitleaks() {
   if (!which("gitleaks")) {
     mark("gitleaks", "nicht geprüft", "gitleaks nicht installiert", true);
@@ -343,6 +416,7 @@ const builtins = {
   "verify-all": () => schrittVerify("all"),
   gitleaks: schrittGitleaks,
   harness: schrittHarness,
+  "ui-slop": schrittUiSlop,
   "review-stand": schrittReviewStand,
   "review-stand-2": () => schrittReviewStand(".tmp/review/zweit.md"),
 };
@@ -367,7 +441,7 @@ for (const step of schritte) {
   fn();
 }
 
-if(voll && policy.review === "required" && !schritte.some(s=>s.name === "review-stand")) schrittReviewStand();
+if (nur.length === 0 && voll && policy.review === "required" && !schritte.some((s) => s.name === "review-stand")) schrittReviewStand();
 
 if (nichtGeprueft) {
   console.log("nicht geprüft — gilt nicht als grün.");
