@@ -314,6 +314,7 @@ async function pruefeR14() {
       "test",
       "realtime",
       "api.test_mitarbeit",
+      "api.test_mitarbeit_text",
       "api.test_annotation_mitarbeit",
       "api.test_setlists",
       "api.test_annotations",

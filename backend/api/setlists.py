@@ -1,5 +1,4 @@
 from django.db import IntegrityError, transaction
-from django.db.models import F
 from django.http import Http404
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -300,13 +299,14 @@ class SetlistTextUpdate(APIView):
         kennung, feld, initial = ziel
         try:
             with transaction.atomic():
-                # Sperrreihenfolge wie in ersetze_inhalt: Strukturzeile vor
-                # TextState. Andersherum entsteht mit dem Gesamt-PUT ein
-                # Deadlock auf Abschnitts- und Eintragsnamen.
+                # Sperrreihenfolge wie in ersetze_inhalt: Setlist-Zeile, dann
+                # Strukturzeile, dann TextState. Andersherum entsteht mit dem
+                # Gesamt-PUT ein Deadlock.
+                gesperrt_setlist = Setlist.objects.select_for_update().get(
+                    pk=setlist.pk
+                )
                 if daten["object_type"] == TextState.TYP_SETLIST:
-                    gesperrt = Setlist.objects.select_for_update().get(
-                        pk=setlist.pk
-                    )
+                    gesperrt = gesperrt_setlist
                 elif daten["object_type"] == TextState.TYP_SECTION:
                     gesperrt = Section.objects.select_for_update().get(
                         uuid=kennung
@@ -327,10 +327,9 @@ class SetlistTextUpdate(APIView):
                 # Textänderungen zählen als Inhaltsänderung. Ohne das bleibt
                 # ein veralteter Gesamt-PUT revisionsgültig und überschreibt
                 # den bestätigten Text über die Epoche.
-                Setlist.objects.filter(pk=setlist.pk).update(
-                    revision=F("revision") + 1
-                )
-                setlist.refresh_from_db(fields=["revision"])
+                gesperrt_setlist.revision += 1
+                gesperrt_setlist.save(update_fields=["revision", "updated_at"])
+                setlist.revision = gesperrt_setlist.revision
                 band_ereignis(
                     setlist.band,
                     "text.updated",
@@ -339,6 +338,9 @@ class SetlistTextUpdate(APIView):
                     field=obj.field,
                     epoch=obj.epoch,
                     revision=obj.revision,
+                    # Empfänger ziehen ihre Revision nach, sonst laufen sie
+                    # beim nächsten Struktur-Save in ein 409.
+                    setlist_revision=setlist.revision,
                     # Vollzustand statt Delta: das Frontend vergleicht den
                     # bestätigten Stand mit der vollen Kodierung. Ein Delta
                     # erzeugt dort eine Rücksende-Schleife. Die Größe deckelt

@@ -5,7 +5,6 @@ from __future__ import annotations
 import uuid
 
 from django.db import IntegrityError, transaction
-from django.db.models import F
 
 from bands.models import Membership
 from collaboration.models import TextState
@@ -80,10 +79,13 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
     setlist, obj_uuid, feld, initial = ziel
     try:
         with transaction.atomic():
-            # Sperrreihenfolge wie in ersetze_inhalt: Strukturzeile vor
-            # TextState, sonst Deadlock mit dem Gesamt-PUT.
+            # Sperrreihenfolge wie in ersetze_inhalt: Setlist-Zeile, dann
+            # Strukturzeile, dann TextState, sonst Deadlock mit dem PUT.
+            gesperrt_setlist = Setlist.objects.select_for_update().get(
+                pk=setlist.pk
+            )
             if typ == TextState.TYP_SETLIST:
-                gesperrt = Setlist.objects.select_for_update().get(pk=setlist.pk)
+                gesperrt = gesperrt_setlist
             elif typ == TextState.TYP_SECTION:
                 gesperrt = Section.objects.select_for_update().get(uuid=obj_uuid)
             else:
@@ -95,10 +97,9 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
             setattr(gesperrt, spalte, text)
             gesperrt.save(update_fields=[spalte])
             # Textänderungen zählen als Inhaltsänderung, siehe api/setlists.py.
-            Setlist.objects.filter(pk=setlist.pk).update(
-                revision=F("revision") + 1
-            )
-            setlist.refresh_from_db(fields=["revision"])
+            gesperrt_setlist.revision += 1
+            gesperrt_setlist.save(update_fields=["revision", "updated_at"])
+            setlist.revision = gesperrt_setlist.revision
             band_ereignis(
                 setlist.band,
                 "text.updated",
@@ -107,8 +108,9 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
                 field=obj.field,
                 epoch=obj.epoch,
                 revision=obj.revision,
-                # Vollzustand, siehe api/setlists.py: ein Delta löst im
-                # Frontend eine Rücksende-Schleife aus.
+                # Empfänger ziehen ihre Revision nach, sonst laufen sie beim
+                # nächsten Struktur-Save in ein 409.
+                setlist_revision=setlist.revision,
                 update=kodiere(bytes(obj.state)),
             )
     except IntegrityError as fehler:

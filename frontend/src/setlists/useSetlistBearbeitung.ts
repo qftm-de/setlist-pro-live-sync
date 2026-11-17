@@ -102,6 +102,22 @@ export function useSetlistBearbeitung({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setlist.id, setlist.revision, setlist.name]);
 
+  // Empfänger: Jede bestätigte Textänderung erhöht die Serverrevision. Ohne
+  // Nachziehen scheitert der nächste Struktur-Save mit 409, obwohl der Stand
+  // aktuell ist.
+  useEffect(() => {
+    const neueste = Object.values(textEreignisse).reduce(
+      (hoechste, ereignis) =>
+        typeof ereignis.setlist_revision === "number"
+          ? Math.max(hoechste, ereignis.setlist_revision)
+          : hoechste,
+      0,
+    );
+    if (neueste > 0) {
+      setRevision((vorher) => Math.max(vorher, neueste));
+    }
+  }, [textEreignisse]);
+
   const ladeTexte = useCallback(async () => {
     if (!adapter.ladeTexte) {
       return;

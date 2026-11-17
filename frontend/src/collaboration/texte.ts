@@ -105,4 +105,6 @@ export interface TextEreignis {
   update: string;
   epoch: number;
   revision: number;
+  /** Revision der Setlist nach dieser Textänderung, für Empfänger. */
+  setlist_revision?: number;
 }

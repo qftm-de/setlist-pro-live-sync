@@ -196,6 +196,7 @@ export function App({
           update: String(ereignis.data.update ?? ""),
           epoch: Number(ereignis.data.epoch ?? 0),
           revision: Number(ereignis.data.revision ?? 0),
+          setlist_revision: Number(ereignis.data.setlist_revision ?? 0) || undefined,
         },
       }));
     }
