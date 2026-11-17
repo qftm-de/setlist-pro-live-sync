@@ -113,6 +113,10 @@ class SetlistDetail(generics.RetrieveUpdateDestroyAPIView):
                 epoche_erhoehen(
                     TextState.TYP_SETLIST, setlist.uuid, "name", setlist.name
                 )
+                # Eine Namensänderung ist eine Inhaltsänderung. Ohne Zähler
+                # bleibt ein veralteter Gesamt-PUT revisionsgültig.
+                setlist.revision += 1
+                setlist.save(update_fields=["revision", "updated_at"])
             band_ereignis(
                 setlist.band,
                 "setlist.updated",

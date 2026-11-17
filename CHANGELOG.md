@@ -47,6 +47,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   die neue Revision ebenfalls, damit Empfänger sie nachziehen. Alle Textwege
   sperren in der Reihenfolge des Gesamt-PUTs: Setlist, Strukturzeile,
   TextState. R14.
+- Gemeinsame Bearbeitung (R14): Auch ein geänderter Setlist-Name erhöht die
+  Revision, ein veralteter Gesamt-PUT läuft dadurch in 409 statt den Namen
+  still zu überschreiben. R14.
 - Gemeinsame Bearbeitung (R14): Wird die Setlist, ein Abschnitt oder ein
   Eintrag im selben Moment gelöscht, antworten Text- und Befehlspfad
   kontrolliert mit 409 beziehungsweise 400, statt mit 500 abzubrechen. Die

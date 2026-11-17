@@ -187,7 +187,10 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
                 return
         if art in ("setlist.command", "stage.command"):
             nutzdaten = content.get("payload")
-            if isinstance(nutzdaten, dict) and not self._nutzdaten_ok(nutzdaten):
+            if not isinstance(nutzdaten, dict):
+                # stage.command trägt seine Felder direkt in der Nachricht.
+                nutzdaten = {k: v for k, v in content.items() if k != "type"}
+            if not self._nutzdaten_ok(nutzdaten):
                 await self.send_json(
                     {
                         "type": "command.error",
