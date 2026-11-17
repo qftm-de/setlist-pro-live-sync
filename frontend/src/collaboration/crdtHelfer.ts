@@ -6,7 +6,12 @@ export function docAusUpdate(update: Uint8Array): Y.Doc {
   return doc;
 }
 
-/** Vergleicht den vollen lokalen Stand mit dem bestätigten Serverstand. */
+/**
+ * Prüft, ob das Dokument Text enthält, den der bestätigte Stand nicht kennt.
+ * Verglichen wird der Inhalt, nicht kodierte Bytes: yjs im Browser und Yrs auf
+ * dem Server dürfen dasselbe Dokument unterschiedlich kodieren, und gleicher
+ * Inhalt darf keinen weiteren Sendevorgang auslösen.
+ */
 export function hatLokaleAenderungen(
   doc: Y.Doc,
   bestaetigt: Uint8Array | null,
@@ -14,14 +19,6 @@ export function hatLokaleAenderungen(
   if (!bestaetigt) {
     return true;
   }
-  const aktuell = Y.encodeStateAsUpdate(doc);
-  if (aktuell.length !== bestaetigt.length) {
-    return true;
-  }
-  for (let index = 0; index < aktuell.length; index += 1) {
-    if (aktuell[index] !== bestaetigt[index]) {
-      return true;
-    }
-  }
-  return false;
+  const bestaetigtText = docAusUpdate(bestaetigt).getText("t").toString();
+  return doc.getText("t").toString() !== bestaetigtText;
 }

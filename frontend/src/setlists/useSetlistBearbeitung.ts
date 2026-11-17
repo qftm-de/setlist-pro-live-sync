@@ -315,13 +315,22 @@ export function useSetlistBearbeitung({
       return undefined;
     }
     return (update, epoch) =>
-      adapter.sendeText!(bandId, setlist.id, {
-        object_type: typ,
-        object_uuid: uuid,
-        field: feld,
-        epoch,
-        update,
-      });
+      adapter
+        .sendeText!(bandId, setlist.id, {
+          object_type: typ,
+          object_uuid: uuid,
+          field: feld,
+          epoch,
+          update,
+        })
+        .then((antwort) => {
+          // Textänderungen erhöhen die Setlist-Revision. Ohne das Nachziehen
+          // scheitert der nächste Struktur-Save mit 409.
+          if (typeof antwort.setlist_revision === "number") {
+            setRevision(antwort.setlist_revision);
+          }
+          return antwort;
+        });
   }
 
   function remoteFuer(uuid: string, feld: string) {

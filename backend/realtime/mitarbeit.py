@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 from django.db import IntegrityError, transaction
+from django.db.models import F
 
 from bands.models import Membership
 from collaboration.models import TextState
@@ -93,6 +94,11 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
             spalte = "label" if typ == TextState.TYP_ENTRY else "name"
             setattr(gesperrt, spalte, text)
             gesperrt.save(update_fields=[spalte])
+            # Textänderungen zählen als Inhaltsänderung, siehe api/setlists.py.
+            Setlist.objects.filter(pk=setlist.pk).update(
+                revision=F("revision") + 1
+            )
+            setlist.refresh_from_db(fields=["revision"])
             band_ereignis(
                 setlist.band,
                 "text.updated",
@@ -121,6 +127,7 @@ def text_update(konto_id: int, band_id: int, nachricht: dict) -> dict:
         "field": feld,
         "epoch": obj.epoch,
         "revision": obj.revision,
+        "setlist_revision": setlist.revision,
         "text": text,
         "update": kodiere(bytes(obj.state)),
     }

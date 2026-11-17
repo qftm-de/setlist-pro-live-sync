@@ -40,6 +40,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - Gemeinsame Bearbeitung (R14): `text_ersetzen` baut den Zustand neu auf,
   statt den alten mit Grabsteinen zu leeren. Damit wächst der Zustand bei
   wiederholtem REST-Ersatz nicht mehr und die Größe bleibt geprüft. R14.
+- Gemeinsame Bearbeitung (R14): Eine bestätigte Textänderung erhöht die
+  Revision der Setlist und wird in der Antwort mitgegeben. Damit weist der
+  Gesamt-PUT einen veralteten Stand mit 409 ab, statt den bestätigten Text
+  über einen Epochenwechsel zu verwerfen. R14.
+- Gemeinsame Bearbeitung (R14): Der Editor prüft den bestätigten Stand über
+  den Textinhalt statt über kodierte Bytes. yjs im Browser und Yrs auf dem
+  Server kodieren dasselbe Dokument nicht zwingend gleich; gleicher Inhalt
+  löste vorher weitere Sendevorgänge aus. R14.
 
 ### Added
 

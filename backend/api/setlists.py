@@ -1,4 +1,5 @@
 from django.db import IntegrityError, transaction
+from django.db.models import F
 from django.http import Http404
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -323,6 +324,13 @@ class SetlistTextUpdate(APIView):
                 spalte = "label" if daten["object_type"] == TextState.TYP_ENTRY else "name"
                 setattr(gesperrt, spalte, text)
                 gesperrt.save(update_fields=[spalte])
+                # Textänderungen zählen als Inhaltsänderung. Ohne das bleibt
+                # ein veralteter Gesamt-PUT revisionsgültig und überschreibt
+                # den bestätigten Text über die Epoche.
+                Setlist.objects.filter(pk=setlist.pk).update(
+                    revision=F("revision") + 1
+                )
+                setlist.refresh_from_db(fields=["revision"])
                 band_ereignis(
                     setlist.band,
                     "text.updated",
@@ -362,6 +370,7 @@ class SetlistTextUpdate(APIView):
                 "field": obj.field,
                 "epoch": obj.epoch,
                 "revision": obj.revision,
+                "setlist_revision": setlist.revision,
                 "text": text,
                 "update": kodiere(bytes(obj.state)),
             }
