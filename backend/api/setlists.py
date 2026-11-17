@@ -127,6 +127,15 @@ class SetlistDetail(generics.RetrieveUpdateDestroyAPIView):
         with transaction.atomic():
             band = instance.band
             kennung = instance.id
+            from collaboration.services import merke_entfernt
+
+            # Gelöschte UUIDs nie wiederverwenden: sonst hängt an einem neuen
+            # Abschnitt derselben UUID der alte Textstand.
+            merke_entfernt(TextState.TYP_SETLIST, instance.uuid)
+            for abschnitt in instance.sections.all():
+                merke_entfernt(TextState.TYP_SECTION, abschnitt.uuid)
+                for eintrag in abschnitt.entries.all():
+                    merke_entfernt(TextState.TYP_ENTRY, eintrag.uuid)
             instance.delete()
             band_ereignis(
                 band,
