@@ -3,17 +3,12 @@
 // Code hart bei 500 Zeilen, Doku hart bei 1000. Weiche Grenzen (300/500) nur als Hinweis.
 // Generierte und normative Dateien sind exempt.
 
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = process.cwd();
-
-const excludeDirNames = new Set([
-  ".git", ".venv", "venv", "node_modules", "__pycache__", "dist",
-  "staticfiles", "coverage", ".cache", "vendor", ".tmp", "alte_projektdatein", "_lokal",
-  "plans", "conflicts",
-]);
 
 // Generiert oder normativ: Größe ist kein Qualitätssignal.
 const exempt = new Set([
@@ -39,27 +34,21 @@ function collectFiles(rootDir) {
   if (!fs.existsSync(rootDir)) {
     return [];
   }
-  const files = [];
-  const stack = [rootDir];
-  while (stack.length) {
-    const current = stack.pop();
-    const name = path.basename(current);
-    if (excludeDirNames.has(name) || name.endsWith(".egg-info")) {
-      continue;
-    }
-    const stat = fs.statSync(current);
-    if (stat.isDirectory()) {
-      for (const entry of fs.readdirSync(current)) {
-        stack.push(path.join(current, entry));
-      }
-      continue;
-    }
-    const ext = path.extname(current).toLowerCase();
-    if (codeExtensions.has(ext) || docExtensions.has(ext)) {
-      files.push(current);
-    }
-  }
-  return files;
+  // Git kennt getrackte und neue, aber nicht ignorierte Dateien. Werkzeug-
+  // ausgaben lokaler Agenten bleiben damit aus dem Schritt heraus.
+  const liste = spawnSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+    { cwd: rootDir, encoding: "utf8" },
+  ).stdout || "";
+  return liste
+    .split("\0")
+    .filter(Boolean)
+    .map((rel) => path.join(rootDir, rel))
+    .filter((datei) => {
+      const ext = path.extname(datei).toLowerCase();
+      return codeExtensions.has(ext) || docExtensions.has(ext);
+    });
 }
 
 function rel(filePath) {

@@ -16,6 +16,9 @@ from collaboration.services import epoche_erhoehen, ist_entfernt, merke_entfernt
 from .models import Entry, Section, Setlist
 
 PARK = 1_000_000
+# Dieselben Grenzen gelten im Gesamt-PUT und im Befehlspfad.
+MAX_ABSCHNITTE = 50
+MAX_EINTRAEGE = 200
 
 
 class RevisionFehlt(Exception):

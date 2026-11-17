@@ -12,94 +12,6 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - Das Gate kennt `doku-sync` als eingebauten Schritt. Er läuft auch ohne lokale
   `harness/`-Konfiguration, also in einem frischen Clone. R2.
 
-### Fixed
-
-- Aufbewahrung räumt neben veröffentlichten Ereignissen auch das
-  Befehlsprotokoll und geschlossene Bühnenverbindungen ab. Textstände,
-  Löschmarken und Setlisten bleiben unberührt. R14, R15.
-- Nach einer Leitungsübergabe darf die neue Leitung nach einem
-  Verbindungsverlust zurückkehren. Das Sperrmerkmal `leadership_locked` ist
-  entfallen, die Prüfung auf die Leitung genügt. R15.
-- Ein PATCH auf eine Setlist mit einem Nicht-Objekt als JSON antwortet mit 400
-  statt mit 500. Die Textnutzlast ist schon im Serialisierer auf 90 000 Zeichen
-  begrenzt. R14.
-- Der Bühnenhinweis erkennt die Serverbegründungen unabhängig von der
-  Groß- und Kleinschreibung. Vorher blieb „Die Leitungsgeneration ist veraltet"
-  ohne Nachladen. R15.
-
-### Changed
-
-- Lastlauf-Verify `scripts/lib/verify-realtime/echtzeit.mjs` prüft den Median
-  der Zustelllatenz je Band statt einer Einzelspitze. Ein Zweikern-CI-Runner
-  hatte 1072 ms gegen die Grenze von 1000 ms gemessen, bei freier Maschine
-  waren es 300 ms. Der Lastlauf legt 100 bestätigte Änderungen in rund
-  10 Sekunden an; ein einzelner Wert über 4 Sekunden scheitert am Timeout.
-  R13-G5 nennt Median je Band und Hängergrenze. R13.
-- Gate führt gleiche Verify-Befehle nur einmal aus und nennt bei einem Fehler
-  alle betroffenen R-Zeilen. R6 bis R12 teilen sich `verify-kern`, das läuft
-  jetzt einmal statt siebenmal.
-- Gate-Schritte mit `parallel: true` starten mit dem Gate und zählen an ihrer
-  Stelle im Ablauf. Beide Reviews laufen dadurch parallel zum Verify.
-- Zweiter Review-Durchgang über eine direkte API-Anbindung. Getrennte Befunddatei über `REVIEW_OUT`, ein
-  offener Blocker oder Major eines der beiden Gutachter stoppt den Push.
-
-### Fixed
-
-- Gemeinsame Bearbeitung (R14): Beide Schreibwege legen denselben Text in die
-  Spalte. Der Textweg trimmt jetzt wie der REST-Weg; ein Randleerzeichen löst
-  keinen Epochenwechsel mehr aus, der die Zusammenführung aller Teilnehmer
-  verwirft.
-- Gemeinsame Bearbeitung (R14): Textpfad und Gesamt-PUT sperren in derselben
-  Reihenfolge, Strukturzeile vor TextState. Die umgekehrte Reihenfolge konnte
-  auf Abschnitts- und Eintragsnamen einen Deadlock auslösen. R14.
-- Echtzeit (R14, R15): Befehle über den Band-WebSocket unterliegen einer
-  Mengenbremse wie Textupdates. Abgelehnte Befehle erzeugen weder
-  Protokollzeile noch Ereignis und erreichen die Sitzungssperre nicht.
-- Echtzeit (R13, R14): Der gespeicherte CRDT-Zustand je Feld ist auf 512 KiB
-  begrenzt; ein Update, das darüber hinausgeht, wird abgewiesen. Die
-  Ereignisse `text.updated` und `annotation.text` tragen weiter den
-  Vollzustand, weil das Frontend den bestätigten Stand damit vergleicht.
-- Gemeinsame Bearbeitung (R14): `text_ersetzen` baut den Zustand neu auf,
-  statt den alten mit Grabsteinen zu leeren. Damit wächst der Zustand bei
-  wiederholtem REST-Ersatz nicht mehr und die Größe bleibt geprüft. R14.
-- Gemeinsame Bearbeitung (R14): Eine bestätigte Textänderung erhöht die
-  Revision der Setlist. Ein veralteter Gesamt-PUT läuft dadurch in 409 und
-  kann den bestätigten Text nicht über einen Epochenwechsel ersetzen. Die
-  REST-Revision einer Anmerkung bleibt für Geometrie und Sichtbarkeit stabil.
-  Alle Textwege sperren in der Reihenfolge des Gesamt-PUTs: Setlist,
-  Strukturzeile, TextState. R14.
-- Bühne (R15): Die Verbindungsfrische wird zusätzlich serverseitig im Takt
-  der Rechteprüfung erneuert. Ein gedrosselter Browser-Tab verliert die
-  Leitung damit nicht mehr nach 60 Sekunden ohne Ping. R15.
-- Gemeinsame Bearbeitung (R14): Auch der REST-Befehlsendpunkt hat eine
-  Mengenbremse (120 je Minute und Benutzer) und dieselbe 16-KiB-Grenze für
-  Nutzdaten wie der WebSocket-Weg. R14.
-- Gemeinsame Bearbeitung (R14): Ein PATCH auf den Setlist-Namen verlangt die
-  Revision, auf der er beruht: ohne Revision 400, bei Abweichung 409. Ein
-  veralteter Name überschreibt damit keinen bestätigten Text mehr. R14.
-- Anmerkungen (R12, R14): Eine bestätigte Textänderung erhöht die
-  REST-Revision der Anmerkung. Ein veralteter PATCH auf Geometrie oder
-  Sichtbarkeit läuft in 409 statt den Text still zu überschreiben. R12, R14.
-- Gemeinsame Bearbeitung (R14): Die Textenden für Setlist und Anmerkung haben
-  eine Schreibbremse von 300 Anfragen je Minute und Benutzer, analog zur
-  WebSocket-Bremse. R14.
-- Gemeinsame Bearbeitung (R14): Beim Löschen einer Setlist werden ihre
-  UUIDs als gelöscht vermerkt. Ein späterer Abschnitt oder Eintrag mit
-  derselben UUID erbt damit keinen alten Textstand mehr. R14-N2.
-- Gemeinsame Bearbeitung (R14): Auch ein geänderter Setlist-Name erhöht die
-  Revision, ein veralteter Gesamt-PUT läuft dadurch in 409 statt den Namen
-  still zu überschreiben. R14.
-- Gemeinsame Bearbeitung (R14): Wird die Setlist, ein Abschnitt oder ein
-  Eintrag im selben Moment gelöscht, antworten Text- und Befehlspfad
-  kontrolliert mit 409 beziehungsweise 400, statt mit 500 abzubrechen. Die
-  WebSocket-Verbindung bleibt erhalten. Befehlsnutzdaten sind auf 16 KiB
-  begrenzt. R14.
-- Gemeinsame Bearbeitung (R14): Der Editor prüft den bestätigten Stand über
-  den Textinhalt statt über kodierte Bytes. yjs im Browser und Yrs auf dem
-  Server kodieren dasselbe Dokument nicht zwingend gleich; gleicher Inhalt
-  löste vorher weitere Sendevorgänge aus. R14.
-
-### Added
 
 - Projektstruktur, Planung und Dokumentation für den Neubau.
 - Bühnensitzung (R15): Pro Band läuft höchstens eine feste Sitzung mit
@@ -219,7 +131,134 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - `scripts/verify-realtime.mjs`: baut den Core, prüft Ausgangspuffer,
   Relay, Abgleich, Rechte und den Redis-Ausfall im echten Container.
 
+### Changed
+
+- Lastlauf-Verify `scripts/lib/verify-realtime/echtzeit.mjs` prüft den Median
+  der Zustelllatenz je Band statt einer Einzelspitze. Ein Zweikern-CI-Runner
+  hatte 1072 ms gegen die Grenze von 1000 ms gemessen, bei freier Maschine
+  waren es 300 ms. Der Lastlauf legt 100 bestätigte Änderungen in rund
+  10 Sekunden an; ein einzelner Wert über 4 Sekunden scheitert am Timeout.
+  R13-G5 nennt Median je Band und Hängergrenze. R13.
+- Gate führt gleiche Verify-Befehle nur einmal aus und nennt bei einem Fehler
+  alle betroffenen R-Zeilen. R6 bis R12 teilen sich `verify-kern`, das läuft
+  jetzt einmal statt siebenmal.
+- Gate-Schritte mit `parallel: true` starten mit dem Gate und zählen an ihrer
+  Stelle im Ablauf. Beide Reviews laufen dadurch parallel zum Verify.
+- Zweiter Review-Durchgang über eine direkte API-Anbindung. Getrennte Befunddatei über `REVIEW_OUT`, ein
+  offener Blocker oder Major eines der beiden Gutachter stoppt den Push.
+
+
+- Browser-Zurück mit ungespeichertem Entwurf hält die aktuelle URL stabil und
+  fragt nach Speichern, Verwerfen oder Abbrechen. Der zusätzliche
+  History-Eintrag ist als Kompromiss dokumentiert (Review F2).
+
+- `CONTRIBUTING.md` nennt die Gate-Skripte jetzt korrekt als versioniert und
+  beschreibt im Abschnitt Dokumentation, wann `CHANGELOG.md`, `PROGRESS.md` und
+  `DECISIONS.md` gepflegt werden.
+
+- Lizenz festgelegt: AGPL-3.0 (war als offen notiert, liegt bereits bei).
+- Harness auf den beschlossenen Stack umgestellt:
+  React/TypeScript/Vite, Django REST Framework, PostgreSQL,
+  Redis/Channels, Docker statt Single-File-PWA und Netlify.
+- Review-Policy verschärft: Review vor Push oder Merge Request ist
+  verpflichtend statt nur auf Auftrag.
+- Review-Basis an den Commit-Bereich gebunden: Ohne Upstream fällt
+  `scripts/review-kilo.mjs` auf `origin/main` beziehungsweise `main`
+  zurück, statt committete Änderungen ohne Review zu lassen.
+- Offene Blocker und Major werden im Gate strukturiert aus
+  Befundabschnitten (`## F<n>`) gelesen statt per Textfenster-Regex.
+- Regeln entdoppelt: `kilo.jsonc` lädt nur `AGENTS.md`, die
+  Projekt-Policy steht dort nur noch einmal. Review-Skill verlangt
+  belastbare Evidenz statt zwingend fehlerzeigender Kommandos.
+- Basis-Images und Manifeste auf den Stand vom 14.11.2026 gehoben:
+  Python 3.13.18, Node 26.13.1, PostgreSQL 18.7, Redis 8.10.3,
+  nginx 1.30.6, Django 5.2.19, gunicorn 27.0.1, argon2-cffi.
+- Compose: nur der Web-Container ist erreichbar. API, PostgreSQL und
+  Redis bleiben im internen Netz. Secret-Key und Datenbankpasswort
+  sind Pflichtwerte.
+- CI: Node 26.13.1, Python 3.13, Backend-Tests gegen PostgreSQL 18.7,
+  Frontend mit Typprüfung, Tests und Build.
+- Gate-Skripte bleiben versioniert. Harness, `AGENTS.md`, `kilo.jsonc`
+  und die Agentenordner bleiben lokal. Ein frischer Clone nutzt die
+  eingebauten Gate-Schritte.
+
 ### Fixed
+
+- Gemeinsame Bearbeitung (R14): Der Befehlspfad hält dieselben Mengengrenzen
+  wie der Gesamt-PUT, 50 Abschnitte und 200 Einträge je Abschnitt. Beide Wege
+  lesen die Grenzen aus `setlists/content.py`. Vorher nahm ein Befehl mehr an,
+  als der PUT danach wieder speichern konnte.
+- Gemeinsame Bearbeitung (R14): Kennungen im Befehlspfad werden normalisiert.
+  Eine ungeformte UUID ergab bisher 500, jetzt 400. Das gilt auch für den
+  Nachbarvergleich beim Einfügen.
+- Gate: `lint-file-size` und `review-constraints` lesen ihre Dateiliste über
+  `git ls-files --cached --others --exclude-standard`. Werkzeugausgaben
+  lokaler Agenten wie `graphify-out/` halten das Gate nicht mehr rot.
+- Aufbewahrung räumt neben veröffentlichten Ereignissen auch das
+  Befehlsprotokoll und geschlossene Bühnenverbindungen ab. Textstände,
+  Löschmarken und Setlisten bleiben unberührt. R14, R15.
+- Nach einer Leitungsübergabe darf die neue Leitung nach einem
+  Verbindungsverlust zurückkehren. Das Sperrmerkmal `leadership_locked` ist
+  entfallen, die Prüfung auf die Leitung genügt. R15.
+- Ein PATCH auf eine Setlist mit einem Nicht-Objekt als JSON antwortet mit 400
+  statt mit 500. Die Textnutzlast ist schon im Serialisierer auf 90 000 Zeichen
+  begrenzt. R14.
+- Der Bühnenhinweis erkennt die Serverbegründungen unabhängig von der
+  Groß- und Kleinschreibung. Vorher blieb „Die Leitungsgeneration ist veraltet"
+  ohne Nachladen. R15.
+
+
+- Gemeinsame Bearbeitung (R14): Beide Schreibwege legen denselben Text in die
+  Spalte. Der Textweg trimmt jetzt wie der REST-Weg; ein Randleerzeichen löst
+  keinen Epochenwechsel mehr aus, der die Zusammenführung aller Teilnehmer
+  verwirft.
+- Gemeinsame Bearbeitung (R14): Textpfad und Gesamt-PUT sperren in derselben
+  Reihenfolge, Strukturzeile vor TextState. Die umgekehrte Reihenfolge konnte
+  auf Abschnitts- und Eintragsnamen einen Deadlock auslösen. R14.
+- Echtzeit (R14, R15): Befehle über den Band-WebSocket unterliegen einer
+  Mengenbremse wie Textupdates. Abgelehnte Befehle erzeugen weder
+  Protokollzeile noch Ereignis und erreichen die Sitzungssperre nicht.
+- Echtzeit (R13, R14): Der gespeicherte CRDT-Zustand je Feld ist auf 512 KiB
+  begrenzt; ein Update, das darüber hinausgeht, wird abgewiesen. Die
+  Ereignisse `text.updated` und `annotation.text` tragen weiter den
+  Vollzustand, weil das Frontend den bestätigten Stand damit vergleicht.
+- Gemeinsame Bearbeitung (R14): `text_ersetzen` baut den Zustand neu auf,
+  statt den alten mit Grabsteinen zu leeren. Damit wächst der Zustand bei
+  wiederholtem REST-Ersatz nicht mehr und die Größe bleibt geprüft. R14.
+- Gemeinsame Bearbeitung (R14): Eine bestätigte Textänderung erhöht die
+  Revision der Setlist. Ein veralteter Gesamt-PUT läuft dadurch in 409 und
+  kann den bestätigten Text nicht über einen Epochenwechsel ersetzen. Die
+  REST-Revision einer Anmerkung bleibt für Geometrie und Sichtbarkeit stabil.
+  Alle Textwege sperren in der Reihenfolge des Gesamt-PUTs: Setlist,
+  Strukturzeile, TextState. R14.
+- Bühne (R15): Die Verbindungsfrische wird zusätzlich serverseitig im Takt
+  der Rechteprüfung erneuert. Ein gedrosselter Browser-Tab verliert die
+  Leitung damit nicht mehr nach 60 Sekunden ohne Ping. R15.
+- Gemeinsame Bearbeitung (R14): Auch der REST-Befehlsendpunkt hat eine
+  Mengenbremse (120 je Minute und Benutzer) und dieselbe 16-KiB-Grenze für
+  Nutzdaten wie der WebSocket-Weg. R14.
+- Gemeinsame Bearbeitung (R14): Ein PATCH auf den Setlist-Namen verlangt die
+  Revision, auf der er beruht: ohne Revision 400, bei Abweichung 409. Ein
+  veralteter Name überschreibt damit keinen bestätigten Text mehr. R14.
+- Gemeinsame Bearbeitung (R14): Die Textenden für Setlist und Anmerkung haben
+  eine Schreibbremse von 300 Anfragen je Minute und Benutzer, analog zur
+  WebSocket-Bremse. R14.
+- Gemeinsame Bearbeitung (R14): Beim Löschen einer Setlist werden ihre
+  UUIDs als gelöscht vermerkt. Ein späterer Abschnitt oder Eintrag mit
+  derselben UUID erbt damit keinen alten Textstand mehr. R14-N2.
+- Gemeinsame Bearbeitung (R14): Auch ein geänderter Setlist-Name erhöht die
+  Revision, ein veralteter Gesamt-PUT läuft dadurch in 409 statt den Namen
+  still zu überschreiben. R14.
+- Gemeinsame Bearbeitung (R14): Wird die Setlist, ein Abschnitt oder ein
+  Eintrag im selben Moment gelöscht, antworten Text- und Befehlspfad
+  kontrolliert mit 409 beziehungsweise 400, statt mit 500 abzubrechen. Die
+  WebSocket-Verbindung bleibt erhalten. Befehlsnutzdaten sind auf 16 KiB
+  begrenzt. R14.
+- Gemeinsame Bearbeitung (R14): Der Editor prüft den bestätigten Stand über
+  den Textinhalt statt über kodierte Bytes. yjs im Browser und Yrs auf dem
+  Server kodieren dasselbe Dokument nicht zwingend gleich; gleicher Inhalt
+  löste vorher weitere Sendevorgänge aus. R14.
+
 
 - Song-PDF: Die Vorwahl der Version läuft im selben Durchlauf wie das
   Dokument, und eine bereits getroffene Auswahl bleibt stehen. Vorher
@@ -278,42 +317,6 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   Entwurfswächter wie Links und Bandwechsel. Der Dialog bietet Speichern,
   Verwerfen oder Abbrechen, die URL bleibt bis zur Entscheidung stehen.
 
-### Changed
-
-- Browser-Zurück mit ungespeichertem Entwurf hält die aktuelle URL stabil und
-  fragt nach Speichern, Verwerfen oder Abbrechen. Der zusätzliche
-  History-Eintrag ist als Kompromiss dokumentiert (Review F2).
-
-- `CONTRIBUTING.md` nennt die Gate-Skripte jetzt korrekt als versioniert und
-  beschreibt im Abschnitt Dokumentation, wann `CHANGELOG.md`, `PROGRESS.md` und
-  `DECISIONS.md` gepflegt werden.
-
-- Lizenz festgelegt: AGPL-3.0 (war als offen notiert, liegt bereits bei).
-- Harness auf den beschlossenen Stack umgestellt:
-  React/TypeScript/Vite, Django REST Framework, PostgreSQL,
-  Redis/Channels, Docker statt Single-File-PWA und Netlify.
-- Review-Policy verschärft: Review vor Push oder Merge Request ist
-  verpflichtend statt nur auf Auftrag.
-- Review-Basis an den Commit-Bereich gebunden: Ohne Upstream fällt
-  `scripts/review-kilo.mjs` auf `origin/main` beziehungsweise `main`
-  zurück, statt committete Änderungen ohne Review zu lassen.
-- Offene Blocker und Major werden im Gate strukturiert aus
-  Befundabschnitten (`## F<n>`) gelesen statt per Textfenster-Regex.
-- Regeln entdoppelt: `kilo.jsonc` lädt nur `AGENTS.md`, die
-  Projekt-Policy steht dort nur noch einmal. Review-Skill verlangt
-  belastbare Evidenz statt zwingend fehlerzeigender Kommandos.
-- Basis-Images und Manifeste auf den Stand vom 14.11.2026 gehoben:
-  Python 3.13.18, Node 26.13.1, PostgreSQL 18.7, Redis 8.10.3,
-  nginx 1.30.6, Django 5.2.19, gunicorn 27.0.1, argon2-cffi.
-- Compose: nur der Web-Container ist erreichbar. API, PostgreSQL und
-  Redis bleiben im internen Netz. Secret-Key und Datenbankpasswort
-  sind Pflichtwerte.
-- CI: Node 26.13.1, Python 3.13, Backend-Tests gegen PostgreSQL 18.7,
-  Frontend mit Typprüfung, Tests und Build.
-- Gate-Skripte bleiben versioniert. Harness, `AGENTS.md`, `kilo.jsonc`
-  und die Agentenordner bleiben lokal. Ein frischer Clone nutzt die
-  eingebauten Gate-Schritte.
-
 ### Security
 
 - DRF verlangt standardmäßig Anmeldung, anonyme Aufrufe erhalten 401.
@@ -334,3 +337,4 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 - Analyse der Alt-App: offene Firestore-Regeln, Passwort im Client,
   Klartextfeld in einem Banddokument. Keine Werte im Repository.
+

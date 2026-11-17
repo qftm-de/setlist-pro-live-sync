@@ -2,7 +2,7 @@
 
 R1 | Behavior: Repo-Grundausstattung und Gate-Skripte stehen und sind versioniert. Ein frischer Clone führt das Gate mit den eingebauten Schritten aus. Agenten-, Harness- und Kilo-Dateien bleiben lokal und unversioniert; versioniert sind nur die Gate-Skripte einschließlich `scripts/harness.mjs`. Der Brownfield-Bestand liegt unverändert und unversioniert unter alte_projektdatein/.
    | Verify:  node scripts/check-repo.mjs
-   | Scope:   docs/templates, docs/conventions.md, scripts, .githooks, alte_projektdatein, README.md, LICENSE, CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, CHANGELOG.md, .github, .editorconfig, .gitattributes, package.json, package-lock.json
+   | Scope:   docs/templates, docs/conventions.md, scripts, .githooks, alte_projektdatein, README.md, LICENSE, CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, SUPPORT.md, CHANGELOG.md, .github, .editorconfig, .gitattributes, package.json, package-lock.json
    | Risk:    niedrig
    | State:   passing
 

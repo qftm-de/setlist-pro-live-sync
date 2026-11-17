@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from bands.models import Band
 from library.models import Song
+from setlists.content import MAX_ABSCHNITTE, MAX_EINTRAEGE
 from setlists.models import NAME_VERGEBEN, Entry, Section, Setlist, name_frei
 
 
@@ -117,7 +118,7 @@ class AbschnittEingabeSerializer(serializers.Serializer):
     entries = EintragEingabeSerializer(many=True, required=False, default=list)
 
     def validate_entries(self, eintraege):
-        if len(eintraege) > 200:
+        if len(eintraege) > MAX_EINTRAEGE:
             raise serializers.ValidationError("Höchstens 200 Einträge je Abschnitt.")
         return eintraege
 
@@ -129,7 +130,7 @@ class InhaltEingabeSerializer(serializers.Serializer):
     def validate_sections(self, abschnitte):
         if not abschnitte:
             raise serializers.ValidationError("Mindestens ein Abschnitt.")
-        if len(abschnitte) > 50:
+        if len(abschnitte) > MAX_ABSCHNITTE:
             raise serializers.ValidationError("Höchstens 50 Abschnitte.")
         return abschnitte
 

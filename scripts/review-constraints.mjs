@@ -1,15 +1,9 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
 const projectRoot = process.cwd();
-// .tmp, _lokal und alte_projektdatein/ sind gitignored und enthalten bewusst Altbestand
-// oder lokale Infrastruktur. Der Check prüft, was ins Repo gehen kann, nicht was lokal liegt.
-const excludeDirNames = new Set([
-  ".git", ".venv", "venv", "node_modules", "__pycache__", "dist",
-  "staticfiles", "coverage", ".cache", "vendor", ".tmp", "alte_projektdatein", "_lokal",
-]);
-
 const secretName = /\b(?:API_KEY|SECRET|TOKEN|PASSWORD|PRIVATE_KEY)\s*[:=]\s*['"][^'"]+['"]/;
 const jwtToken = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/;
 const glpat = /\bglpat-[A-Za-z0-9_-]+\b/;
@@ -55,27 +49,22 @@ function collectFiles(rootDir) {
   if (!fs.existsSync(rootDir)) {
     return [];
   }
-  const files = [];
-  const stack = [rootDir];
-  while (stack.length) {
-    const current = stack.pop();
-    const name = path.basename(current);
-    if (excludeDirNames.has(name) || name.endsWith(".egg-info")) {
-      continue;
-    }
-    const stat = fs.statSync(current);
-    if (stat.isDirectory()) {
-      for (const entry of fs.readdirSync(current)) {
-        stack.push(path.join(current, entry));
-      }
-      continue;
-    }
-    const ext = path.extname(current).toLowerCase();
-    if ([".ts", ".tsx", ".js", ".mjs", ".vue", ".php", ".py", ".html", ".json", ".md", ".yaml", ".yml", ".sh", ".toml"].includes(ext)) {
-      files.push(current);
-    }
-  }
-  return files;
+  // Git kennt getrackte und neue, aber nicht ignorierte Dateien. Werkzeug-
+  // ausgaben lokaler Agenten werden damit nicht mitgeprüft.
+  const liste = spawnSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+    { cwd: rootDir, encoding: "utf8" },
+  ).stdout || "";
+  const endungen = [
+    ".ts", ".tsx", ".js", ".mjs", ".vue", ".php", ".py", ".html",
+    ".json", ".md", ".yaml", ".yml", ".sh", ".toml",
+  ];
+  return liste
+    .split("\0")
+    .filter(Boolean)
+    .map((rel) => path.join(rootDir, rel))
+    .filter((datei) => endungen.includes(path.extname(datei).toLowerCase()));
 }
 
 function rel(filePath) {

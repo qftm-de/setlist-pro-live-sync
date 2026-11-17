@@ -16,6 +16,7 @@ from collaboration.models import TextState
 from collaboration.services import epoche_erhoehen, ist_entfernt, merke_entfernt
 from library.models import Song
 
+from .content import MAX_ABSCHNITTE, MAX_EINTRAEGE
 from .models import Entry, Section, Setlist, SetlistCommand
 
 PARK = 1_000_000
@@ -80,12 +81,21 @@ def _eintraege(abschnitt: Section) -> list[Entry]:
     return list(Entry.objects.filter(section=abschnitt).order_by("position", "id"))
 
 
+def _kennung(wert) -> uuid.UUID:
+    # Ohne Normalisierung wirft der Filter eine ValidationError, und DRF
+    # beantwortet sie mit 500 statt mit 400.
+    try:
+        return uuid.UUID(str(wert))
+    except (TypeError, ValueError) as fehler:
+        raise BefehlUngueltig("UUID fehlt oder ist ungültig.") from fehler
+
+
 def _suche_abschnitt(setlist: Setlist, kennung) -> Section:
     # Strukturzeile zuerst sperren. Der Textpfad sperrt in derselben
     # Reihenfolge, sonst entsteht ein Deadlock auf Abschnittsnamen.
     treffer = (
         Section.objects.select_for_update()
-        .filter(setlist=setlist, uuid=kennung)
+        .filter(setlist=setlist, uuid=_kennung(kennung))
         .first()
     )
     if treffer is None:
@@ -97,7 +107,7 @@ def _suche_eintrag(setlist: Setlist, kennung) -> Entry:
     # Strukturzeile zuerst sperren, siehe _suche_abschnitt.
     treffer = (
         Entry.objects.select_for_update()
-        .filter(section__setlist=setlist, uuid=kennung)
+        .filter(section__setlist=setlist, uuid=_kennung(kennung))
         .first()
     )
     if treffer is None:
@@ -113,11 +123,12 @@ def _einfuegen(liste: list, objekt, payload: dict, nach_feld: str) -> None:
     if wert is None:
         liste.insert(0, objekt)
         return
+    gesucht = _kennung(wert)
     index = next(
         (
             position
             for position, eintrag in enumerate(liste)
-            if str(eintrag.uuid) == str(wert)
+            if eintrag.uuid == gesucht
         ),
         None,
     )
@@ -217,6 +228,8 @@ def _wende_an(setlist: Setlist, kind: str, payload: dict) -> None:
         if Section.objects.filter(uuid=kennung).exists():
             raise BefehlUngueltig("UUID ist bereits vergeben.")
         abschnitte = _abschnitte(setlist)
+        if len(abschnitte) >= MAX_ABSCHNITTE:
+            raise BefehlUngueltig("Höchstens 50 Abschnitte.")
         _parke_abschnitte(setlist)
         neu = Section.objects.create(
             setlist=setlist,
@@ -264,6 +277,8 @@ def _wende_an(setlist: Setlist, kind: str, payload: dict) -> None:
             raise BefehlUngueltig("UUID ist bereits vergeben.")
         abschnitt = _suche_abschnitt(setlist, payload.get("section_uuid"))
         eintraege = _eintraege(abschnitt)
+        if len(eintraege) >= MAX_EINTRAEGE:
+            raise BefehlUngueltig("Höchstens 200 Einträge je Abschnitt.")
         _parke_eintraege(abschnitt)
         neu = Entry.objects.create(
             section=abschnitt,

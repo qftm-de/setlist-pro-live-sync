@@ -5,7 +5,10 @@ from __future__ import annotations
 import json
 import uuid
 
+from django.core.cache import cache
+
 from collaboration.models import RemovedId
+from setlists.content import MAX_ABSCHNITTE, MAX_EINTRAEGE
 from setlists.models import Entry, Section, Setlist
 
 from .mitarbeit_basis import MitarbeitBasis
@@ -188,6 +191,55 @@ class SetlistMitarbeitTest(MitarbeitBasis):
         )
         self.assertEqual(antwort.status_code, 200)
         self.assertEqual(Section.objects.get(pk=abschnitt.pk).name, "Neu")
+
+    def test_befehl_mit_ungueltiger_uuid_wird_abgewiesen(self):
+        """Eine ungeformte UUID ergibt 400, nicht 500 (R14)."""
+        self.put([{"name": "A", "kind": "set"}], 0)
+        antwort = self.befehl("section.update", {"uuid": "keine-uuid"})
+        self.assertEqual(antwort.status_code, 400)
+        antwort = self.befehl("entry.delete", {"uuid": "12"})
+        self.assertEqual(antwort.status_code, 400)
+
+    def test_befehl_haelt_dieselben_mengengrenzen_wie_der_put(self):
+        """Der Befehlspfad prüft Abschnitte und Einträge wie der PUT (R14)."""
+        self.put([{"name": "A", "kind": "set", "entries": []}], 0)
+        abschnitt = Section.objects.get(setlist=self.setlist)
+        for _ in range(MAX_ABSCHNITTE - 1):
+            # Die Befehlsbremse zählt im Cache, hier zählt die Grenze.
+            cache.clear()
+            antwort = self.befehl(
+                "section.create", {"uuid": str(uuid.uuid4()), "name": "X"}
+            )
+            self.assertEqual(antwort.status_code, 200)
+        voll = self.befehl("section.create", {"uuid": str(uuid.uuid4()), "name": "X"})
+        self.assertEqual(voll.status_code, 400)
+        self.assertEqual(Section.objects.filter(setlist=self.setlist).count(), MAX_ABSCHNITTE)
+
+        for _ in range(MAX_EINTRAEGE):
+            cache.clear()
+            antwort = self.befehl(
+                "entry.create",
+                {
+                    "uuid": str(uuid.uuid4()),
+                    "section_uuid": str(abschnitt.uuid),
+                    "entry_type": "pause",
+                    "duration_seconds": 30,
+                },
+            )
+            self.assertEqual(antwort.status_code, 200)
+        zuviel = self.befehl(
+            "entry.create",
+            {
+                "uuid": str(uuid.uuid4()),
+                "section_uuid": str(abschnitt.uuid),
+                "entry_type": "pause",
+                "duration_seconds": 30,
+            },
+        )
+        self.assertEqual(zuviel.status_code, 400)
+        self.assertEqual(
+            Entry.objects.filter(section=abschnitt).count(), MAX_EINTRAEGE
+        )
 
     def test_befehl_mit_ungueltiger_dauer_wird_abgewiesen(self):
         """Dauer wird im Befehlspfad wie im REST-Weg geprüft (R14)."""
