@@ -133,7 +133,6 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
-- Erstes Review-Gutachten läuft auf einem gehosteten Modell statt auf einem lokalen. Grund: Benchmark-Werte und ein freies Kontingent. Das zweite Gutachten bleibt bei einem zweiten Modell, damit zwei Familien prüfen.
 - Lastlauf-Verify `scripts/lib/verify-realtime/echtzeit.mjs` prüft den Median
   der Zustelllatenz je Band statt einer Einzelspitze. Ein Zweikern-CI-Runner
   hatte 1072 ms gegen die Grenze von 1000 ms gemessen, bei freier Maschine

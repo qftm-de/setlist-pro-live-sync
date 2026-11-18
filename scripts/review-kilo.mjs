@@ -14,9 +14,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const findingsRel = process.env.REVIEW_OUT || ".tmp/review/findings.md";
 const findingsPath = path.join(root, findingsRel);
 const timeoutSekunden = Number.parseInt(process.env.KILO_REVIEW_TIMEOUT || "", 10) || 600;
-// Review-Modell: Gemini 4 Argon über OpenRouter, unabhängig vom Kilo-Standard.
-// Argon wegen CWE-bench 68 % und des Frontier-Vorsprungs bei DeepSWE.
-const modell = process.env.KILO_REVIEW_MODEL || "openrouter/google/gemini-4-argon";
+// Review-Modell: glm-5.3 über OpenCode Go, unabhängig vom Kilo-Standard.
+const modell = process.env.KILO_REVIEW_MODEL || "opencode-go/glm-5.3";
 
 function stand() {
   const r = spawnSync(process.execPath, [path.join(root, "scripts", "review-stand.mjs")], {
