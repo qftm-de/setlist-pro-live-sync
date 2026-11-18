@@ -7,6 +7,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- `scripts/review-agy.mjs` fährt das erste Review-Gutachten über die
+  Review-CLI in Orca. Sie läuft im Abonnement, also ohne zusätzliches Guthaben. Das Skript startet den
+  Agenten als Terminal über `orca agent launch`, wartet auf die Befunddatei
+  und schreibt die Kopfzeilen HEAD, BASE und DIFF selbst. R1.
 - `SUPPORT.md` nennt Meldeweg für Schwachstellen, Antwortzeiten, Art der
   Veröffentlichungen und die Grenze des Supports. `README.md` verweist darauf.
 - Das Gate kennt `doku-sync` als eingebauten Schritt. Er läuft auch ohne lokale
