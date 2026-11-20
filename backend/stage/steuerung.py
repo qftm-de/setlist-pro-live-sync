@@ -25,6 +25,7 @@ def _signatur(command: dict) -> str:
 
 def steuere(
     *,
+    band_id: int,
     session_id: int,
     konto_id: int,
     verbindung_id,
@@ -33,7 +34,7 @@ def steuere(
     command_id: uuid.UUID,
     command: dict,
 ) -> dict:
-    session = StageSession.objects.filter(id=session_id).first()
+    session = StageSession.objects.filter(id=session_id, band_id=band_id).first()
     if session is None:
         raise NichtGefunden()
     if not Membership.objects.filter(

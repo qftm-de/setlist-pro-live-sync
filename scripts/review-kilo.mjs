@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Pre-Push-Review: ruft den Kilo-Review-Agenten non-interaktiv auf (kilo run --agent review).
-// Gate-Schritt kilo-review in harness/projekt.yaml, läuft vor review-stand.
+// Zweitgutachten: ruft den Kilo-Review-Agenten non-interaktiv auf (kilo run --agent review).
+// Gate-Schritt kilo-review-2 in harness/projekt.yaml, läuft vor review-stand-2.
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -9,9 +9,9 @@ import { fileURLToPath } from "node:url";
 import { resolveDiffBase } from "./lib/git-base.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-// REVIEW_OUT erlaubt einen zweiten Durchgang mit eigener Datei, damit sich
-// zwei Gutachter nicht gegenseitig überschreiben.
-const findingsRel = process.env.REVIEW_OUT || ".tmp/review/findings.md";
+// REVIEW_OUT erlaubt einen eigenen Pfad. Standard ist zweit.md, weil das
+// Erstgutachten in findings.md liegt.
+const findingsRel = process.env.REVIEW_OUT || ".tmp/review/zweit.md";
 const findingsPath = path.join(root, findingsRel);
 const timeoutSekunden = Number.parseInt(process.env.KILO_REVIEW_TIMEOUT || "", 10) || 600;
 // Review-Modell: glm-5.3 über OpenCode Go, unabhängig vom Kilo-Standard.
@@ -27,12 +27,13 @@ function stand() {
     process.exit(1);
   }
   const head = (r.stdout || "").split(/\r?\n/).find((l) => l.startsWith("HEAD ")) || "";
+  const base = (r.stdout || "").split(/\r?\n/).find((l) => l.startsWith("BASE ")) || "";
   const diff = (r.stdout || "").split(/\r?\n/).find((l) => l.startsWith("DIFF ")) || "";
   if (!head || !diff) {
     process.stderr.write("review-stand.mjs lieferte keinen Stand\n");
     process.exit(1);
   }
-  return { head, diff };
+  return { head, base, diff };
 }
 
 function findingsAktuell(st) {
@@ -76,7 +77,7 @@ if (base) {
   env.REQUIREMENTS_DIFF_BASE = base;
 }
 const basisText = base
-  ? `Branch-Diff ab ${base.slice(0, 12)} (REQUIREMENTS_DIFF_BASE gesetzt) plus Working Tree`
+  ? `Branch-Diff ab ${base} plus Working Tree. Prüfe mit "git diff ${base}..HEAD" und "git diff ${base}".`
   : "Working Tree";
 
 const r = spawnSync("kilo", [
@@ -101,6 +102,10 @@ if ((r.status ?? 1) !== 0) {
 // abgetippt. Dann scheitert das Gate an einem Zeichen, obwohl der Bericht zum
 // richtigen Diff gehört. Deshalb schreibt das Skript die Stand-Zeilen selbst.
 function standSchreiben(st) {
+  if (!fs.existsSync(findingsPath)) {
+    process.stderr.write(`${findingsRel} fehlt. Der Gutachter hat eine andere Datei geschrieben.\n`);
+    process.exit(1);
+  }
   const text = fs.readFileSync(findingsPath, "utf8");
   const zeilen = text.split("\n").filter(
     (zeile) => !/^(HEAD|BASE|DIFF) \S*$/.test(zeile.trim()),

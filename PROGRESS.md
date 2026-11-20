@@ -22,7 +22,7 @@
 - Lokaler Export der Alpha: `.tmp/fb/export.zip`, Rohdaten unter `.tmp/fb/`. Der Ordner ist gitignored.
 - Doku bereinigt: alte Projekt-ID, Bandcodes und Demo-Namen entfernt. Screens der Alt-App bleiben lokal, `docs/analyse/screens/` ist gitignored.
 - Sicherheits-Baseline im Gate: `scripts/review-constraints.mjs` blockt Secrets, Zugangsdaten, private IPs, eingebettete Dateien und unsichere Code-Muster, auch in `docs/` und `.yaml`.
-- Pre-Push-Review-Pipeline steht: Gate-Schritt `kilo-review` in `harness/projekt.yaml` ruft `scripts/review-kilo.mjs` auf, das den Review-Agenten non-interaktiv per `kilo run` startet. Läuft nur, wenn die Befunddatei nicht zum Stand passt. Dafür erlaubt das Schema der Harness-Quelle jetzt eigene `{name, run}`-Schritte im Gate.
+- Pre-Push-Review-Pipeline steht: Gate-Schritt `agy-review` in `harness/projekt.yaml` ruft `scripts/review-agy.mjs` auf, das den Review-Gutachter über Orca startet und in die Befunddatei schreibt. Der Schritt läuft nur, wenn die Befunddatei nicht zum Stand passt. Der zweite Durchgang (`kilo-review-2` → `scripts/review-kilo.mjs`) bleibt bei das Review-Werkzeug und schreibt die zweite Befunddatei. Dafür erlaubt das Schema der Harness-Quelle jetzt eigene `{name, run}`-Schritte im Gate.
 - Qualitätssicherung nach Prozess-Bewertung nachgebaut (2026-11-14):
   - Gate-Skripte sind versioniert, Harness und Agentenkonfiguration bleiben lokal. Ein frischer Clone führt das Gate mit den eingebauten Schritten aus: `npm ci` im Root, dann `node scripts/gate.mjs --schnell`. Simulation ohne Harness-Quelle geprüft.
   - CI hat einen Job `gate` (Requirements-Gate, Security-Baseline, Gitleaks) vor den Test-Jobs.
@@ -30,7 +30,7 @@
   - R1-Verify ist eine echte Prüfung geworden (`scripts/check-repo.mjs`), R1 und R2 sind erneut passing (inklusive Smoke-Test).
   - Das Voll-Gate liest offene Blocker und Major strukturiert aus Befundabschnitten (`## F<n>`), der Review-Skill schreibt dieses Format vor.
   - Regeln entdoppelt: `kilo.jsonc` lädt nur `AGENTS.md`, Projekt-Policy nur einmal, `.kilo/rules` und `.claude/rules` entfallen. Review-Skill verlangt belastbare Evidenz (Kommando bevorzugt, Kontrollfluss sonst, Unsicherheit kennzeichnen). Schreibregeln sind Sprachkonventionen ohne Texter-Rolle.
-  - Struktur-Regel mit Gate-Schritt `lint-file-size`: Code 300 Ziel/500 hart, Doku 500 Ziel/1000 hart, läuft lokal (schnell/voll) und in CI. Aktuell grün mit fünf Hinweisen (`scripts/verify-kern.mjs`, `scripts/lib/requirements.mjs`, `scripts/gate.mjs`, `frontend/src/App.gigs-fehler.test.tsx` und `backend/api/test_gigs.py` je über 300, unter 500).
+  - Struktur-Regel mit Gate-Schritt `lint-file-size`: Code 300 Ziel/500 hart, Doku 500 Ziel/1000 hart, läuft lokal (schnell/voll) und in CI. Aktuell grün. Über 300 und unter 500 Zeilen liegen: `backend/export/inhalt.py`, `backend/api/annotations.py`, `backend/api/setlists.py`, `backend/api/test_annotations.py`, `backend/api/test_gigs.py`, `backend/api/test_stage.py`, `backend/realtime/consumers.py`, `backend/setlists/commands.py`, `frontend/src/App.gigs-fehler.test.tsx`, `frontend/src/annotations/AnmerkungsBereich.tsx`, `frontend/src/annotations/AnmerkungsFormular.tsx`, `frontend/src/collaboration/useCrdtTextEpochen.test.ts`, `frontend/src/documents/DokumentAnsicht.tsx`, `frontend/src/realtime/realtime.ts`, `frontend/src/setlists/useSetlistBearbeitung.test.ts`, `frontend/src/setlists/useSetlistBearbeitung.ts`, `frontend/src/stage/StageRoute.tsx`, `frontend/src/ui/Setlists.tsx`, `scripts/gate.mjs`, `scripts/lib/requirements.mjs`, `scripts/lib/verify-realtime/buehne.mjs`, `scripts/lib/verify-realtime/mitarbeit.mjs`, `scripts/verify-kern.mjs` und `scripts/verify-realtime.mjs`. `App.tsx` und `useCrdtText.ts` liegen nach der Aufteilung unter 300.
   - Dokumentations-Regel mit Gate-Schritt `doku-sync`: Produktänderungen brauchen einen neuen Eintrag in `CHANGELOG.md` unter `## [Unreleased]`, und `CHANGELOG.md`, `PROGRESS.md` sowie `DECISIONS.md` bleiben vorhanden. Reine Doku- und Agentenänderungen sind ausgenommen. Der Schritt steht in `harness/projekt.yaml` für `--schnell` und `--voll` und läuft als eigener Schritt in der CI. Die verbindliche Schranke ist der CI-Schritt, weil ein frischer Clone die Harness-Konfiguration nicht mitbringt. Regeltext in `CONTRIBUTING.md`, Abschnitt Dokumentation.
 - Das Gerüst (R2) ist passing, inklusive Smoke-Test über `scripts/geruest-smoke.mjs`. Produktfunktionen sind noch nicht gebaut und kommen als eigene R-Zeilen.
 - Paket 1 umgesetzt und passing (R3 bis R5, 2026-11-14):
@@ -136,6 +136,20 @@
 - `verify-kern` und `verify-realtime` nutzen eigene Compose-Projektnamen und
   Ports je Lauf, zwei gleichzeitige Gates stören sich nicht mehr.
 
+- Review, Schulden und Export (19.11.2026):
+  - Erstgutachten läuft über Review-CLI (`scripts/review-agy.mjs`) und schreibt in die Befunddatei; das Review-Werkzeug bleibt Zweitgutachter. R1.
+  - `text.updated`-Ereignisse liegen in `useTextEreignisse`, sind auf 128 Einträge begrenzt und werden bei Bandwechsel und Abgleich geleert. R14.
+  - `steuere` verlangt `band_id` und bindet die Bühnensitzung an die Band der Verbindung. Fremde Sitzungen enden wie im REST-Weg mit 404. R15.
+  - CI prüft R14 und R15 gegen echte Container; `verify-ci.mjs` verlangt beide Läufe. R5.
+  - `useCrdtText.ts` und `App.tsx` sind unter 300 Zeilen aufgeteilt, die öffentlichen APIs blieben gleich. R14, R15.
+  - Bandexport (R16): ZIP mit Manifest, CRDT-Texten, allen PDF-Versionen und gefilterten Anmerkungen, Grenze `EXPORT_MAX_BYTES`, Knopf im Bandkopf, Smoke über nginx.
+  - Release (R17): GHCR-Workflow für `v*`, Release-Compose ohne Build, `scripts/verify-release.mjs`, Betriebsdoku mit Login, Pull, Update und Rollback.
+  - Mobil-Smoke für Auftritte, PDF und Bühne; Pilot-Checkliste in `docs/pilot.md`.
+  - Review-Befunde vom 20.11.2026 behoben: Bandexport-Fehlerpfade liefern JSON
+    mit 401, 404 und 413 statt 500, der Export hat eine Bremse und prüft die
+    Größe vor dem Archivbau, ein verworfener Textstand löst ein Nachladen aus,
+    und der Kern-Job prüft das Frontend einmal statt viermal. R16, R14, R5.
+
 ## Offen
 
 - Firebase und Firestore sind abgekündigt. Der alte Bestand bleibt als lokaler Export in `.tmp/fb/` und ist keine Projektaufgabe mehr. Offen bleibt nur die persönliche Hygiene: ein in der Alt-App sichtbares Passwort bei anderer Gelegenheit rotieren.
@@ -147,12 +161,10 @@
 
 ## Als Nächstes
 
-1. Sichtprüfung der Auftritte und PDFs auf Mobilformat und Desktop nachholen; die Chromium-Smokes prüfen die Funktion, nicht die Gestaltung.
-2. Push offen: das Voll-Gate stoppt an einer Designfrage, nicht an einem Defekt. Die Gutachter fordern abwechselnd die Revisionerhöhung im Textpfad und die Rücknahme der Übernahme im Client. Die geltende Entscheidung steht in `DECISIONS.md` unter Zusammenarbeit.
-3. Bühnenansicht auf einem echten Tablet prüfen: Lesereserve mit mehr als 128 MiB, Wake Lock, Vollbild und sehr kleine Displays.
-4. Export als eigene R-Zeile.
-5. Paket 10 und 11: Betrieb, private Auslieferung, Pilot-Abnahme.
-6. Erst danach der Hub als eigene Instanz.
+1. Voll-Gate `node scripts/gate.mjs --voll` laufen lassen und offene Blocker oder Major der beiden Gutachter abarbeiten.
+2. Push und Tag `v0.1.0` durch den Nutzer, danach den Release-Workflow in GHCR prüfen.
+3. Pilot-Checkliste in `docs/pilot.md` auf echtem Tablet und in Desktop- und Mobilbrowsern ausfüllen.
+4. Erst danach der Hub als eigene Instanz.
 
 ## Hinweis
 

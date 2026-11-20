@@ -37,6 +37,10 @@ const pflichtDateien = [
   "scripts/lint-file-size.mjs",
   "scripts/review-stand.mjs",
   "scripts/review-kilo.mjs",
+  "scripts/review-agy.mjs",
+  "scripts/verify-release.mjs",
+  ".github/workflows/release.yml",
+  "docker-compose.release.yml",
   ".githooks/pre-push",
 ];
 

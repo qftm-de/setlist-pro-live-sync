@@ -54,6 +54,22 @@ Das Kommando löscht nur Dateien, die älter als 24 Stunden sind und zu keiner
 `DocumentVersion` gehören. Referenzierte Versionen bleiben erhalten. Das
 Kommando eignet sich für einen täglichen Cron- oder Timer-Lauf.
 
+## Bandexport
+
+Mitglieder laden unter `GET /api/bands/<id>/export/` ein ZIP ihrer Band. Es
+enthält `manifest.json`, alle Songs, Setlists mit Abschnitten und Einträgen,
+Auftritte, bandweite Anmerkungen und die eigenen persönlichen Anmerkungen.
+Dazu kommen alle PDF-Versionen der Band unter `pdfs/<song_id>/`.
+
+- Fremde Bands antworten mit 404, anonyme Aufrufe mit 401.
+- Persönliche Anmerkungen anderer Mitglieder sind nicht enthalten.
+- Der Dateiname im Download wird aus dem Bandnamen gebildet und bereinigt.
+- `EXPORT_MAX_BYTES` begrenzt die Nutzbytes des Archivs. Standard sind
+  536870912 Byte (512 MiB), `0` schaltet die Grenze ab. Bei Überschreitung
+  antwortet die API mit 413.
+- Das Archiv wird in einer temporären Datei gebaut und nach dem Download
+  verworfen. Ein Import ist nicht Teil des Exports.
+
 ## Diagnose
 
 - Ein 413 vom Proxy bedeutet, dass der Request die Proxy-Grenze überschreitet.
@@ -190,3 +206,31 @@ Setlisten werden nie weggeräumt.
   Verbindung nicht mehr die Leitung oder die Generation veraltet.
 - Ein leerer Snapshot beim Start bedeutet: Die Setlist hat keinen Song. Pausen
   und Notizen allein starten keine Bühnensitzung.
+
+## Release und Update
+
+Veröffentlichte Images liegen in der GitHub Container Registry:
+
+- `ghcr.io/qftm-de/setlist-pro-live-sync/web`
+- `ghcr.io/qftm-de/setlist-pro-live-sync/api`
+
+Ein Tag `v0.1.0` erzeugt die Tags `0.1.0`, `0.1` und `sha-<kurz>`. Das
+Release-Compose pinnt die volle Version, damit ein Pull reproduzierbar bleibt.
+
+```bash
+# einmalig anmelden, persönlichen Token mit read:packages verwenden
+echo "$GHCR_TOKEN" | docker login ghcr.io -u <github-name> --password-stdin
+
+# Images ziehen und ohne lokalen Build starten
+docker compose -f docker-compose.release.yml pull
+docker compose -f docker-compose.release.yml up -d --no-build
+
+# Update: neue Version in docker-compose.release.yml eintragen, dann
+docker compose -f docker-compose.release.yml pull
+docker compose -f docker-compose.release.yml up -d --no-build
+```
+
+Für einen Rollback die vorherige Version in `docker-compose.release.yml`
+eintragen, erneut `pull` und `up -d --no-build` ausführen. Vor einem Rollback
+über eine Migration hinweg die Datenbank sichern. Fehlt ein Image, scheitert
+`pull` sichtbar und der laufende Stand bleibt unverändert.

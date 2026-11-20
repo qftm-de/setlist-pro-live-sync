@@ -295,6 +295,7 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
             command_id = uuid_mod.UUID(str(content.get("command_id")))
             command = content.get("command")
             ergebnis = await database_sync_to_async(steuere)(
+                band_id=self.band_id,
                 session_id=session_id,
                 konto_id=self.konto_id,
                 verbindung_id=self.stage_verbindung.id,

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "collaboration",
     "realtime",
     "stage",
+    "export",
     "api",
 ]
 
@@ -137,7 +138,11 @@ REST_FRAMEWORK = {
     ],
     # Schreibbremse für Textenden (REST-Gegenstück zur WebSocket-Bremse).
     # Beim Tippen sendet der Editor alle 250 ms, daher 300 je Minute.
-    "DEFAULT_THROTTLE_RATES": {"text": "300/min", "commands": "120/min"},
+    "DEFAULT_THROTTLE_RATES": {
+        "text": "300/min",
+        "commands": "120/min",
+        "export": "6/min",
+    },
 }
 
 LANGUAGE_CODE = "de"
@@ -157,5 +162,6 @@ PDF_MAX_UPLOAD_BYTES = konfiguration.pdf_max_upload_bytes
 PDF_MAX_PAGES = konfiguration.pdf_max_pages
 PDF_CHECK_TIMEOUT_SECONDS = konfiguration.pdf_check_timeout_seconds
 PDF_CHECK_MEMORY_MB = konfiguration.pdf_check_memory_mb
+EXPORT_MAX_BYTES = konfiguration.export_max_bytes
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

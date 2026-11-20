@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Pre-Push-Review über die Antigravity-CLI in Orca. Bezahlt aus dem Google-AI-Pro-Abo,
+// Erstgutachten über die Antigravity-CLI in Orca. Bezahlt aus dem Google-AI-Pro-Abo,
 // nicht aus dem OpenRouter-Guthaben. Der Agent läuft als Terminal in Orca, schreibt die
-// Befunddatei selbst, dieses Skript startet ihn und wartet auf die Datei.
+// Befunddatei selbst, dieses Skript startet ihn und wartet auf die Datei. Standard ist
+// findings.md, damit das Gate den Erstbefund liest.
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -10,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { resolveDiffBase } from "./lib/git-base.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const findingsRel = process.env.REVIEW_OUT || ".tmp/review/findings-agy.md";
+const findingsRel = process.env.REVIEW_OUT || ".tmp/review/findings.md";
 const findingsPath = path.join(root, findingsRel);
 const timeouts = Number.parseInt(process.env.AGY_REVIEW_TIMEOUT || "", 10) || 1200;
 const orca =
@@ -89,7 +90,7 @@ if (!fs.existsSync(orca)) {
 
 const base = resolveDiffBase(root);
 const basisText = base
-  ? `Branch-Diff ab ${base.slice(0, 12)} plus Working Tree`
+  ? `Branch-Diff ab ${base} plus Working Tree. Prüfe mit "git diff ${base}..HEAD" und "git diff ${base}".`
   : "Working Tree";
 
 fs.mkdirSync(path.dirname(findingsPath), { recursive: true });
@@ -108,7 +109,12 @@ const auftrag = [
 const start = spawnSync(
   orca,
   ["agent", "launch", "--agent", "antigravity", "--surface", "terminal", "--prompt", auftrag, "--json"],
-  { cwd: root, encoding: "utf8", timeout: 120_000 },
+  {
+    cwd: root,
+    encoding: "utf8",
+    timeout: 120_000,
+    env: base ? { ...process.env, REQUIREMENTS_DIFF_BASE: base } : process.env,
+  },
 );
 let handle = "";
 try {

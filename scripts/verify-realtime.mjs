@@ -118,6 +118,10 @@ async function anmelden(name) {
 }
 
 function frontendPruefen() {
+  if (process.env.VERIFY_SKIP_FRONTEND === "1") {
+    // Der CI-Job `frontend` prüft Tests und Build bereits.
+    return;
+  }
   const frontend = path.join(root, "frontend");
   const npm = process.platform === "win32" ? "npm.cmd" : "npm";
   const lauf = (args, text) => {

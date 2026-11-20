@@ -43,6 +43,7 @@ const jobs = workflow?.jobs || {};
 const gate = jobs.gate;
 const frontend = jobs.frontend;
 const backend = jobs.backend;
+const kern = jobs.kern;
 
 if (!gate) {
   fehler.push("Job gate fehlt.");
@@ -137,6 +138,40 @@ for (const [name, job] of Object.entries(jobs)) {
       `${name}: Job ruft node scripts/ auf, installiert aber keine Root-Abhängigkeiten (npm ci im Repo-Root).`,
     );
   }
+}
+
+if (!kern) {
+  fehler.push("Job kern fehlt.");
+} else {
+  const text = befehle(kern);
+  for (const ziel of ["R13", "R14", "R15"]) {
+    if (!enthaelt(text, `node scripts/verify-realtime.mjs ${ziel}`)) {
+      fehler.push(`Kern-Job prüft die Echtzeit nicht: ${ziel}`);
+    }
+  }
+  const hatRootCi = (kern.steps || []).some(
+    (step) =>
+      String(step?.run || "").includes("npm ci") &&
+      !String(step?.["working-directory"] ?? "").trim(),
+  );
+  if (!hatRootCi) {
+    fehler.push("Kern-Job installiert keine Root-Abhängigkeiten (npm ci im Repo-Root).");
+  }
+  const hatFrontendCi = (kern.steps || []).some(
+    (step) =>
+      String(step?.run || "").includes("npm ci") &&
+      String(step?.["working-directory"] ?? "").trim() === "frontend",
+  );
+  if (!hatFrontendCi) {
+    fehler.push("Kern-Job installiert keine Frontend-Abhängigkeiten.");
+  }
+}
+
+if (!fs.existsSync(path.join(root, "docker-compose.yml"))) {
+  fehler.push("docker-compose.yml fehlt; der Kern-Job kann die Containerläufe nicht starten.");
+}
+if (!fs.existsSync(path.join(root, "scripts", "verify-realtime.mjs"))) {
+  fehler.push("scripts/verify-realtime.mjs fehlt.");
 }
 
 if (workflow?.on?.pull_request_target) {

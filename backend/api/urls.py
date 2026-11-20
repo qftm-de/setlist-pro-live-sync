@@ -6,6 +6,7 @@ from . import (
     bands,
     document_datei,
     documents,
+    export,
     gigs,
     session,
     setlists,
@@ -24,6 +25,7 @@ urlpatterns = [
     path("bands/", bands.BandListe.as_view()),
     path("bands/<int:band_id>/", bands.BandDetail.as_view()),
     path("bands/<int:band_id>/sync/", sync.BandAbgleich.as_view()),
+    path("bands/<int:band_id>/export/", export.BandExport.as_view()),
     path("bands/<int:band_id>/songs/", songs.SongListe.as_view()),
     path("bands/<int:band_id>/songs/<int:song_id>/", songs.SongDetail.as_view()),
     path(

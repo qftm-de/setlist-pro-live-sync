@@ -15,6 +15,7 @@ PDF_STANDARD_BYTES = 20 * 1024 * 1024
 PDF_STANDARD_SEITEN = 100
 PDF_STANDARD_ZEITSEKUNDEN = 30
 PDF_STANDARD_SPEICHER_MB = 512
+EXPORT_STANDARD_BYTES = 512 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,7 @@ class LaufzeitKonfiguration:
     pdf_max_pages: int
     pdf_check_timeout_seconds: int
     pdf_check_memory_mb: int
+    export_max_bytes: int
 
 
 def _wert(environ: Mapping[str, str], name: str) -> str:
@@ -182,5 +184,8 @@ def load_runtime_config(environ: Mapping[str, str] | None = None) -> LaufzeitKon
         ),
         pdf_check_memory_mb=_ganzzahl(
             env, "PDF_CHECK_MEMORY_MB", PDF_STANDARD_SPEICHER_MB, 1
+        ),
+        export_max_bytes=_ganzzahl(
+            env, "EXPORT_MAX_BYTES", EXPORT_STANDARD_BYTES
         ),
     )

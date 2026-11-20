@@ -12,6 +12,7 @@ from setlists.models import Setlist
 from stage.dienste import (
     Konflikt,
     NichtErlaubt,
+    NichtGefunden,
     aktive_sitzung,
     kehre_zurueck,
     sitzung_daten,
@@ -63,6 +64,34 @@ class StageTest(StageBasis, TestCase):
             self.mitglied_client.get(self.pfad(session_id)).status_code, 200
         )
 
+    def test_befehl_aus_fremder_band_ist_nicht_gefunden(self):
+        """Eine Verbindung von Band A darf keine Sitzung von Band B steuern."""
+        from bands.models import Membership
+
+        Membership.objects.create(
+            band=self.fremdband, user=self.mitglied, role=Membership.ROLE_MEMBER
+        )
+        fremd_session = StageSession.objects.create(
+            band=self.fremdband, created_by=self.fremd
+        )
+        verbindung = self._verbindung(self.mitglied_client, self.mitglied)
+
+        with self.assertRaises(NichtGefunden):
+            steuere(
+                band_id=self.band.id,
+                session_id=fremd_session.id,
+                konto_id=self.mitglied.id,
+                verbindung_id=verbindung.id,
+                generation=1,
+                number=1,
+                command_id=uuid.uuid4(),
+                command={"kind": "goto", "entry_uuid": str(uuid.uuid4())},
+            )
+
+        fremd_session.refresh_from_db()
+        self.assertEqual(fremd_session.revision, 0)
+        self.assertIsNone(fremd_session.current_entry_uuid)
+
     def test_snapshot_ueberlebt_setlist_aenderung_und_loeschung(self):
         self.starte()
         session = self._sitzung()
@@ -101,6 +130,7 @@ class StageTest(StageBasis, TestCase):
 
         ziel = session.entries.filter(entry_type="song").order_by("position").first()
         ergebnis = steuere(
+            band_id=self.band.id,
             session_id=session.id,
             konto_id=self.mitglied.id,
             verbindung_id=mitglied_verbindung.id,
@@ -111,6 +141,7 @@ class StageTest(StageBasis, TestCase):
         )
         self.assertEqual(ergebnis["status"], "confirmed")
         alt = steuere(
+            band_id=self.band.id,
             session_id=session.id,
             konto_id=self.leitung.id,
             verbindung_id=leitung_verbindung.id,
@@ -207,6 +238,7 @@ class StageTest(StageBasis, TestCase):
         kennung = uuid.uuid4()
 
         erst = steuere(
+            band_id=self.band.id,
             session_id=session.id,
             konto_id=self.leitung.id,
             verbindung_id=verbindung.id,
@@ -217,6 +249,7 @@ class StageTest(StageBasis, TestCase):
         )
         self.assertEqual(erst["status"], "confirmed")
         wieder = steuere(
+            band_id=self.band.id,
             session_id=session.id,
             konto_id=self.leitung.id,
             verbindung_id=verbindung.id,
@@ -231,6 +264,7 @@ class StageTest(StageBasis, TestCase):
         )
 
         anders = steuere(
+            band_id=self.band.id,
             session_id=session.id,
             konto_id=self.leitung.id,
             verbindung_id=verbindung.id,
@@ -243,6 +277,7 @@ class StageTest(StageBasis, TestCase):
         self.assertEqual(StageSession.objects.get(pk=session.pk).revision, erst["revision"])
 
         sprung = steuere(
+            band_id=self.band.id,
             session_id=session.id,
             konto_id=self.leitung.id,
             verbindung_id=verbindung.id,
@@ -253,6 +288,7 @@ class StageTest(StageBasis, TestCase):
         )
         self.assertEqual(sprung["status"], "rejected")
         naechster = steuere(
+            band_id=self.band.id,
             session_id=session.id,
             konto_id=self.leitung.id,
             verbindung_id=verbindung.id,
@@ -264,6 +300,7 @@ class StageTest(StageBasis, TestCase):
         self.assertEqual(naechster["status"], "confirmed")
 
         pause_ziel = steuere(
+            band_id=self.band.id,
             session_id=session.id,
             konto_id=self.leitung.id,
             verbindung_id=verbindung.id,
@@ -279,6 +316,7 @@ class StageTest(StageBasis, TestCase):
 
         for seite in (0, 4):
             grenze = steuere(
+                band_id=self.band.id,
                 session_id=session.id,
                 konto_id=self.leitung.id,
                 verbindung_id=verbindung.id,
@@ -290,6 +328,7 @@ class StageTest(StageBasis, TestCase):
             self.assertEqual(grenze["status"], "rejected")
 
         ohne_pdf = steuere(
+            band_id=self.band.id,
             session_id=session.id,
             konto_id=self.leitung.id,
             verbindung_id=verbindung.id,
@@ -306,6 +345,7 @@ class StageTest(StageBasis, TestCase):
         zweiter_tab = self._verbindung(self.leitung_client, self.leitung)
         ziel = session.entries.filter(entry_type="song").order_by("position").first()
         ergebnis = steuere(
+            band_id=self.band.id,
             session_id=session.id,
             konto_id=self.leitung.id,
             verbindung_id=zweiter_tab.id,
@@ -336,6 +376,7 @@ class StageTest(StageBasis, TestCase):
         self.assertEqual(ende.status_code, 200)
         self.assertEqual(ende.json()["state"], "ended")
         alt = steuere(
+            band_id=self.band.id,
             session_id=session.id,
             konto_id=self.leitung.id,
             verbindung_id=session.leader_connection,

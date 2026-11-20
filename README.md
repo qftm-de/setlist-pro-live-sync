@@ -21,7 +21,10 @@ Serverbestätigung als gespeichert angezeigt.
 
 **Vorabversion des Kerns.** Frontend, Backend, Compose und CI stehen. Umgesetzt
 sind Laufzeitkonfiguration, gleiche Origin über nginx, lokale Anmeldung mit
-Session, Bands, Songs und Setlists mit Abschnitten, Pausen und Zugaben. Konten
+Session, Bands, Songs und Setlists mit Abschnitten, Pausen und Zugaben.
+Bandmitglieder laden ihre Band als ZIP mit Manifest, Setlists, Auftritten,
+Anmerkungen und allen PDF-Versionen herunter. Grenze und Datenschutz stehen in
+[docs/betrieb.md](docs/betrieb.md). Konten
 legt der Betreiber an, eine öffentliche Registrierung gibt es im Core nicht. Die nächsten Schritte stehen in
 [`PROGRESS.md`](PROGRESS.md), die geltenden Entscheidungen in
 [`DECISIONS.md`](DECISIONS.md).
@@ -122,7 +125,9 @@ deckt [`docs/betrieb.md`](docs/betrieb.md) ab.
 
 Die Idee und die erste Fassung der App stammen von P. Beuster. Die Urapp liegt
 nicht im Repo. Sie war die Vorlage für die Analyse unter [`docs/analyse/`](docs/analyse/00-ueberblick.md).
-Der Neubau ist eine eigenständige Implementierung.
+Der Neubau ist eine eigenständige Implementierung. Ab Version 0.1.0 liegen
+Images in der GitHub Container Registry (GHCR); Pull, Update und Rollback
+stehen in [`docs/betrieb.md`](docs/betrieb.md).
 
 Powered by [QFTM.de](https://qftm.de).
 

@@ -15,6 +15,8 @@ import { pruefeAktivesLimit, pruefeOhneLimit } from "./lib/verify-pdf-limits.mjs
 import { pruefeAnmerkungen } from "./lib/verify-annotations.mjs";
 import { pruefeDokumente } from "./lib/verify-documents.mjs";
 import { pruefeGigs } from "./lib/verify-gigs.mjs";
+import { pruefeExport } from "./lib/verify-export.mjs";
+import { pruefeMobil } from "./lib/verify-mobil.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Eigener Projektname und Port je Lauf. Zwei gleichzeitige Gates würden sonst
@@ -86,6 +88,10 @@ function pruefe(bedingung, text) {
 }
 
 function frontendPruefen() {
+  if (process.env.VERIFY_SKIP_FRONTEND === "1") {
+    // Der CI-Job `frontend` prüft Tests und Build bereits.
+    return;
+  }
   const frontend = path.join(root, "frontend");
   const npm = process.platform === "win32" ? "npm.cmd" : "npm";
   const lauf = (args, text) => {
@@ -323,6 +329,17 @@ try {
     bandId,
     pruefe,
     basis,
+    benutzer: "pilot",
+    passwort,
+  });
+
+  const exportDaten = await pruefeExport({ erste, zweite, bandId, basis, pruefe });
+  await pruefeMobil({
+    basis,
+    bandId,
+    songId: exportDaten.songId,
+    setlistId: exportDaten.setlistId,
+    versionId: exportDaten.versionId,
     benutzer: "pilot",
     passwort,
   });

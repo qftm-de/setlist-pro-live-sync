@@ -25,7 +25,7 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 ## Prozess
 
 - Anforderungen vor Code. Verify schreibt `State`, nicht der Agent.
-- Review-Schiene immer: vor Push oder Merge Request läuft ein Review zum aktuellen Stand. Reviewer ändert keinen Code. Mit lokaler Harness-Konfiguration ruft das Voll-Gate den Kilo-Review-Agenten automatisch auf (`scripts/review-kilo.mjs`), sobald die Befunddatei nicht zum Stand passt. Ohne Harness verlangt `review-stand` eine aktuelle Befunddatei. Offene Blocker oder Major stoppen den Push.
+- Review-Schiene immer: vor Push oder Merge Request läuft ein Review zum aktuellen Stand. Reviewer ändert keinen Code. Mit lokaler Harness-Konfiguration ruft das Voll-Gate zuerst den Review-Gutachter automatisch auf (`scripts/review-agy.mjs`, Befunddatei die Befunddatei), sobald die Datei nicht zum Stand passt. Der zweite Durchgang bleibt bei das Review-Werkzeug (`scripts/review-kilo.mjs`, die zweite Befunddatei). Ohne Harness verlangt `review-stand` eine aktuelle Befunddatei. Offene Blocker oder Major stoppen den Push.
 - Versionierung nach SemVer, CHANGELOG nach Keep a Changelog. Jeder Release bekommt einen Version-Bump und einen CHANGELOG-Eintrag.
 - Git-Schreibaktionen nur der Mensch.
 - Gate-Skripte sind versioniert, einschließlich des Renderers `scripts/harness.mjs`. Harness, `AGENTS.md`, `kilo.jsonc` und die Agentenordner bleiben lokal und unversioniert. Grund: Das Gate muss in jedem Clone laufen; die Agentenkonfiguration ist maschinenbezogen. Ein frischer Clone nutzt die eingebauten Gate-Schritte.
@@ -55,6 +55,12 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 ## Zusammenarbeit
 
 - Die Revision einer Setlist schützt die Struktur, Textfelder haben ihren eigenen Stand mit Epoche und Revision. Eine bestätigte Textänderung erhöht zusätzlich die Setlist-Revision, damit ein veralteter Gesamt-PUT in 409 läuft statt den Text über einen Epochenwechsel zu ersetzen. Tabs ziehen die Revision **nicht** aus fremden Textereignissen nach: Übernahmen ließen einen veralteten PUT durch, der fremde Abschnitte löscht. Ein 409 führt in den vorhandenen Zusammenführungsweg.
+
+## Auslieferung und Export
+
+- Das erste Release ist `v0.1.0`. Ein Tag `v*` baut `web` und `api` über GHCR mit voller Version, `major.minor` und Commit-Tag; das Release-Compose pinnt die volle Version und baut nichts lokal. Grund: Der geprüfte Stand ist reproduzierbar, und ein Update ist ein sichtbarer Pull.
+- Der Bandexport ist ein ZIP mit `manifest.json`, Songs über Integer-IDs, Setlists und Anmerkungen über UUIDs sowie allen PDF-Versionen. Persönliche Anmerkungen kommen nur vom anfragenden Konto mit. Grund: Ein vollständiger, portabler Auszug ohne Rechtebruch.
+- `EXPORT_MAX_BYTES` begrenzt den Export, Standard 512 MiB. Grund: Ein Archiv mit allen PDF-Versionen darf weder Speicher noch Bandbreite unbegrenzt belegen.
 
 ## GitHub
 

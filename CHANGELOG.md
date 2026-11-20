@@ -7,6 +7,15 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- Bandexport (R16): `GET /api/bands/<id>/export/` liefert ein ZIP mit
+  `manifest.json`, Songs, Setlists, Auftritten, bandweiten und eigenen
+  persönlichen Anmerkungen sowie allen PDF-Versionen. `EXPORT_MAX_BYTES`
+  begrenzt das Archiv, bei Überschreitung folgt 413. Der Knopf im Bandkopf
+  lädt die Datei über die eigene Origin.
+- Release-Images (R17): Ein Tag `v*` baut `web` und `api` über GHCR und
+  veröffentlicht volle Version, `major.minor` und Commit-Tag.
+  `docker-compose.release.yml` zieht genau diese Images ohne lokalen Build.
+- Mobil-Smoke für Auftritte, PDF und Bühne im Playwright-Profil `mobil`.
 - `scripts/review-agy.mjs` fährt das erste Review-Gutachten über die
   Review-CLI in Orca. Sie läuft im Abonnement, also ohne zusätzliches Guthaben. Das Skript startet den
   Agenten als Terminal über `orca agent launch`, wartet auf die Befunddatei
@@ -137,6 +146,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- Erstgutachten läuft über Review-CLI (`scripts/review-agy.mjs`) und schreibt
+  in die Befunddatei. Der zweite Durchgang bleibt bei das Review-Werkzeug
+  und schreibt die zweite Befunddatei. R1.
+- CI prüft zusätzlich R14 und R15 gegen echte Container (`verify-realtime.mjs`
+  im Job `kern`). `scripts/verify-ci.mjs` verlangt beide Läufe und die
+  Root-Abhängigkeiten. R5.
 - Lastlauf-Verify `scripts/lib/verify-realtime/echtzeit.mjs` prüft den Median
   der Zustelllatenz je Band statt einer Einzelspitze. Ein Zweikern-CI-Runner
   hatte 1072 ms gegen die Grenze von 1000 ms gemessen, bei freier Maschine
@@ -188,6 +203,32 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- Bandexport (R16): Fehlerpfade antworten auch bei `Accept: application/zip`
+  mit JSON und den Status 401, 404 und 413 statt mit 500. Eine Bremse von
+  6 Exporten je Minute und eine Größenprüfung vor dem Archivbau begrenzen
+  Plattenplatz und Rechenzeit.
+- Gemeinsame Bearbeitung (R14): Verwirft die gepufferte Textmap einen Eintrag
+  wegen der 128er-Grenze, lädt der Editor den Serverstand nach. Ein offenes
+  Feld bleibt damit nicht auf einem überholten Text stehen.
+- CI (R5): Der Kern-Job ruft die Frontend-Tests nicht erneut auf, weil der
+  Frontend-Job sie schon ausführt. `VERIFY_SKIP_FRONTEND=1` steuert das.
+- Bandexport (R16): `EXPORT_MAX_BYTES=0` schaltet die Grenze wie dokumentiert
+  ab, statt jeden Export mit 413 zu beenden. Der Download-Dateiname behält
+  Umlaute im `filename*`-Teil. Ein Abbruch beim Lesen des ZIP-Körpers gilt als
+  Netzwerkfehler. Der Exportknopf wird beim Bandwechsel neu aufgebaut und
+  verwirft späte Antworten.
+- Review (R1): Die Standard-Befunddateien passen zur Doku. Review-CLI schreibt
+  ohne `REVIEW_OUT` nach die Befunddatei, das Review-Werkzeug nach die zweite Befunddatei.
+- Release (R17): Die Docker-Actions im Release-Workflow sind auf Commits
+  gepinnt; `scripts/verify-release.mjs` verlangt die Pin-Form.
+- Gemeinsame Bearbeitung (R14): Die Map der eingehenden Textupdates ist auf
+  128 Einträge begrenzt und wird bei Bandwechsel und vollständigem Abgleich
+  geleert. Vorher hielt die App-Wurzel jeden base64-Vollzustand bis zum
+  Neustart.
+- Bühnensitzung (R15): `steuere` bindet die Sitzung an die Band der
+  Verbindung. Ein Mitglied zweier Bands kann mit einer Verbindung von Band A
+  keine Sitzung von Band B ansprechen; der Aufruf endet wie im REST-Weg mit
+  404.
 - Gemeinsame Bearbeitung (R14): Der Befehlspfad hält dieselben Mengengrenzen
   wie der Gesamt-PUT, 50 Abschnitte und 200 Einträge je Abschnitt. Beide Wege
   lesen die Grenzen aus `setlists/content.py`. Vorher nahm ein Befehl mehr an,

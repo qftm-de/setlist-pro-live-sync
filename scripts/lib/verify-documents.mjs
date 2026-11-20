@@ -15,7 +15,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 async function browserPruefen({ basis, bandId, songId, zweiteBandId, benutzer, passwort }) {
   const frontend = path.join(root, "frontend");
   if (!fs.existsSync(path.join(frontend, "node_modules", "@playwright", "test"))) {
-    throw new Error("Playwright fehlt. Im Frontend npm ci ausführen.");
+    throw new Error("Playwright fehlt. Im Frontend npm ci und npx playwright install chromium ausführen.");
   }
   const npx = process.platform === "win32" ? "npx.cmd" : "npx";
   const lauf = spawnSync(

@@ -1,0 +1,88 @@
+x-api-umgebung: &api-umgebung
+  APP_MODE: core
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY setzen, Namen stehen in backend/.env.example}
+  DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
+  INSTANCE_NAME: ${INSTANCE_NAME:-Setlist Pro Live Sync}
+  COMMUNITY_URL: ${COMMUNITY_URL:-}
+  ALLOWED_HOSTS: ${ALLOWED_HOSTS:-api,localhost,127.0.0.1}
+  CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+  TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:?TRUST_PROXY_HEADERS setzen, Namen stehen in backend/.env.example}
+  DOCUMENTS_ROOT: /app/documents
+  REDIS_URL: ${REDIS_URL:-redis://cache:6379/0}
+  PDF_MAX_UPLOAD_BYTES: ${PDF_MAX_UPLOAD_BYTES:-20971520}
+  PDF_MAX_PAGES: ${PDF_MAX_PAGES:-100}
+  PDF_CHECK_TIMEOUT_SECONDS: ${PDF_CHECK_TIMEOUT_SECONDS:-30}
+  PDF_CHECK_MEMORY_MB: ${PDF_CHECK_MEMORY_MB:-512}
+  EXPORT_MAX_BYTES: ${EXPORT_MAX_BYTES:-536870912}
+  POSTGRES_HOST: db
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: ${POSTGRES_DB:-setlist}
+  POSTGRES_USER: ${POSTGRES_USER:-setlist}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD setzen, Namen stehen in backend/.env.example}
+
+services:
+  web:
+    image: ghcr.io/qftm-de/setlist-pro-live-sync/web:0.1.0
+    pull_policy: always
+    ports:
+      - "${WEB_HOST:-127.0.0.1}:${WEB_PORT:-8080}:80"
+    volumes:
+      - staticfiles:/usr/share/nginx/static:ro
+    environment:
+      PDF_MAX_UPLOAD_BYTES: ${PDF_MAX_UPLOAD_BYTES:-20971520}
+    depends_on:
+      api:
+        condition: service_healthy
+  api:
+    image: ghcr.io/qftm-de/setlist-pro-live-sync/api:0.1.0
+    pull_policy: always
+    command: sh -c "python manage.py collectstatic --noinput && python manage.py migrate --noinput && daphne -b 0.0.0.0 -p 8000 core.asgi:application"
+    volumes:
+      - staticfiles:/app/staticfiles
+      - documents:/app/documents
+    environment: *api-umgebung
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  relay:
+    image: ghcr.io/qftm-de/setlist-pro-live-sync/api:0.1.0
+    pull_policy: always
+    command: sh -c "python manage.py migrate --noinput && python manage.py relay --intervall 0.2"
+    environment: *api-umgebung
+    depends_on:
+      api:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    restart: unless-stopped
+  db:
+    image: postgres:18.7-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-setlist}
+      POSTGRES_USER: ${POSTGRES_USER:-setlist}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD setzen, Namen stehen in backend/.env.example}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-setlist}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  cache:
+    image: redis:8.10.3-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  pgdata:
+  staticfiles:
+  documents:
