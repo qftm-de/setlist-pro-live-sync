@@ -16,6 +16,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - Mobile Navigation und PDF-Werkzeuge kompakter dargestellt; vorhandenes Bandlogo integriert. Auf großen Bildschirmen stehen die PDF-Werkzeuge seitlich (R18).
 - Startübersicht mit nächstem Auftritt, Song-Suche und einklappbare Formulare ergänzt (R18).
 - Anmerkungen lassen sich durch Gedrückthalten verschieben. Griffe ändern Position und Größe, ohne Koordinatenfelder. Löschen verlangt eine Bestätigung (R19).
+- Die mobilen Menü- und Abstandsprüfungen laufen im Voll-Gate und in der CI mit (R18).
 
 ### Added
 

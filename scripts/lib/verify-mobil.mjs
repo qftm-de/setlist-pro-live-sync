@@ -22,7 +22,15 @@ export async function pruefeMobil({
   const npx = process.platform === "win32" ? "npx.cmd" : "npx";
   const lauf = spawnSync(
     npx,
-    ["playwright", "test", "e2e/mobil.spec.ts", "--project=mobil", "--reporter=line"],
+    [
+      "playwright",
+      "test",
+      "e2e/mobil.spec.ts",
+      "e2e/menues-mobil.spec.ts",
+      "e2e/abstaende-mobil.spec.ts",
+      "--project=mobil",
+      "--reporter=line",
+    ],
     {
       cwd: frontend,
       env: {
