@@ -17,7 +17,8 @@ details[open] > :not(summary) { margin: 12px; }
 .pdf-werkzeuge details { position: relative; }
 .dokument > .dokument-verwaltung { order: 3; }
 .dokument > details:last-child { order: 4; }
-.huelle-pdf .kopf nav, .huelle-pdf .fuss { display: none; }
+.huelle-pdf .kopf nav { display: none; }
+.huelle-pdf .fuss { padding: 12px; }
 .huelle-pdf .band-kopf h1, .huelle-pdf .band-kopf > button { display: none; }
 .huelle-pdf .band-menue { order: 5; }
 .huelle-pdf .inhalt { display: flex; flex-direction: column; gap: var(--abstand-menues); }

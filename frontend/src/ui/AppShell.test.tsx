@@ -43,4 +43,26 @@ describe("AppShell", () => {
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noreferrer");
   });
+
+  it("zeigt den Fuß auch in der Bühnenhülle", () => {
+    render(
+      <AppShell titel="Probe" pfad="/stage/1" buehne onNavigieren={vi.fn()}>
+        <p>Bühne</p>
+      </AppShell>,
+    );
+    const fuss = screen.getByRole("contentinfo");
+    expect(fuss).toHaveTextContent("© P. Beuster");
+    expect(within(fuss).getByRole("link", { name: /Quellcode/ })).toBeInTheDocument();
+  });
+
+  it("zeigt den Fuß auch in der PDF-Ansicht", () => {
+    render(
+      <AppShell titel="Probe" pfad="/songs/1/2/pdf" onNavigieren={vi.fn()}>
+        <p>PDF</p>
+      </AppShell>,
+    );
+    const fuss = screen.getByRole("contentinfo");
+    expect(fuss).toHaveTextContent("Powered by");
+    expect(within(fuss).getByRole("link", { name: /Quellcode/ })).toBeInTheDocument();
+  });
 });

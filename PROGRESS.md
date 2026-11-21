@@ -195,6 +195,7 @@ Der Ordner bleibt als lokale Referenz erhalten.
 - Geöffnete und geschlossene PDF-Menüs, Songbearbeitung, Auftritte, Setlists und Bühnensteuerung halten die geprüften Mindestabstände ein.
 - Die beiden neuen Layout-Specs laufen jetzt im Mobil-Smoke des Voll-Gates. Damit sind die Abstandsregeln dauerhaft geprüft.
 - Aus dem Zweitgutachten behoben: Werkzeuge "Text" und "Marker" zeichnen wieder über vorhandenen Anmerkungen. Zwei Regressionstests decken beide Fälle ab.
+- R20 nachgezogen: Der Fuß erscheint auch auf der Bühne und in der PDF-Ansicht. Zwei Hüllentests prüfen beide Pfade.
 - Aus dem Zweitgutachten offen: vier Minor-Befunde (Löschbestätigung je Anmerkung, Leer-Zustand der Songsuche, Zug bei offenem Entwurfsdialog, Startseite ohne Echtzeit-Abgleich).
 - R18 nachgebessert: Menüs mit größeren Kopfzeilen und Abstand, Formularfelder einschließlich Auswahlfeldern einheitlich gestaltet.
 - Setlist-Auswahl, Bühnenaktion und Löschen haben getrennte Plätze. Lange Namen bleiben lesbar, Aktionsbeschriftungen sind kürzer.
