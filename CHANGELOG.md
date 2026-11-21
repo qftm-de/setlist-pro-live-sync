@@ -8,6 +8,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 ### Fixed
 
 - Einheitliche Abstände zwischen PDF-Menüs und Aktionen. Songbearbeitung und mobile Bühnensteuerung halten auch beim Zeilenumbruch Abstand (R18).
+- Marker und Text lassen sich wieder über vorhandenen Anmerkungen setzen. Im Werkzeugmodus öffnet der Klick keine Bearbeitung (R12).
 - Redis-Leerlauf beendet den Echtzeitabgleich nicht mehr nach fünf Sekunden. Abgebrochene WebSockets geben ihre Verbindungsplätze und Überwachung zuverlässig frei (R13).
 
 ### Changed

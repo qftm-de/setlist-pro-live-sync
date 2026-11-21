@@ -264,7 +264,7 @@ describe("Anmerkungen", () => {
     expect(await screen.findByText("Anmeldung erforderlich")).toBeInTheDocument();
   });
 
-  it("zeigt eine Entwurfs-Vorschau auf der PDF-Ebene und stoppt Pointer-Konflikte", () => {
+  it("zeichnet im Werkzeugmodus über vorhandenen Anmerkungen und wählt sie nicht aus", () => {
     const onMarkierung = vi.fn();
     const onTextPlatzieren = vi.fn();
     const onAuswahl = vi.fn();
@@ -293,11 +293,16 @@ describe("Anmerkungen", () => {
     );
 
     expect(screen.getByTestId("pdf-anmerkung-vorschau")).toBeInTheDocument();
+    vi.spyOn(screen.getByTestId("pdf-ebene"), "getBoundingClientRect").mockReturnValue({
+      left: 0, top: 0, right: 200, bottom: 400, width: 200, height: 400, x: 0, y: 0, toJSON: () => ({}),
+    } as DOMRect);
+    vi.stubGlobal("PointerEvent", MouseEvent);
     const vorhandene = screen.getByRole("button", { name: "Textanmerkung 7" });
     fireEvent.pointerDown(vorhandene, { clientX: 20, clientY: 20 });
+    fireEvent.pointerUp(vorhandene, { clientX: 40, clientY: 40 });
     fireEvent.click(vorhandene);
-    expect(onAuswahl).toHaveBeenCalledWith(7);
-    expect(onMarkierung).not.toHaveBeenCalled();
+    expect(onMarkierung).toHaveBeenCalledTimes(1);
+    expect(onAuswahl).not.toHaveBeenCalled();
     expect(onTextPlatzieren).not.toHaveBeenCalled();
   });
 });

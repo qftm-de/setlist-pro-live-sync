@@ -221,6 +221,9 @@ export function PdfAnmerkungsEbene({
           }
           onContextMenu={e => e.preventDefault()}
           onPointerDown={e => {
+            if (werkzeug !== "lesen") {
+              return;
+            }
             e.stopPropagation();
             beruehrung.current = {x:e.clientX,y:e.clientY};
             const p = punkt(e), target = e.currentTarget, pointerId = e.pointerId;
@@ -241,7 +244,7 @@ export function PdfAnmerkungsEbene({
           }}
           onPointerUp={() => { if (halten.current) clearTimeout(halten.current); ziehen.current = null; }}
           onPointerCancel={() => { if (halten.current) clearTimeout(halten.current); if (ziehen.current) onGeometrie?.(ziehen.current.id,ziehen.current.g); ziehen.current = null; }}
-          onClick={() => onAuswahl(anmerkung.id)}
+          onClick={() => { if (werkzeug === "lesen") onAuswahl(anmerkung.id); }}
         >
           {anmerkung.kind === "text" ? anmerkung.text : null}
         </button>
