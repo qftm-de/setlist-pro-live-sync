@@ -21,8 +21,11 @@ function quelldateien(verzeichnis: string): string[] {
 }
 
 // Keine fremden Ressourcen laden: keine externen Schriften, Bilder oder
-// Hub-Aufrufe. Erlaubt ist nur der Betreiber-Link im Fuß, ein Anker lädt nichts.
-const ERLAUBTE_LINKS = ["https://qftm.de"];
+// Hub-Aufrufe. Erlaubt sind nur die Anker im Fuß, ein Anker lädt nichts.
+const ERLAUBTE_LINKS = [
+  "https://qftm.de",
+  "https://github.com/qftm-de/setlist-pro-live-sync",
+];
 
 describe("lokale Ressourcen", () => {
   it("lädt im Quellcode keine externen Schriften oder Hub-Ressourcen", () => {

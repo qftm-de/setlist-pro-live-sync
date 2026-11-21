@@ -174,3 +174,9 @@ R19 | Behavior: Bearbeitbare PDF-Anmerkungen lassen sich direkt verschieben und 
    | Scope: frontend/src/annotations, frontend/src/documents
    | Risk: mittel
    | State: passing
+
+R20 | Behavior: Der Fuß jeder Seite nennt den Urheber als "© P. Beuster", verlinkt den Betreiber unter "Powered by QFTM.de" und führt mit dem Repository-Symbol zum Quellcode samt Lizenz. Alle drei Angaben sind ohne Anmeldung auf jeder Seite sichtbar.
+   | Verify: cd frontend && npm test
+   | Scope: frontend/src/ui/AppShell.tsx, frontend/src/ui/AppShell.test.tsx, frontend/src/styles.css
+   | Risk: niedrig
+   | State: passing

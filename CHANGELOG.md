@@ -21,6 +21,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- Fuß jeder Seite nennt Urheber und Betreiber und führt zum Quellcode im
+  Repository, damit Fremde Fehler melden, mitarbeiten oder selbst hosten
+  können. R20.
 - Bandexport (R16): `GET /api/bands/<id>/export/` liefert ein ZIP mit
   `manifest.json`, Songs, Setlists, Auftritten, bandweiten und eigenen
   persönlichen Anmerkungen sowie allen PDF-Versionen. `EXPORT_MAX_BYTES`
