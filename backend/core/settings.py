@@ -92,7 +92,9 @@ REDIS_URL = konfiguration.redis_url
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [REDIS_URL]},
+        # Channels wartet beim blockierenden Lesen bis zu fünf Sekunden.
+        # Redis 8 setzt selbst fünf Sekunden als Socket-Standard.
+        "CONFIG": {"hosts": [{"address": REDIS_URL, "socket_timeout": 15}]},
     }
 }
 REALTIME_CHECK_SECONDS = 15

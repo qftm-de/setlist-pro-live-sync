@@ -85,6 +85,7 @@ export function FakePdfViewerMitWerkzeug({
   daten,
   titel,
   annotationen = [],
+  entwurf = null,
   onMarkierung,
   onTextPlatzieren,
   onAnmerkungAuswahl,
@@ -93,6 +94,11 @@ export function FakePdfViewerMitWerkzeug({
   return (
     <div data-testid="pdf-viewer" aria-label={titel}>
       PDF-Seite mit {daten.byteLength} Bytes, {annotationen.length} Anmerkungen
+      {entwurf ? (
+        <span data-testid="pdf-entwurf-vorschau">
+          Entwurf auf Seite {entwurf.page_number}
+        </span>
+      ) : null}
       <button
         type="button"
         onClick={() =>

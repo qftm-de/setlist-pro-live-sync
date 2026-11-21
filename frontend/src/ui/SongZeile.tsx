@@ -178,12 +178,16 @@ export function SongZeile({
       >
         {`${song.title} PDF öffnen`}
       </a>
+      <details className="zeilen-menue"><summary>Bearbeiten</summary>
+      <div className="aktionsgruppe">
       <button type="button" disabled={gesperrt} onClick={bearbeitenOeffnen}>
         {`${song.title} ändern`}
       </button>
       <button type="button" disabled={gesperrt} onClick={() => onLoeschen(song)}>
         {`${song.title} löschen`}
       </button>
+      </div>
+      </details>
       {fehler ? <p role="alert">{fehler}</p> : null}
     </li>
   );

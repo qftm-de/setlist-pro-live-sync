@@ -123,7 +123,7 @@ describe("Setlist-Direktlink", () => {
       window.history.replaceState({}, "", "/");
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
-    expect(await screen.findByRole("heading", { name: "Songs" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Bereit für die nächste Probe" })).toBeInTheDocument();
   });
 
   it("navigiert beim Bandwechsel aus dem Direktlink auf /setlists", async () => {

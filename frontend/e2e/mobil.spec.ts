@@ -30,6 +30,13 @@ test("Auftritte, PDF und Bühne bleiben im Mobilformat bedienbar", async ({ page
   await page.goto(`/songs/${bandId}/${songId}/pdf/versions/${versionId}`);
   await expect(page.locator("canvas")).toBeVisible();
   await expect(page.getByText(/Seite 1 von/)).toBeVisible();
+  for (const breite of [360, 390, 768, 1280]) {
+    await page.setViewportSize({width:breite,height:844});
+    await ohneUeberlauf(page);
+    await page.screenshot({path:`test-results/pdf-${breite}.png`});
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.getByText("Ansicht", {exact:true}).click();
   await expect(page.getByRole("button", { name: "An Breite anpassen" })).toBeVisible();
   await ohneUeberlauf(page);
 

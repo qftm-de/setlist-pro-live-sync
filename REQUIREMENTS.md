@@ -115,10 +115,12 @@ R12 | Behavior: Mitglieder erfassen an einer unveränderlichen PDF-Version Texta
 R13 | Behavior: Autorisierte Tabs gleichen bestätigte Bandänderungen automatisch ab. Persönliche Ereignisse bleiben beim Autor; Entwürfe, Rechteentzug und Verbindungsfehler werden sicher behandelt.
    |  Ein authentifizierter WebSocket je Tab und Band nutzt getrennte Ströme für Band und persönliche Ereignisse mit lückenlosen Zählern.
    |  Jede Mutation speichert Fachdaten und Ausgangsereignis gemeinsam; ein Relay veröffentlicht wiederholbar. Abgleich, Heartbeat und Wiederverbindung schließen Lücken.
+   |  Leerlaufende Redis-Empfänger bleiben länger als der blockierende Leseaufruf offen. Bei einem Transportabbruch werden Überwachung, Bühnenregister und Verbindungsplatz auch ohne Disconnect-Ereignis freigegeben.
    | Verify:  node scripts/verify-realtime.mjs R13
    | Scope:   backend/realtime, backend/core, backend/api, backend/requirements.txt, backend/Dockerfile, backend/.env.example, docker-compose.yml, frontend/nginx.conf, frontend/vite.config.ts, frontend/src, frontend/package.json, frontend/package-lock.json, frontend/e2e, frontend/playwright.config.ts, scripts/verify-realtime.mjs, scripts/lib/verify-realtime, .github/workflows, docs/betrieb.md
    | Risk:    hoch
    | Cases:   R13-P1: Zwei Mitglieder und ein zweiter Tab des Autors erhalten bestätigte Änderungen, persönliche Inhalte und Kennungen erreichen nur den Autor; R13-P2: Commit und Ausgangsereignis überstehen API- und Relay-Neustart, ein Redis-Ausfall verzögert den Abgleich ohne Verlust bestätigter Fachdaten; R13-N1: Ohne gültige Session, mit gesperrtem Konto, fremder Band oder fehlendem beziehungsweise fremdem Origin wird der Aufbau ohne Nutzdaten abgelehnt; R13-N2: Abmeldung, Sessionablauf, Kontosperre und Mitgliedschaftsentzug während offener Verbindung sperren Auslieferung und Mutation, ohne Verkehr schließt die Verbindung binnen 20 Sekunden; R13-N3: Rollback erzeugt weder Ereignis noch Bestätigung, ausstehende und abgelehnte Vorgänge erscheinen niemals als gespeichert; R13-N4: Persönliche Stromzähler erzeugen keine scheinbaren Lücken im Bandstrom, alte Bandantworten und verspätete Nachrichten verschwinden beim Bandwechsel; R13-N5: Fehlgeschlagener Abgleich zeigt den Fehler und einen erneuten Versuch, Entwurf und bestätigter Lesestand bleiben erhalten; R13-G1: Duplikate, ältere Ereignisse, Lücken und ein verlorenes letztes Ereignis führen zum Ignorieren oder Vollabgleich, nie zu einer zweiten Mutation; R13-G2: Heartbeat bei 20 Sekunden, Abbruch ab 60 Sekunden, Wiederverbindungswartezeit stets 1 bis 30 Sekunden, Aufbewahrungsablauf erzwingt Vollabgleich; R13-G3: Ein entferntes Objekt bleibt im offenen Formular als gelöscht markiert und der Entwurf erhalten, eine PDF-Aktivierung zeigt einen Hinweis ohne Versionswechsel; R13-G4: Abgleich und gleichzeitig eintreffende Mutation verlieren keine Änderung, Bestandsdaten und Zähler passen zum selben Snapshot; R13-G5: Im definierten lokalen Lastlauf erscheint jede bestätigte Teständerung auf allen berechtigten verbundenen Geräten; je Band liegt der Median der Zustelllatenz über alle Runden unter 1.000 Millisekunden, ein einzelner Wert über 4.000 Millisekunden lässt den Lauf scheitern.
+   |  R13-G6: Ein Redis-Empfangsfehler beendet auch ohne Disconnect-Ereignis die Überwachung und gibt Register sowie Verbindungsplatz frei; erneuter Aufbau gelingt bei Limit eins.
    | State:   passing
 
 R14 | Behavior: Idempotente Einzelbefehle und zusammengeführte Texte ergänzen den revisionsgeschützten Gesamt-PUT.
@@ -157,3 +159,18 @@ R17 | Behavior: Ein Tag `v*` baut und veröffentlicht zwei Images über GHCR, `g
    | Risk:    hoch
    | Cases:   R17-P: Workflow startet bei `v*`, nutzt GHCR-Login, Buildx und beide Image-Namen mit voller Version, major.minor und Commit; R17-N: Workflow läuft nicht bei Pull Requests und hat keine Schreibrechte auf Inhalte, fehlertolerante Schritte sind verboten; R17-G: Release-Compose zieht nur Registry-Images ohne `build`, die Version ist SemVer und passt zu `frontend/package.json`, Relay nutzt das API-Image, fehlende Images lassen den Start sichtbar scheitern.
    | State:   passing
+
+R18 | Behavior: Die Oberfläche nutzt das vorhandene Bandmotiv, kompakte mobile Navigation und einklappbare PDF-Verwaltung. Fachseiten bleiben über große Bedienelemente erreichbar.
+   |  Menüs und Setlist-Editor trennen Beschriftungen, Felder und Aktionen. Bei 360 bis 1280 Pixeln bleiben lange Namen ohne Seitenüberlauf lesbar.
+   |  Eingabefelder und Auswahlfelder sind mindestens 44 Pixel hoch. Sortieren, Hinzufügen und Löschen stehen in getrennten Aktionsgruppen.
+   |  Benachbarte Bedienelemente haben mindestens 8 Pixel Abstand, gestapelte Menüs mindestens 12 Pixel, auch bei geöffneten PDF-, Anmerkungs- und Bühnenwerkzeugen.
+   | Verify: cd frontend && npm test && npm run build
+   | Scope: frontend/src, frontend/public, frontend/e2e
+   | Risk: mittel
+   | State: passing
+
+R19 | Behavior: Bearbeitbare PDF-Anmerkungen lassen sich direkt verschieben und skalieren. Die Oberfläche zeigt keine Koordinaten. Positionsänderungen bleiben bis zur ausdrücklichen Speicherung ein geschützter Entwurf; Abbrechen verwirft sie.
+   | Verify: cd frontend && npm test && npm run build
+   | Scope: frontend/src/annotations, frontend/src/documents
+   | Risk: mittel
+   | State: passing

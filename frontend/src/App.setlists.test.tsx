@@ -12,7 +12,7 @@ import {
 } from "./test-helfer";
 
 beforeEach(() => {
-  window.history.replaceState({}, "", "/");
+  window.history.replaceState({}, "", "/songs");
 });
 
 afterEach(() => {
@@ -67,6 +67,7 @@ describe("App", () => {
   });
 
   it("zeigt Setlists nicht auf der Startseite", async () => {
+    window.history.replaceState({}, "", "/");
     const setlistAdapter = erstelleSetlistTestAdapter([]);
     render(
       <App
@@ -79,7 +80,7 @@ describe("App", () => {
         setlistAdapter={setlistAdapter}
       />,
     );
-    expect(await screen.findByRole("heading", { name: "Songs" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Bereit für die nächste Probe" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Setlist anlegen" })).not.toBeInTheDocument();
   });
 

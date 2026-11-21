@@ -50,6 +50,7 @@ export function DokumentAnsicht({
   registriereWaechter,
   onSitzungAbgelaufen,
 }: DokumentAnsichtProps) {
+  const [uploadOffen, setUploadOffen] = useState(false);
   const anmerkungsRef = useRef<AnmerkungsBereichHandle>(null);
   const [dokument, setDokument] = useState<Dokument | null>(null);
   const [ladeFehler, setLadeFehler] = useState<string | null>(null);
@@ -276,6 +277,8 @@ export function DokumentAnsicht({
     }
   }
 
+  useEffect(() => { if (dokument?.versions.length === 0) setUploadOffen(true); }, [dokument]);
+
   const angezeigteVersion =
     dokument?.versions.find((eintrag) => eintrag.id === versionId) ?? null;
 
@@ -297,6 +300,7 @@ export function DokumentAnsicht({
           {versionHinweis ? <p role="status">{versionHinweis}</p> : null}
           {aktiveVersionHinweis ? <p role="status">{aktiveVersionHinweis}</p> : null}
           {aktionsFehler ? <p role="alert">{aktionsFehler}</p> : null}
+          <details className="dokument-verwaltung"><summary>PDF-Versionen und Download</summary>
           <VersionsListe
             versionen={dokument.versions}
             aktivId={dokument.active_version_id}
@@ -306,6 +310,7 @@ export function DokumentAnsicht({
             onAktivieren={aktiviereMitWaechter}
             onDownload={herunterladen}
           />
+          </details>
           {versionId !== null ? (
             <div className="pdf-anzeige">
               {dateiZustand === "laedt" ? <StatusAnzeige zustand="laedt" /> : null}
@@ -330,6 +335,7 @@ export function DokumentAnsicht({
               ) : null}
             </div>
           ) : null}
+          <details open={uploadOffen} onToggle={e => setUploadOffen(e.currentTarget.open)}><summary>PDF hochladen</summary>
           <UploadFormular
             bandId={bandId}
             songId={songId}
@@ -339,6 +345,7 @@ export function DokumentAnsicht({
             onAktivieren={aktiviereMitWaechter}
             onSitzungAbgelaufen={onSitzungAbgelaufen}
           />
+          </details>
         </>
       ) : null}
     </section>

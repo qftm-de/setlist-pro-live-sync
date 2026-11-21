@@ -13,6 +13,8 @@ export interface PdfViewerProps {
   annotationen?: Anmerkung[];
   werkzeug?: AnmerkungsWerkzeug;
   ausgewaehlteId?: number | null;
+  entwurf?: { page_number: number; geometry: Geometrie } | null;
+  onGeometrie?: (id: number, geometrie: Geometrie) => void;
   onMarkierung?: (geometrie: Geometrie) => void;
   onTextPlatzieren?: (geometrie: Geometrie) => void;
   onAnmerkungAuswahl?: (id: number) => void;
@@ -31,6 +33,8 @@ export function PdfViewer({
   annotationen = [],
   werkzeug = "lesen",
   ausgewaehlteId = null,
+  entwurf = null,
+  onGeometrie,
   onMarkierung,
   onTextPlatzieren,
   onAnmerkungAuswahl,
@@ -40,6 +44,13 @@ export function PdfViewer({
 }: PdfViewerProps) {
   const behaelter = useRef<HTMLDivElement>(null);
   const leinwand = useRef<HTMLCanvasElement>(null);
+  const [flaechenBreite, setFlaechenBreite] = useState(0);
+  useEffect(() => {
+    if (!behaelter.current || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => setFlaechenBreite(entry.contentRect.width));
+    observer.observe(behaelter.current);
+    return () => observer.disconnect();
+  }, []);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [seite, setSeite] = useState(1);
   const [seiten, setSeiten] = useState(0);
@@ -164,7 +175,7 @@ export function PdfViewer({
       render?.cancel();
       pdfSeite?.cleanup();
     };
-  }, [annotationen, pdf, seite, zoom, breite, drehung]);
+  }, [pdf, seite, zoom, breite, drehung, flaechenBreite]);
 
   useEffect(() => {
     onSeiteGeaendert?.(seite);
@@ -207,6 +218,8 @@ export function PdfViewer({
         >
           Nächste Seite
         </button>
+        <details><summary>Ansicht</summary>
+        <div className="pdf-ansicht-aktionen">
         <button type="button" onClick={() => zoome(-ZOOM_SCHRITT)} disabled={!breite && zoom <= MIN_ZOOM}>
           Verkleinern
         </button>
@@ -235,6 +248,8 @@ export function PdfViewer({
           Drehen
         </button>
         <span className="songmeta">{breite ? "Breite" : `${zoom} %`}</span>
+        </div>
+        </details>
       </div>
       {fehler ? <p role="alert">{fehler}</p> : null}
       <div className="pdf-flaeche" ref={behaelter}>
@@ -246,6 +261,7 @@ export function PdfViewer({
           <canvas ref={leinwand} aria-label={`Seite ${seite} von ${titel}`} />
           {ansicht ? (
             <PdfAnmerkungsEbene
+              onGeometrie={onGeometrie}
               annotationen={annotationen.filter(
                 (anmerkung) => anmerkung.page_number === seite,
               )}
@@ -255,6 +271,7 @@ export function PdfViewer({
               hoehe={ansicht.hoehe}
               werkzeug={werkzeug}
               ausgewaehlteId={ausgewaehlteId}
+              entwurf={entwurf && entwurf.page_number === seite ? entwurf.geometry : null}
               onMarkierung={onMarkierung ?? (() => undefined)}
               onTextPlatzieren={onTextPlatzieren ?? (() => undefined)}
               onAuswahl={onAnmerkungAuswahl ?? (() => undefined)}

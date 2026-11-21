@@ -53,6 +53,7 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
   ) {
     const { liste, laedt, fehler, erstelle, aendere, loesche, neuLaden } =
       useAnmerkungen(adapter, bandId, songId, versionId, onSitzungAbgelaufen);
+    const [bewegung, setBewegung] = useState<Anmerkung["geometry"] | null>(null);
     const [werkzeug, setWerkzeug] = useState<AnmerkungsWerkzeug>("lesen");
     const [farbe, setFarbe] = useState<AnmerkungsFarbe>("gelb");
     const [schriftgroesse, setSchriftgroesse] = useState<Schriftgroesse>(0.0225);
@@ -60,6 +61,7 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
     const [ebeneBand, setEbeneBand] = useState(true);
     const [seite, setSeite] = useState(1);
     const [ausgewaehltId, setAusgewaehltId] = useState<number | null>(null);
+    useEffect(() => { setBewegung(null); }, [ausgewaehltId]);
     const [entwurf, setEntwurf] = useState<Entwurf | null>(null);
     const [konflikt, setKonflikt] = useState(false);
     const [aktionsFehler, setAktionsFehler] = useState<string | null>(null);
@@ -102,6 +104,7 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
       setAktionsFehler(null);
       setWechsel(null);
       setFormDirty(false);
+      setBewegung(null);
       setSeite(1);
     }, [versionId]);
 
@@ -246,11 +249,10 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
     }
 
     function textPlatzieren(geometrie: Anmerkung["geometry"]) {
-      setAusgewaehltId(null);
-      setEntwurf({
-        uuid: neueAnmerkungsId(),
-        page_number: seite,
-        geometry: geometrie,
+      pruefeWechsel(() => {
+        setAusgewaehltId(null);
+        setWerkzeug("lesen");
+        setEntwurf({uuid: neueAnmerkungsId(), page_number: seite, geometry: geometrie});
       });
     }
 
@@ -274,6 +276,7 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
       setEntwurf(null);
       setAusgewaehltId(null);
       setFormDirty(false);
+      setBewegung(null);
       ziel?.weiter();
     }
 
@@ -283,6 +286,7 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
       setEntwurf(null);
       setAusgewaehltId(null);
       setFormDirty(false);
+      setBewegung(null);
       ziel?.weiter();
     }
 
@@ -295,7 +299,8 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
 
     return (
       <section className="anmerkungs-bereich" aria-labelledby="anmerkungen-titel">
-        <h3 id="anmerkungen-titel">Anmerkungen zu dieser Version</h3>
+        <h3 id="anmerkungen-titel" className="visuell-verborgen">Anmerkungen zu dieser Version</h3>
+        <details className="werkzeug-menue"><summary>Anmerken · Text und Marker</summary>
         <AnmerkungsWerkzeuge
           werkzeug={werkzeug}
           setWerkzeug={setWerkzeug}
@@ -314,6 +319,7 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
             void markierung({ x: 0.2, y: 0.2, width: 0.2, height: 0.2 })
           }
         />
+        </details>
         <AnmerkungsStatus
           fehler={fehler}
           laedt={laedt}
@@ -321,33 +327,8 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
           konflikt={konflikt}
           onServerStand={serverStandLaden}
         />
-        <Viewer
-          daten={daten}
-          titel={titel}
-          annotationen={sichtbar}
-          werkzeug={werkzeug}
-          ausgewaehlteId={ausgewaehltId}
-          onMarkierung={markierung}
-          onTextPlatzieren={textPlatzieren}
-          onAnmerkungAuswahl={(id) => {
-            setEntwurf(null);
-            setWerkzeug("lesen");
-            setAusgewaehltId(id);
-          }}
-          onBevorSeiteWechsel={bevorSeiteWechsel}
-          onSeiteGeaendert={setSeite}
-          seitenSprung={sprung}
-        />
-        <AnmerkungsListe
-          liste={sichtbar}
-          ausgewaehlteId={ausgewaehltId}
-          onAuswahl={(id) => {
-            setEntwurf(null);
-            setWerkzeug("lesen");
-            setAusgewaehltId(id);
-          }}
-        />
         <AnmerkungsFormulare
+          bewegung={bewegung}
           entwurf={entwurf}
           ausgewaehlt={ausgewaehlt}
           ersatz={ersatz}
@@ -361,14 +342,52 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
           onAbbrechenEntwurf={() => {
             setEntwurf(null);
             setFormDirty(false);
+      setBewegung(null);
           }}
           onAbbrechenAuswahl={() => {
             setAusgewaehltId(null);
             setFormDirty(false);
+      setBewegung(null);
           }}
           onDirtyChange={setFormDirty}
           onSitzungAbgelaufen={onSitzungAbgelaufen}
         />
+        <Viewer
+          daten={daten}
+          titel={titel}
+          annotationen={sichtbar.map(a => a.id === ausgewaehltId && bewegung ? {...a, geometry: bewegung} : a)}
+          onGeometrie={(id, geometry) => {
+            if (id === ausgewaehltId && ausgewaehlt?.can_edit) { setBewegung(geometry); setFormDirty(true); }
+          }}
+          werkzeug={werkzeug}
+          ausgewaehlteId={ausgewaehltId}
+          entwurf={entwurf}
+          onMarkierung={markierung}
+          onTextPlatzieren={textPlatzieren}
+          onAnmerkungAuswahl={(id) => {
+            if (id === ausgewaehltId) return;
+            pruefeWechsel(() => {
+              setEntwurf(null); setFormDirty(false);
+              setWerkzeug("lesen"); setAusgewaehltId(id);
+            });
+          }}
+          onBevorSeiteWechsel={bevorSeiteWechsel}
+          onSeiteGeaendert={setSeite}
+          seitenSprung={sprung}
+        />
+        <details><summary>Anmerkungen anzeigen</summary>
+        <AnmerkungsListe
+          liste={sichtbar}
+          ausgewaehlteId={ausgewaehltId}
+          onAuswahl={(id) => {
+            if (id === ausgewaehltId) return;
+            pruefeWechsel(() => {
+              setEntwurf(null); setFormDirty(false);
+              setWerkzeug("lesen"); setAusgewaehltId(id);
+            });
+          }}
+        />
+        </details>
         {wechsel ? (
           <EntwurfsDialog
             onSpeichern={speichernUndWeiter}

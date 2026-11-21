@@ -14,6 +14,7 @@ import {
 } from "./AnmerkungsFormular";
 
 interface FormulareProps {
+  bewegung?: Anmerkung["geometry"] | null;
   entwurf: Entwurf | null;
   ausgewaehlt: Anmerkung | null;
   ersatz: Anmerkung | null;
@@ -31,6 +32,7 @@ interface FormulareProps {
 }
 
 export function AnmerkungsFormulare({
+  bewegung,
   entwurf,
   ausgewaehlt,
   ersatz,
@@ -50,6 +52,7 @@ export function AnmerkungsFormulare({
   if (angezeigt && !angezeigt.can_edit) {
     return (
       <AnmerkungLesen
+        onSchliessen={onAbbrechenAuswahl}
         anmerkung={angezeigt}
         geloescht={ausgewaehlt === null}
         onLoeschen={onLoeschen}
@@ -82,6 +85,7 @@ export function AnmerkungsFormulare({
   if (angezeigt) {
     return (
       <AnmerkungsFormular
+        bewegung={bewegung}
         key={`edit-${angezeigt.id}`}
         ref={formRef}
         art="bearbeiten"

@@ -1,3 +1,4 @@
+import { Startseite } from "./Startseite";
 import type { ComponentType, ReactNode } from "react";
 import type { Band, BandAdapter, Song } from "../bands/bands";
 import type { BandDatenZustand } from "../bands/useBandDaten";
@@ -101,21 +102,30 @@ export function BandBereich({
 
   return (
     <>
-      <label className="bandwechsel">
-        Band
-        <select
-          value={bandId ?? ""}
-          onChange={(ereignis) => onBandWechseln(ereignis.target.value)}
-        >
-          {bandId === null ? <option value="">Keine Band</option> : null}
-          {bands.map((band) => (
-            <option key={band.id} value={band.id}>
-              {band.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      {kontoZeile}
+      <details className="band-menue"><summary>Band und Konto</summary><div className="band-kopf">
+        <label className="bandwechsel">
+          Band
+          <select
+            value={bandId ?? ""}
+            onChange={(ereignis) => onBandWechseln(ereignis.target.value)}
+          >
+            {bandId === null ? <option value="">Keine Band</option> : null}
+            {bands.map((band) => (
+              <option key={band.id} value={band.id}>
+                {band.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {kontoZeile}
+        {bandDaten.status === "fertig" ? (
+            <ExportKnopf
+              key={bandDaten.daten.bandId}
+              bandId={bandDaten.daten.bandId}
+              onSitzungAbgelaufen={onSitzungAbgelaufen}
+            />
+        ) : null}
+      </div></details>
       {direktFehler ? <FehlerAnzeige text={direktFehler} /> : null}
       {buehnenFehler ? <FehlerAnzeige text={buehnenFehler} /> : null}
       {bandDaten.status === "laedt" ? <StatusAnzeige zustand="laedt" /> : null}
@@ -124,20 +134,22 @@ export function BandBereich({
       ) : null}
       {bandDaten.status === "fertig" ? (
         <section aria-labelledby="band-titel">
-          <h1 id="band-titel">{gewaehlteBand?.name}</h1>
-          <ExportKnopf
-            key={bandDaten.daten.bandId}
-            bandId={bandDaten.daten.bandId}
-            onSitzungAbgelaufen={onSitzungAbgelaufen}
-          />
-          <p className="band-id" data-band-id={bandDaten.daten.bandId}>
+          <div className="band-kopf">
+            <h1 id="band-titel">{gewaehlteBand?.name}</h1>
+            <VerbindungsStatus
+              zustand={echtzeit.zustand}
+              onErneutVersuchen={echtzeit.erneutVersuchen}
+            />
+          </div>
+          <p
+            className="band-id visuell-verborgen"
+            data-band-id={bandDaten.daten.bandId}
+          >
             Bereich {pfad}
           </p>
-          <VerbindungsStatus
-            zustand={echtzeit.zustand}
-            onErneutVersuchen={echtzeit.erneutVersuchen}
-          />
-          {route.bereich === "stage" ? (
+          {route.bereich === "start" ? (
+            <Startseite key={bandId} bandId={bandDaten.daten.bandId} adapter={gigAdapter} onNavigieren={onNavigieren} onSitzungAbgelaufen={onSitzungAbgelaufen} />
+          ) : route.bereich === "stage" ? (
             <StageRoute
               bandId={bandDaten.daten.bandId}
               sessionId={route.stageSessionId ?? null}

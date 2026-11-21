@@ -256,6 +256,7 @@ export function Auftritte({
           onWiederholen={() => void ladeNeu()}
         />
       ) : null}
+      <details className="anlegen-menue"><summary>Auftritt hinzufügen</summary>
       <AuftrittFormular
         modus="anlegen"
         setlists={setlists}
@@ -265,6 +266,7 @@ export function Auftritte({
         onSpeichern={(eingabe) => speichern(null, eingabe)}
         onSitzungAbgelaufen={onSitzungAbgelaufen}
       />
+      </details>
     </section>
   );
 }

@@ -74,7 +74,7 @@
 .buehne-pdf-werkzeuge {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: var(--abstand-aktionen);
 }
 
 .buehne-blatt {
@@ -134,7 +134,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--abstand-aktionen);
 }
 
 .buehne-uebersicht button {
@@ -171,7 +171,7 @@
 
 .buehne-fuss {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--abstand-aktionen);
   align-items: stretch;
   justify-content: space-between;
   position: sticky;
@@ -200,7 +200,7 @@
 .buehne-schalter {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: var(--abstand-aktionen);
   align-items: center;
   justify-content: center;
 }
@@ -208,9 +208,23 @@
 .buehne-aktionen {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--abstand-aktionen);
   align-items: center;
   font-size: 0.9rem;
+}
+
+.buehne-aktionen label,
+.buehne-hinweis:has(> button) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--abstand-aktionen);
+}
+
+@media (max-width: 600px) {
+  .buehne-fuss { flex-wrap: wrap; }
+  .buehne-gross { flex: 1 1 8rem; }
+  .buehne-schalter { order: 1; flex: 1 1 100%; }
 }
 
 .buehne button {

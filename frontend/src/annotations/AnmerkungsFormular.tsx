@@ -1,20 +1,20 @@
+import { SchriftAuswahl } from "./SchriftAuswahl";
 import {
   forwardRef,
   useImperativeHandle,
   useState,
+  useEffect,
   type ForwardedRef,
 } from "react";
 import { behandleFehler, fehlerText } from "../api/client";
 import {
   FARBEN,
-  SCHRIFTGROESSEN,
   farbName,
   type Anmerkung,
   type AnmerkungsFarbe,
   type AnmerkungsSichtbarkeit,
-  type Schriftgroesse,
 } from "./annotations";
-import { alsProzent, gueltig } from "./geometrie";
+import { gueltig } from "./geometrie";
 import type { Geometrie } from "./annotations";
 import { CrdtTextFeld } from "../collaboration/CrdtTextFeld";
 import type { TextAntwort, TextStand } from "../collaboration/texte";
@@ -41,6 +41,7 @@ export interface FormularHandle {
 }
 
 interface FormularProps {
+  bewegung?: Geometrie | null;
   art: "neu" | "bearbeiten";
   anmerkung: Anmerkung | null;
   geloescht?: boolean;
@@ -56,6 +57,7 @@ interface FormularProps {
 
 function FormularInner(
   {
+    bewegung,
     art,
     anmerkung,
     geloescht = false,
@@ -104,6 +106,10 @@ function FormularInner(
     onDirtyChange?.(true);
     setFehler(null);
   }
+
+  useEffect(() => {
+    if (bewegung) aendern({ geometry: bewegung });
+  }, [bewegung]);
 
   async function speichern(): Promise<boolean> {
     if (geloescht) {
@@ -197,6 +203,7 @@ function FormularInner(
           <textarea
             value={text}
             maxLength={2000}
+            autoFocus={art === "neu"}
             disabled={speichert}
             onChange={(ereignis) => aendern({ text: ereignis.target.value })}
           />
@@ -204,51 +211,36 @@ function FormularInner(
       ) : (
         <p className="songmeta">Marker haben keinen Text.</p>
       )}
-      <label>
-        Farbe
-        <select
-          value={farbe}
-          disabled={speichert}
-          onChange={(ereignis) => aendern({ color: ereignis.target.value as AnmerkungsFarbe })}
-        >
-          {FARBEN.map((wert) => (
-            <option key={wert} value={wert}>
-              {farbName(wert)}
-            </option>
-          ))}
-        </select>
-      </label>
-      {artWert === "text" ? (
+      <div className="anmerkung-formular-meta">
         <label>
-          Schriftgröße
+          Farbe
           <select
-            value={String(groesse)}
+            value={farbe}
             disabled={speichert}
-            onChange={(ereignis) =>
-              aendern({ font_size: Number(ereignis.target.value) as Schriftgroesse })
-            }
+            onChange={(ereignis) => aendern({ color: ereignis.target.value as AnmerkungsFarbe })}
           >
-            {SCHRIFTGROESSEN.map((wert) => (
+            {FARBEN.map((wert) => (
               <option key={wert} value={wert}>
-                {alsProzent(wert)}
+                {farbName(wert)}
               </option>
             ))}
           </select>
         </label>
-      ) : null}
-      <label>
-        Sichtbarkeit
-        <select
-          value={sichtbarkeit}
-          disabled={speichert || !darfSichtbarkeit}
-          onChange={(ereignis) =>
-            aendern({ visibility: ereignis.target.value as AnmerkungsSichtbarkeit })
-          }
-        >
-          <option value="private">Persönlich</option>
-          <option value="band">Band</option>
-        </select>
-      </label>
+        {artWert === "text" ? <SchriftAuswahl wert={groesse} disabled={speichert} onChange={font_size => aendern({font_size})} /> : null}
+        <label>
+          Sichtbarkeit
+          <select
+            value={sichtbarkeit}
+            disabled={speichert || !darfSichtbarkeit}
+            onChange={(ereignis) =>
+              aendern({ visibility: ereignis.target.value as AnmerkungsSichtbarkeit })
+            }
+          >
+            <option value="private">Persönlich</option>
+            <option value="band">Band</option>
+          </select>
+        </label>
+      </div>
       {!darfSichtbarkeit ? (
         <p className="anmerkung-hinweis">
           Nur der Autor ändert die Sichtbarkeit. Du bearbeitest den bandweiten

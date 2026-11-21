@@ -9,6 +9,9 @@ const version2 = Number(process.env.E2E_VERSION_2 ?? 0);
 async function pdfRoute(page: Page, versionId: number) {
   await page.goto(`/songs/${bandId}/${songId}/pdf/versions/${versionId}`);
   await expect(page.locator(".pdf-ebene")).toBeVisible();
+  await page.getByText("PDF-Versionen und Download", {exact:true}).click();
+  await page.getByText("Anmerkungen anzeigen", {exact:true}).click();
+  await page.getByText("Ansicht", {exact:true}).click();
 }
 
 async function positioniere(page: Page, anteil: number) {
@@ -44,6 +47,8 @@ async function ziehe(
 }
 
 async function werkzeug(page: Page, name: string) {
+  const menu = page.locator(".werkzeug-menue");
+  if (!(await menu.getAttribute("open")) && await menu.getAttribute("open") === null) await menu.locator("summary").click();
   const knopf = page.getByRole("button", { name });
   await knopf.click();
   await expect(knopf).toHaveAttribute("aria-pressed", "true");
@@ -104,6 +109,24 @@ test("Anmerkungen: Marker, Text, Teilen, Ebenen, Entwuerfe und Rotation", async 
     0.2,
   );
 
+  await werkzeug(page, "Lesen");
+  const marker = page.locator(".pdf-anmerkung.art-marker").first();
+  await marker.scrollIntoViewIfNeeded();
+  const vorVerschieben = await marker.boundingBox();
+  expect(vorVerschieben).not.toBeNull();
+  if (vorVerschieben) {
+    const x = vorVerschieben.x + vorVerschieben.width / 2;
+    const y = vorVerschieben.y + vorVerschieben.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await expect(marker).toHaveAttribute("aria-pressed", "true");
+    await page.mouse.move(x + 24, y + 16, {steps: 4});
+    await page.mouse.up();
+    const nachVerschieben = await marker.boundingBox();
+    expect(nachVerschieben!.x).toBeCloseTo(vorVerschieben.x + 24, 0);
+    await page.getByRole("button", {name: "Anmerkung speichern"}).click();
+    await expect(page.locator(".anmerkung-formular")).toHaveCount(0);
+  }
   await page.getByRole("button", { name: "Marker auf Seite 1" }).click();
   await page.locator(".anmerkung-formular select").first().selectOption("blau");
   await page.getByRole("button", { name: "Anmerkung speichern" }).click();
@@ -156,6 +179,8 @@ test("Anmerkungen: Marker, Text, Teilen, Ebenen, Entwuerfe und Rotation", async 
   await expect(page.getByText("Seite 1 von 1")).toBeVisible();
   await page.getByRole("button", { name: "Version 1 ansehen" }).click();
   await expect(page.getByText("Seite 1 von 3")).toBeVisible();
+  await page.getByText("Anmerkungen anzeigen", {exact:true}).click();
+  await page.getByText("Ansicht", {exact:true}).click();
   await expect(page.getByRole("button", { name: /Bitte leiser und ruhiger/ })).toBeVisible();
 
   await werkzeug(page, "Text setzen");

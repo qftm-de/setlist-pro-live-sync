@@ -16,6 +16,8 @@
   --warnung: #f59e0b;
   --live: #ef4444;
   --erfolg: #34d399;
+  --abstand-aktionen: 0.75rem;
+  --abstand-menues: 1rem;
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   background: var(--grund);
   color: var(--text);
@@ -116,6 +118,32 @@ a {
   color: var(--meta);
 }
 
+.band-kopf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.band-kopf h1,
+.band-kopf p {
+  margin: 0;
+}
+
+.visuell-verborgen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .bandwechsel {
   display: inline-flex;
   gap: 0.5rem;
@@ -128,7 +156,7 @@ button,
   min-height: 44px;
   min-width: 44px;
   font: inherit;
-  padding: 0 0.75rem;
+  padding: 0.65rem 0.875rem;
   border-radius: 0.5rem;
   border: 1px solid var(--linie);
   background: var(--flaeche);
@@ -186,19 +214,22 @@ button[type="submit"]:hover:not(:disabled),
   margin-top: 2rem;
 }
 
-form label {
+:where(form, .setlist-editor) label {
   display: block;
+  min-width: 0;
   font-weight: 600;
   margin-bottom: 0.75rem;
 }
 
-form input,
-form textarea,
-.bandwechsel select {
+:where(form, .setlist-editor) input,
+:where(form, .setlist-editor) select,
+:where(form, .setlist-editor) textarea {
   display: block;
   width: 100%;
-  margin-top: 0.25rem;
-  padding: 0.5rem;
+  min-width: 0;
+  min-height: 48px;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
   font: inherit;
   color: var(--text);
   background: var(--grund);
@@ -210,8 +241,8 @@ form textarea {
   min-height: 3.5rem;
 }
 
-form input::placeholder,
-form textarea::placeholder {
+:where(form, .setlist-editor) input::placeholder,
+:where(form, .setlist-editor) textarea::placeholder {
   color: var(--sekundaer);
 }
 

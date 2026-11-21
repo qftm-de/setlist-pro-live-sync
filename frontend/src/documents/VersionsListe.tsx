@@ -38,32 +38,36 @@ export function VersionsListe({
           const angezeigt = version.id === betrachtetId;
           return (
             <li key={version.id}>
-              <span className="songtitel">
-                Version {version.number}: {version.original_name}
-              </span>
-              <span className="songmeta">
-                {version.page_count} Seiten, {groesse(version.byte_size)}
-                {aktiv ? " · aktive Bandversion" : ""}
-              </span>
-              <button
-                type="button"
-                aria-pressed={angezeigt}
-                onClick={() => onAnsehen(version.id)}
-              >
-                {`Version ${version.number} ansehen`}
-              </button>
-              <button
-                type="button"
-                disabled={beschaeftigt || aktiv}
-                onClick={() => onAktivieren(version.id)}
-              >
-                {aktiv
-                  ? `Version ${version.number} ist aktiv`
-                  : `Version ${version.number} aktivieren`}
-              </button>
-              <button type="button" onClick={() => onDownload(version)}>
-                {`Version ${version.number} herunterladen`}
-              </button>
+              <div className="version-kopf">
+                <span className="songtitel">
+                  Version {version.number}: {version.original_name}
+                </span>
+                <span className="songmeta">
+                  {version.page_count} Seiten, {groesse(version.byte_size)}
+                  {aktiv ? " · aktive Bandversion" : ""}
+                </span>
+              </div>
+              <div className="version-aktionen">
+                <button
+                  type="button"
+                  aria-pressed={angezeigt}
+                  onClick={() => onAnsehen(version.id)}
+                >
+                  {`Version ${version.number} ansehen`}
+                </button>
+                <button
+                  type="button"
+                  disabled={beschaeftigt || aktiv}
+                  onClick={() => onAktivieren(version.id)}
+                >
+                  {aktiv
+                    ? `Version ${version.number} ist aktiv`
+                    : `Version ${version.number} aktivieren`}
+                </button>
+                <button type="button" onClick={() => onDownload(version)}>
+                  {`Version ${version.number} herunterladen`}
+                </button>
+              </div>
             </li>
           );
         })}

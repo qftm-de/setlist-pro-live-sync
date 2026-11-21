@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { PageViewport } from "pdfjs-dist";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+import { PdfAnmerkungsEbene } from "./annotations/PdfAnmerkungsEbene";
 import { ApiFehler } from "./api/client";
 import { anmerkungTestAdapter, testAnmerkung } from "./annotations/testhelfer";
 import { erstelleTestAdapter } from "./bands/bands";
@@ -104,6 +106,9 @@ describe("Anmerkungen", () => {
     await screen.findByTestId("pdf-viewer");
     fireEvent.click(screen.getByRole("button", { name: "Text setzen" }));
     fireEvent.click(screen.getByRole("button", { name: "Text platzieren" }));
+    expect(await screen.findByTestId("pdf-entwurf-vorschau")).toHaveTextContent(
+      "Entwurf auf Seite 1",
+    );
     fireEvent.change(await screen.findByLabelText("Text"), {
       target: { value: "Leiser im Refrain" },
     });
@@ -157,6 +162,7 @@ describe("Anmerkungen", () => {
     expect(screen.getByLabelText("Anmerkung lesen")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Anmerkung speichern" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Anmerkung löschen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Löschen bestätigen" }));
     await waitFor(() => expect(loesche).toHaveBeenCalledWith("a", 1, 1, 2, 0));
   });
 
@@ -256,5 +262,42 @@ describe("Anmerkungen", () => {
     });
     app(adapter);
     expect(await screen.findByText("Anmeldung erforderlich")).toBeInTheDocument();
+  });
+
+  it("zeigt eine Entwurfs-Vorschau auf der PDF-Ebene und stoppt Pointer-Konflikte", () => {
+    const onMarkierung = vi.fn();
+    const onTextPlatzieren = vi.fn();
+    const onAuswahl = vi.fn();
+    const vp = {
+      width: 200,
+      height: 400,
+      scale: 1,
+      convertToPdfPoint: (x: number, y: number) => [x, y],
+      convertToViewportPoint: (x: number, y: number) => [x, y],
+    } as unknown as PageViewport;
+
+    render(
+      <PdfAnmerkungsEbene
+        annotationen={[testAnmerkung({ id: 7, text: "Vorhanden" })]}
+        basis={vp}
+        aktuell={vp}
+        breite={200}
+        hoehe={400}
+        werkzeug="marker"
+        ausgewaehlteId={null}
+        entwurf={{ x: 0.25, y: 0.5, width: 0.28, height: 0.07 }}
+        onMarkierung={onMarkierung}
+        onTextPlatzieren={onTextPlatzieren}
+        onAuswahl={onAuswahl}
+      />,
+    );
+
+    expect(screen.getByTestId("pdf-anmerkung-vorschau")).toBeInTheDocument();
+    const vorhandene = screen.getByRole("button", { name: "Textanmerkung 7" });
+    fireEvent.pointerDown(vorhandene, { clientX: 20, clientY: 20 });
+    fireEvent.click(vorhandene);
+    expect(onAuswahl).toHaveBeenCalledWith(7);
+    expect(onMarkierung).not.toHaveBeenCalled();
+    expect(onTextPlatzieren).not.toHaveBeenCalled();
   });
 });

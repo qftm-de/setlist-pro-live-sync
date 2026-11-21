@@ -26,6 +26,7 @@ export function AnmeldeFormular({ onAnmelden }: AnmeldeFormularProps) {
 
   return (
     <section className="anmeldung" aria-labelledby="anmeldung-titel">
+      <img className="anmeldung-motiv" src="/bandmotiv.jpg" alt="Band mit Gesang, Gitarre und Schlagzeug" />
       <h1 id="anmeldung-titel">Anmeldung erforderlich</h1>
       <p>Konten vergibt der Betreiber dieser Instanz.</p>
       <form onSubmit={absenden}>

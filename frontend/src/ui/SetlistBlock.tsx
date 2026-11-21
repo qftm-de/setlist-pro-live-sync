@@ -90,24 +90,33 @@ export function SetlistBlock({
           maxLength={120}
         />
         <span className="songmeta">{artName(block.kind)}</span>
+      </header>
+      <div className="setlist-sortierung">
         <button
           type="button"
+          aria-label={`Abschnitt ${blockIndex + 1} nach oben`}
           onClick={() => onBlockVerschieben(-1)}
           disabled={blockIndex === 0}
         >
-          {`Abschnitt ${blockIndex + 1} nach oben`}
+          Nach oben
         </button>
         <button
           type="button"
+          aria-label={`Abschnitt ${blockIndex + 1} nach unten`}
           onClick={() => onBlockVerschieben(1)}
           disabled={blockIndex === anzahlBloecke - 1}
         >
-          {`Abschnitt ${blockIndex + 1} nach unten`}
+          Nach unten
         </button>
-        <button type="button" onClick={onBlockEntfernen}>
-          {`Abschnitt ${blockIndex + 1} entfernen`}
+        <button
+          type="button"
+          className="setlist-entfernen"
+          aria-label={`Abschnitt ${blockIndex + 1} entfernen`}
+          onClick={onBlockEntfernen}
+        >
+          Entfernen
         </button>
-      </header>
+      </div>
 
       {block.zeilen.length === 0 ? (
         <p className="songmeta">Noch keine Einträge.</p>
@@ -142,26 +151,36 @@ export function SetlistBlock({
                   target="_blank"
                   rel="noopener"
                 >
-                  {`${zeile.titel} PDF in neuem Tab öffnen`}
+                  <span className="visuell-verborgen">{zeile.titel} </span>
+                  PDF in neuem Tab öffnen
                 </a>
               ) : null}
-              <button
-                type="button"
-                onClick={() => onZeileVerschieben(zeilenIndex, -1)}
-                disabled={zeilenIndex === 0}
-              >
-                {`${zeile.titel} an Position ${zeilenIndex + 1} nach oben`}
-              </button>
-              <button
-                type="button"
-                onClick={() => onZeileVerschieben(zeilenIndex, 1)}
-                disabled={zeilenIndex === block.zeilen.length - 1}
-              >
-                {`${zeile.titel} an Position ${zeilenIndex + 1} nach unten`}
-              </button>
-              <button type="button" onClick={() => onZeileEntfernen(zeilenIndex)}>
-                {`${zeile.titel} an Position ${zeilenIndex + 1} entfernen`}
-              </button>
+              <div className="setlist-sortierung">
+                <button
+                  type="button"
+                  aria-label={`${zeile.titel} an Position ${zeilenIndex + 1} nach oben`}
+                  onClick={() => onZeileVerschieben(zeilenIndex, -1)}
+                  disabled={zeilenIndex === 0}
+                >
+                  Nach oben
+                </button>
+                <button
+                  type="button"
+                  aria-label={`${zeile.titel} an Position ${zeilenIndex + 1} nach unten`}
+                  onClick={() => onZeileVerschieben(zeilenIndex, 1)}
+                  disabled={zeilenIndex === block.zeilen.length - 1}
+                >
+                  Nach unten
+                </button>
+                <button
+                  type="button"
+                  className="setlist-entfernen"
+                  aria-label={`${zeile.titel} an Position ${zeilenIndex + 1} entfernen`}
+                  onClick={() => onZeileEntfernen(zeilenIndex)}
+                >
+                  Entfernen
+                </button>
+              </div>
             </li>
           ))}
         </ol>

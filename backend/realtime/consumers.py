@@ -21,6 +21,13 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
     # gilt je Prozess; der Core läuft mit einem Daphne-Prozess.
     _verbindungen: dict[tuple[int, int], int] = {}
 
+    async def __call__(self, scope, receive, send):
+        try:
+            return await super().__call__(scope, receive, send)
+        finally:
+            # Fehler im Channel-Empfänger umgehen websocket.disconnect.
+            await self.disconnect(1011)
+
     async def connect(self) -> None:
         self.band_id = int(self.scope["url_route"]["kwargs"]["band_id"])
         self.ueberwachung: asyncio.Task | None = None
@@ -72,7 +79,10 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
         await self._sende_bereit()
 
     async def disconnect(self, code: int) -> None:
-        if self.ueberwachung is not None:
+        if getattr(self, "bereinigt", False):
+            return
+        self.bereinigt = True
+        if getattr(self, "ueberwachung", None) is not None:
             self.ueberwachung.cancel()
             self.ueberwachung = None
         try:
@@ -85,14 +95,16 @@ class BandConsumer(AsyncJsonWebsocketConsumer):
         finally:
             from stage.dienste import schliesse_verbindung
 
-            verbindung = getattr(self, "stage_verbindung", None)
-            if verbindung is not None:
-                try:
-                    await database_sync_to_async(schliesse_verbindung)(verbindung.id)
-                except Exception:
-                    # Ein Datenbankfehler darf den Verbindungsplatz nicht sperren.
-                    pass
-            self._gib_verbindung_frei()
+            try:
+                verbindung = getattr(self, "stage_verbindung", None)
+                if verbindung is not None:
+                    try:
+                        await database_sync_to_async(schliesse_verbindung)(verbindung.id)
+                    except Exception:
+                        # Ein Datenbankfehler darf den Verbindungsplatz nicht sperren.
+                        pass
+            finally:
+                self._gib_verbindung_frei()
 
     def _gib_verbindung_frei(self) -> None:
         schluessel = getattr(self, "verbindungs_schluessel", None)

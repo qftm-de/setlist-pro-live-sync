@@ -10,12 +10,13 @@ export async function anmelden(page: Page, bandId: string) {
   await page.goto("/");
   // Auf langsamen Runnern ist beim ersten Aufbau noch keins von beiden da.
   // `count()` ohne Warten liefert dann 0 und die Anmeldung faellt aus.
-  await expect(bandWahl.or(anmeldeKnopf)).toBeVisible();
+  await expect(page.getByText("Band und Konto", {exact:true}).or(anmeldeKnopf)).toBeVisible();
   if (await anmeldeKnopf.count()) {
     await page.getByLabel("Benutzername").fill(benutzer);
     await page.getByLabel("Passwort").fill(passwort);
     await anmeldeKnopf.click();
   }
+  await page.getByText("Band und Konto", {exact:true}).click();
   await expect(bandWahl).toBeVisible();
   await bandWahl.selectOption(bandId);
 }

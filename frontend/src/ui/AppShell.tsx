@@ -29,7 +29,7 @@ export function AppShell({
     return (
       <div className="huelle huelle-buehne">
         <header className="kopf kopf-buehne">
-          <strong>{titel}</strong>
+          <strong className="marke"><img src="/band-icon.jpg" alt="" width="36" height="36" />{titel}</strong>
           <button type="button" onClick={() => onNavigieren("/")}>
             Bühne verlassen
           </button>
@@ -39,14 +39,15 @@ export function AppShell({
     );
   }
   return (
-    <div className="huelle">
+    <div className={`huelle ${pfad.includes("/pdf") ? "huelle-pdf" : ""}`}>
       <header className="kopf">
-        <strong>{titel}</strong>
+        <strong className="marke"><img src="/band-icon.jpg" alt="" width="36" height="36" />{titel}</strong>
         {communityUrl ? (
           <a className="community" href={communityUrl} target="_blank" rel="noreferrer">
             Community
           </a>
         ) : null}
+        {pfad.includes("/pdf") ? <button type="button" onClick={() => onNavigieren("/songs")}>Zurück zu Songs</button> : null}
         <nav aria-label="Hauptnavigation">
           {BEREICHE.map((bereich) => (
             <a

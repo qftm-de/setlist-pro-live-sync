@@ -149,6 +149,11 @@
     mit 401, 404 und 413 statt 500, der Export hat eine Bremse und prüft die
     Größe vor dem Archivbau, ein verworfener Textstand löst ein Nachladen aus,
     und der Kern-Job prüft das Frontend einmal statt viermal. R16, R14, R5.
+  - Mobile Bedienung für PDF und Anmerkungen verbessert (20.11.2026):
+    kompakte Band-Kopfzeile, deutliche Aktiv-Kontraste im dunklen Design,
+    Formular direkt über der PDF-Seite mit Live-Vorschau, gerundete
+    Koordinaten, fehlertolerante Touch-Gesten für waagerechtes Wischen und
+    Antippen sowie ruhiges PDF-Canvas bei Anmerkungsänderungen. R4, R11, R12.
 
 ## Offen
 
@@ -171,3 +176,34 @@
 `alte_projektdatein/` ist bewusst gitignored und nicht versioniert. Der frühere Plan
 „Baseline committen“ ist damit nicht umsetzbar, ohne die Ignore-Regel zu ändern.
 Der Ordner bleibt als lokale Referenz erhalten.
+
+## Mobile Überarbeitung, 21.11.2026
+
+- Umgesetzt: Bandlogo, Startübersicht, mobile Navigation, Song-Suche und einklappbare Formulare sowie PDF-Verwaltung.
+- Anmerkungen lassen sich durch Halten und Ziehen oder über Griffe bewegen. Positionsentwürfe, Größenänderung und bestätigtes Löschen sind integriert.
+- Geprüft: 197 Frontendtests, Produktionsbuild und Schnell-Gate einschließlich Echtzeitabgleich und Bühne.
+- PDF-Browsertests einschließlich Halten und Ziehen erfolgreich. Layout bei 360, 390, 768 und 1280 Pixeln geprüft.
+- Lokales Frontend unter Port 8090 neu gebaut und gestartet.
+- Offen: Prüfung von Touch, Bildschirmtastatur und PDF auf echten Smartphones.
+
+## Menü- und Formularlayout, 21.11.2026
+
+- Abstandskorrektur: PDF-Menüs, Werkzeugleisten, Songbearbeitung und Bühnensteuerung ansichtsübergreifend geprüft und vereinheitlicht.
+- PDF-Upload und Bandmenü haben einen eigenen Zwischenraum. Geöffnete Ansicht- und Songmenüs nutzen ausdrückliche Aktionsgruppen.
+- Mobile Bühnensteuerung bricht in getrennte Reihen um. Fehlerhinweise und Bandformulare trennen Text und Aktionen.
+- Fünf Browserprüfungen auf dem aktualisierten Docker-Frontend erfolgreich, jeweils bei 360, 390, 768 und 1280 Pixeln.
+- Geöffnete und geschlossene PDF-Menüs, Songbearbeitung, Auftritte, Setlists und Bühnensteuerung halten die geprüften Mindestabstände ein.
+- R18 nachgebessert: Menüs mit größeren Kopfzeilen und Abstand, Formularfelder einschließlich Auswahlfeldern einheitlich gestaltet.
+- Setlist-Auswahl, Bühnenaktion und Löschen haben getrennte Plätze. Lange Namen bleiben lesbar, Aktionsbeschriftungen sind kürzer.
+- Abschnittsfelder, Sortieren sowie Song- und Notizeingabe stehen in eigenen Gruppen. Der Speicherknopf überlagert keine Eingaben.
+- Frontendtests, Produktionsbuild und Browser-Regressionsprüfung bei 360, 390, 768 und 1280 Pixeln erfolgreich. Sichtprüfung im Mobilformat und auf Desktop ohne Seitenüberlauf.
+- Lokales Frontend auf Port 8090 aktualisiert. API und gespeicherte Banddaten bleiben unverändert.
+- Schnell-Gate grün: sieben Prüfkommandos für 14 betroffene Anforderungen. Prüfung auf echten Smartphones bleibt Teil des Pilottests.
+
+## Echtzeit-Verbindung, 21.11.2026
+
+- Ursache: Redis-Socket-Timeout und blockierender Empfang lagen beide bei fünf Sekunden. Empfangsfehler ließen Verbindungsplätze und Überwachung zurück.
+- Korrigiert: Socket-Timeout beträgt 15 Sekunden. Die Consumer-Bereinigung läuft auch bei einem Transportfehler außerhalb des Disconnect-Ereignisses.
+- 19 gezielte Backendtests bestanden; API und Relay mit der Korrektur neu gestartet.
+- Redis-Leerlauf und anschließender Empfang geprüft. Die App hat sich automatisch wieder verbunden; keine weiteren Redis-Empfangsfehler beobachtet.
+- Schnell-Gate grün: sieben Prüfkommandos für 14 betroffene Anforderungszeilen.

@@ -5,6 +5,18 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Einheitliche Abstände zwischen PDF-Menüs und Aktionen. Songbearbeitung und mobile Bühnensteuerung halten auch beim Zeilenumbruch Abstand (R18).
+- Redis-Leerlauf beendet den Echtzeitabgleich nicht mehr nach fünf Sekunden. Abgebrochene WebSockets geben ihre Verbindungsplätze und Überwachung zuverlässig frei (R13).
+
+### Changed
+
+- Menüs und Setlist-Editor mit größeren Formularfeldern, klaren Aktionsgruppen und mehr Abstand. Lange Namen drängen Bühnen- und Löschaktionen nicht mehr zusammen (R18).
+- Mobile Navigation und PDF-Werkzeuge kompakter dargestellt; vorhandenes Bandlogo integriert. Auf großen Bildschirmen stehen die PDF-Werkzeuge seitlich (R18).
+- Startübersicht mit nächstem Auftritt, Song-Suche und einklappbare Formulare ergänzt (R18).
+- Anmerkungen lassen sich durch Gedrückthalten verschieben. Griffe ändern Position und Größe, ohne Koordinatenfelder. Löschen verlangt eine Bestätigung (R19).
+
 ### Added
 
 - Bandexport (R16): `GET /api/bands/<id>/export/` liefert ein ZIP mit
@@ -203,6 +215,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- PDF und Anmerkungen auf Mobilgeräten (R4, R11, R12): Die Werkzeugleiste
+  hebt aktive Werkzeuge und Farben im dunklen Design klar hervor. Das Formular
+  für neue oder gewählte Anmerkungen steht direkt über der PDF-Ansicht, zeigt
+  eine Vorschau auf der Seite und rundet Koordinaten auf vier Stellen.
+  Waagerechtes Fingerwischen und kurzes Antippen im Marker-Modus erzeugen
+  gültige Markierungen, und das PDF-Canvas zeichnet bei Anmerkungsänderungen
+  nicht mehr neu.
 - Bandexport (R16): Fehlerpfade antworten auch bei `Accept: application/zip`
   mit JSON und den Status 401, 404 und 413 statt mit 500. Eine Bremse von
   6 Exporten je Minute und eine Größenprüfung vor dem Archivbau begrenzen
@@ -387,4 +406,3 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 - Analyse der Alt-App: offene Firestore-Regeln, Passwort im Client,
   Klartextfeld in einem Banddokument. Keine Werte im Repository.
-

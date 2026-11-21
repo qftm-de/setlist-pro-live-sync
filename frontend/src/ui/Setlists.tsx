@@ -257,23 +257,27 @@ export function Setlists({
               {onBuehneOeffnen ? (
                 <button
                   type="button"
+                  aria-label={`Bühne aus ${setlist.name} öffnen`}
                   onClick={() => onBuehneOeffnen(setlist.id)}
                 >
-                  {`Bühne aus ${setlist.name} öffnen`}
+                  Bühne öffnen
                 </button>
               ) : null}
               <button
                 type="button"
+                className="setlist-loeschen"
+                aria-label={`${setlist.name} löschen`}
                 disabled={laeuft}
                 onClick={() => loeschen(setlist)}
               >
-                {`${setlist.name} löschen`}
+                Löschen
               </button>
             </li>
           ))}
         </ul>
       )}
 
+      <details className="anlegen-menue"><summary>Setlist hinzufügen</summary>
       <form className="setlist-formular" onSubmit={anlegen}>
         <label>
           Neue Setlist
@@ -288,6 +292,7 @@ export function Setlists({
           {laeuft ? "Legt an …" : "Setlist anlegen"}
         </button>
       </form>
+      </details>
 
       {gewaehlt !== null && detail === null && fehler === null ? (
         <StatusAnzeige zustand="laedt" />

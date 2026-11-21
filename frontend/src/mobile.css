@@ -1,0 +1,134 @@
+/* Gemeinsame mobile Oberfläche mit der vorhandenen Bandmarke. */
+:root { --linie: #303036; --meta: #d4d4d8; }
+button, input, select, textarea { font: inherit; }
+button, select, summary { min-height: 44px; }
+button { border-radius: 12px; }
+summary { cursor: pointer; padding: 12px 14px; font-weight: 600; }
+details { border: 1px solid var(--linie); border-radius: 14px; background: var(--flaeche); }
+details[open] > :not(summary) { margin: 12px; }
+.marke { display: flex; align-items: center; gap: 10px; }
+.marke img { border-radius: 10px; }
+.inhalt { width: 100%; max-width: 1200px; margin: 0 auto; }
+.song-suche { display: grid; gap: 6px; margin-bottom: 20px; }
+.song-suche input { width: 100%; min-height: 48px; border: 1px solid var(--linie); border-radius: 14px; padding: 12px; background: var(--flaeche); color: var(--text); }
+.pdf-viewer { display: flex; flex-direction: column; gap: var(--abstand-aktionen); }
+.pdf-flaeche { order: 0; padding: 0; border: 0; border-radius: 0; }
+.pdf-werkzeuge { order: 1; }
+.pdf-werkzeuge details { position: relative; }
+.dokument > .dokument-verwaltung { order: 3; }
+.dokument > details:last-child { order: 4; }
+.huelle-pdf .kopf nav, .huelle-pdf .fuss { display: none; }
+.huelle-pdf .band-kopf h1, .huelle-pdf .band-kopf > button { display: none; }
+.huelle-pdf .band-menue { order: 5; }
+.huelle-pdf .inhalt { display: flex; flex-direction: column; gap: var(--abstand-menues); }
+.huelle-pdf .inhalt > section { order: 0; }
+.huelle-pdf .kopf { padding: 8px 16px; }
+.huelle-pdf .kopf .marke { font-size: 0; }
+.huelle-pdf .band-kopf .echtzeit-verbunden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.huelle-pdf .band-kopf { margin: 0; padding: 0; min-height: 0; }
+.huelle-pdf .inhalt { padding-top: 8px; }
+.huelle-pdf h2 { margin: 0; font-size: 20px; }
+.huelle-pdf .dokument { gap: var(--abstand-menues); }
+@media (max-width: 767px) {
+  .inhalt { padding: 16px 12px 92px; }
+  .kopf { padding: 12px 16px; }
+  .kopf nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); background: #18181bf5; border-top: 1px solid var(--linie); }
+  .kopf nav a { justify-content: center; padding: 10px 2px; border: 0; border-radius: 12px; font-size: 14px; }
+  h1 { font-size: 25px; } h2 { font-size: 22px; }
+  input, select, textarea { font-size: 16px; max-width: 100%; }
+  form { max-width: 100%; }
+  .pdf-werkzeuge { position: sticky; bottom: 0; z-index: 10; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); padding: 12px; gap: var(--abstand-aktionen); }
+  .pdf-werkzeuge > details { grid-column: 1 / -1; }
+  .pdf-werkzeuge button { font-size: 13px; padding: 8px; }
+  .huelle-pdf .inhalt { padding: 8px 8px 24px; }
+  .anmerkung-formular { scroll-margin: 16px; }
+}
+.anmeldung { max-width: 440px; margin: 32px auto; overflow: hidden; border: 1px solid var(--linie); border-radius: 20px; background: var(--flaeche); padding: 24px; }
+.anmeldung-motiv { width: calc(100% + 48px); max-width: none; margin: -24px -24px 20px; aspect-ratio: 2 / 1; object-fit: cover; }
+.anlegen-menue { margin-top: 20px; }
+.songliste, .setlist-liste, .auftritt-liste { display: grid; gap: 12px; }
+.songliste > li, .setlist-liste > li, .auftritt-liste > li { border: 0; border-bottom: 1px solid var(--linie); border-radius: 0; background: transparent; padding: 16px 4px; }
+.songformular, .songbearbeiten, .setlist-formular, .auftritt-formular, .bandformular, .bandformular form { display: grid; gap: 16px; }
+.songbearbeiten { width: 100%; min-width: 0; max-width: 40rem; }
+@media (min-width: 768px) {
+  .huelle:not(.huelle-pdf):not(.huelle-buehne) { padding-left: 200px; }
+  .huelle:not(.huelle-pdf):not(.huelle-buehne) .kopf nav { position: fixed; left: 0; top: 0; bottom: 0; width: 184px; flex-direction: column; padding: 100px 12px 20px; background: var(--flaeche); }
+  .kopf nav a { border: 0; }
+}
+.start-motiv { width: 100%; max-height: 220px; object-fit: cover; object-position: center 45%; border-radius: 18px; }
+.start-aktionen { display: flex; flex-wrap: wrap; gap: 12px; }
+.start-aktionen button { flex: 1; min-width: 120px; }
+@media (max-width: 767px) {
+  .anmerkungs-bereich:has(.anmerkung-formular) { padding-bottom: 45dvh; }
+  .anmerkungs-bereich > .anmerkung-formular { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; max-height: 42dvh; overflow-y: auto; margin: 0; border-radius: 20px 20px 0 0; background: var(--flaeche); padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 36px #0008; }
+  .anmerkung-aktionen { position: sticky; bottom: 0; background: var(--flaeche); padding: 8px 0; }
+}
+.zeilen-menue { margin-left: auto; max-width: 100%; background: transparent; border: 0; }
+.zeilen-menue summary { color: var(--meta); }
+@media (max-width: 767px) {
+  .songzeile { align-items: start; }
+  .songzeile .songtitel { flex-basis: 100%; font-size: 18px; font-weight: 650; }
+  .song-pdf { padding: 12px 14px; background: var(--flaeche-hoch); border-radius: 12px; text-decoration: none; color: var(--text); }
+}
+/* PDF und Anmerkungen müssen beim Zoom dieselbe physische Fläche behalten. */
+.pdf-seite, .pdf-flaeche canvas { max-width: none; }
+.schrift-auswahl { display: flex; align-items: end; flex-wrap: wrap; gap: var(--abstand-aktionen); }
+@media (min-width: 768px) {
+  .anmerkungs-bereich {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    grid-template-rows: repeat(7, min-content) 1fr;
+    align-items: start;
+    gap: 16px;
+  }
+  .anmerkungs-bereich > :not(.pdf-viewer) { grid-column: 2; }
+  .anmerkungs-bereich > .pdf-viewer { display: contents; }
+  .anmerkungs-bereich .pdf-flaeche { grid-column: 1; grid-row: 1 / span 8; min-width: 0; }
+  .anmerkungs-bereich .pdf-werkzeuge { grid-column: 2; grid-row: 1; margin: 0; }
+  .anmerkungs-bereich > .werkzeug-menue { grid-row: 2; }
+  .anmerkungs-bereich > .anmerkung-formular { grid-row: 3; }
+  .anmerkungs-bereich > details:last-of-type { grid-row: 4; }
+}
+.echtzeit-status { color: var(--meta); }
+.echtzeit-verbunden { color: var(--erfolg); }
+.echtzeit-unterbrochen, .echtzeit-abgleich-fehlgeschlagen { color: #fca5a5; }
+
+/* Aufklappmenüs und Formulare teilen einen ruhigen, gut antippbaren Aufbau. */
+.band-menue { margin-bottom: 24px; }
+details:not(.zeilen-menue) > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 56px;
+  padding: 16px;
+  list-style: none;
+}
+details:not(.zeilen-menue) > summary::-webkit-details-marker { display: none; }
+details:not(.zeilen-menue) > summary::after {
+  content: "+";
+  color: var(--signal);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+}
+details:not(.zeilen-menue)[open] > summary { border-bottom: 1px solid var(--linie); }
+details:not(.zeilen-menue)[open] > summary::after { content: "-"; }
+details:not(.zeilen-menue)[open] > :not(summary) { margin: 16px; }
+:is(.songformular, .songbearbeiten, .setlist-formular, .auftritt-formular, .bandformular, .bandformular form) > label { margin: 0; }
+.band-menue .bandwechsel { display: grid; gap: 8px; flex: 1 1 16rem; }
+.band-menue .bandwechsel select { width: 100%; min-width: 0; }
+.band-menue .konto { gap: 12px; }
+.band-kopf h1 { overflow-wrap: anywhere; }
+.inhalt > .fehler { margin-bottom: 24px; }
+.aktionsgruppe { display: flex; flex-wrap: wrap; align-items: center; gap: var(--abstand-aktionen); }
+.aktionsgruppe > button { max-width: 100%; overflow-wrap: anywhere; }
+@media (max-width: 767px) {
+  .inhalt { padding-right: 16px; padding-left: 16px; }
+  .band-menue .band-kopf { display: grid; gap: 20px; }
+  .band-menue .konto { justify-content: space-between; }
+  .band-menue .bandwechsel { width: 100%; }
+  .band-kopf { gap: 8px; margin-bottom: 24px; }
+  .band-kopf .echtzeit-status { margin: 0; font-size: 0.875rem; line-height: 1.5; }
+  .band-menue + section > .band-kopf { padding-top: 4px; }
+}

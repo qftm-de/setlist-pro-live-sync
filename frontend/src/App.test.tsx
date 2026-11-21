@@ -8,7 +8,7 @@ import type { SessionAdapter } from "./session/session";
 import { KONFIGURATION, sitzungAdapter, song, verzögert } from "./test-helfer";
 
 beforeEach(() => {
-  window.history.replaceState({}, "", "/");
+  window.history.replaceState({}, "", "/songs");
 });
 
 afterEach(() => {

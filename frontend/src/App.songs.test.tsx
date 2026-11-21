@@ -6,7 +6,7 @@ import { erstelleTestAdapter } from "./bands/bands";
 import { bandAdapterMitSongs, KONFIGURATION, sitzungAdapter, song } from "./test-helfer";
 
 beforeEach(() => {
-  window.history.replaceState({}, "", "/");
+  window.history.replaceState({}, "", "/songs");
 });
 
 afterEach(() => {

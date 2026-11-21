@@ -11,6 +11,9 @@ async function pdfRoute(page: Page, versionId?: number) {
     ? `/songs/${bandId}/${songId}/pdf/versions/${versionId}`
     : `/songs/${bandId}/${songId}/pdf`;
   await page.goto(ziel);
+  const menue = page.getByText("PDF-Versionen und Download", {exact:true});
+  await expect(menue.or(page.getByLabel("Benutzername"))).toBeVisible();
+  if (await menue.count()) await menue.click();
 }
 
 async function nichtWeiss(page: Page) {
@@ -59,6 +62,7 @@ test("PDF.js rendert, zoomt, dreht, laedt herunter und erhaelt Entwuerfe", async
   await expect(page.getByText("Seite 1 von 3")).toBeVisible();
   await expect.poll(() => nichtWeiss(page), { timeout: 20_000 }).toBe(true);
 
+  await page.getByText("Ansicht", {exact:true}).click();
   const zoom = page.getByLabel("Zoom in Prozent");
   await expect(zoom).toHaveAttribute("min", "50");
   await expect(zoom).toHaveAttribute("max", "300");
@@ -91,6 +95,8 @@ test("PDF.js rendert, zoomt, dreht, laedt herunter und erhaelt Entwuerfe", async
   await page.getByRole("button", { name: "Version 1 herunterladen" }).click();
   expect((await download).suggestedFilename()).toBe("browser-partitur.pdf");
 
+  const uploadMenue = page.locator("details").filter({has:page.locator(".pdf-upload")});
+  if (await uploadMenue.getAttribute("open") === null) await uploadMenue.locator("summary").click();
   await page.getByLabel("PDF-Datei").setInputFiles({
     name: "zweite-fassung.pdf",
     mimeType: "application/pdf",
@@ -131,9 +137,11 @@ test("PDF.js rendert, zoomt, dreht, laedt herunter und erhaelt Entwuerfe", async
   await expect(page.getByRole("button", { name: "Version 1 ansehen", pressed: true })).toBeVisible();
   await expect(page.getByText("Seite 1 von 3")).toBeVisible();
   await page.goBack();
+  await page.getByText("Band und Konto", {exact:true}).click();
   await expect(page.locator("label.bandwechsel select")).toBeVisible();
 
   await page.goto("/setlists");
+  await page.getByText("Setlist hinzufügen", {exact:true}).click();
   await page.getByLabel("Neue Setlist").fill("PDF-Entwurf");
   await page.getByRole("button", { name: "Setlist anlegen" }).click();
   await page.getByRole("button", { name: "Set hinzufügen" }).click();
@@ -151,6 +159,7 @@ test("PDF.js rendert, zoomt, dreht, laedt herunter und erhaelt Entwuerfe", async
 
   if (zweiteBandId) {
     await pdfRoute(page);
+    await page.getByText("Band und Konto", {exact:true}).click();
     await page.locator("label.bandwechsel select").selectOption(zweiteBandId);
     await expect(page).toHaveURL(/\/songs$/);
   }

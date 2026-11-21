@@ -21,6 +21,7 @@ export function Songs({
   onNavigieren,
   onSitzungAbgelaufen,
 }: SongsProps) {
+  const [suche, setSuche] = useState("");
   const [titel, setTitel] = useState("");
   const [interpret, setInterpret] = useState("");
   const [tonart, setTonart] = useState("");
@@ -97,11 +98,12 @@ export function Songs({
   return (
     <section className="songs" aria-labelledby="songs-titel">
       <h2 id="songs-titel">Songs</h2>
+      <label className="song-suche">Songs suchen<input type="search" placeholder="Titel oder Interpret" value={suche} onChange={e => setSuche(e.target.value)} /></label>
       {anzeige.length === 0 ? (
         <p>Keine Songs in dieser Band.</p>
       ) : (
         <ul className="songliste">
-          {anzeige.map((song) => (
+          {anzeige.filter(song => offeneSongs[song.id] || `${song.title} ${song.artist}`.toLocaleLowerCase("de").includes(suche.toLocaleLowerCase("de"))).map((song) => (
             <SongZeile
               key={song.id}
               bandId={bandId}
@@ -121,6 +123,7 @@ export function Songs({
           ))}
         </ul>
       )}
+      <details className="anlegen-menue"><summary>Song hinzufügen</summary>
       <form className="songformular" onSubmit={anlegen}>
         <label>
           Titel
@@ -173,6 +176,7 @@ export function Songs({
           {zustand === "speichert" ? "Speichert …" : "Song hinzufügen"}
         </button>
       </form>
+      </details>
       <StatusAnzeige zustand={zustand} />
       {fehler ? <p role="alert">{fehler}</p> : null}
     </section>
