@@ -19,6 +19,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - Startübersicht mit nächstem Auftritt, Song-Suche und einklappbare Formulare ergänzt (R18).
 - Anmerkungen lassen sich durch Gedrückthalten verschieben. Griffe ändern Position und Größe, ohne Koordinatenfelder. Löschen verlangt eine Bestätigung (R19).
 - Die mobilen Menü- und Abstandsprüfungen laufen im Voll-Gate und in der CI mit (R18).
+- Changelog und Projektstatus nennen keine Review-Modelle, Anbieter oder
+  internen Befunddateien mehr. Die Regel steht in `CONTRIBUTING.md`.
 
 ### Added
 
@@ -34,10 +36,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   veröffentlicht volle Version, `major.minor` und Commit-Tag.
   `docker-compose.release.yml` zieht genau diese Images ohne lokalen Build.
 - Mobil-Smoke für Auftritte, PDF und Bühne im Playwright-Profil `mobil`.
-- `scripts/review-agy.mjs` fährt das erste Review-Gutachten über die
-  Review-CLI in Orca. Sie läuft im Abonnement, also ohne zusätzliches Guthaben. Das Skript startet den
-  Agenten als Terminal über `orca agent launch`, wartet auf die Befunddatei
-  und schreibt die Kopfzeilen HEAD, BASE und DIFF selbst. R1.
+- `scripts/review-agy.mjs` fährt das erste Review-Gutachten über eine lokale
+  CLI in Orca. Das Skript startet den Agenten als Terminal, wartet auf die
+  Befunddatei und schreibt die Kopfzeilen HEAD, BASE und DIFF selbst. R1.
 - `SUPPORT.md` nennt Meldeweg für Schwachstellen, Antwortzeiten, Art der
   Veröffentlichungen und die Grenze des Supports. `README.md` verweist darauf.
 - Das Gate kennt `doku-sync` als eingebauten Schritt. Er läuft auch ohne lokale
@@ -164,9 +165,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
-- Erstgutachten läuft über Review-CLI (`scripts/review-agy.mjs`) und schreibt
-  in die Befunddatei. Der zweite Durchgang bleibt bei das Review-Werkzeug
-  und schreibt die zweite Befunddatei. R1.
+- Erstgutachten und Zweitgutachten laufen getrennt über
+  `scripts/review-agy.mjs` und `scripts/review-kilo.mjs` und schreiben je eine
+  eigene Befunddatei. R1.
 - CI prüft zusätzlich R14 und R15 gegen echte Container (`verify-realtime.mjs`
   im Job `kern`). `scripts/verify-ci.mjs` verlangt beide Läufe und die
   Root-Abhängigkeiten. R5.
@@ -181,8 +182,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   jetzt einmal statt siebenmal.
 - Gate-Schritte mit `parallel: true` starten mit dem Gate und zählen an ihrer
   Stelle im Ablauf. Beide Reviews laufen dadurch parallel zum Verify.
-- Zweiter Review-Durchgang über eine direkte API-Anbindung. Getrennte Befunddatei über `REVIEW_OUT`, ein
-  offener Blocker oder Major eines der beiden Gutachter stoppt den Push.
+- Zweiter Review-Durchgang über eine eigene API-Anbindung. Getrennte
+  Befunddatei über `REVIEW_OUT`, ein offener Blocker oder Major eines der
+  beiden Gutachter stoppt den Push.
 
 
 - Browser-Zurück mit ungespeichertem Entwurf hält die aktuelle URL stabil und
@@ -242,8 +244,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   Umlaute im `filename*`-Teil. Ein Abbruch beim Lesen des ZIP-Körpers gilt als
   Netzwerkfehler. Der Exportknopf wird beim Bandwechsel neu aufgebaut und
   verwirft späte Antworten.
-- Review (R1): Die Standard-Befunddateien passen zur Doku. Review-CLI schreibt
-  ohne `REVIEW_OUT` nach die Befunddatei, das Review-Werkzeug nach die zweite Befunddatei.
+- Review (R1): Die Standard-Befunddateien passen zur Doku. Jeder Gutachter
+  schreibt ohne `REVIEW_OUT` in seine eigene Datei.
 - Release (R17): Die Docker-Actions im Release-Workflow sind auf Commits
   gepinnt; `scripts/verify-release.mjs` verlangt die Pin-Form.
 - Gemeinsame Bearbeitung (R14): Die Map der eingehenden Textupdates ist auf

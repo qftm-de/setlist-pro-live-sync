@@ -22,7 +22,7 @@
 - Lokaler Export der Alpha: `.tmp/fb/export.zip`, Rohdaten unter `.tmp/fb/`. Der Ordner ist gitignored.
 - Doku bereinigt: alte Projekt-ID, Bandcodes und Demo-Namen entfernt. Screens der Alt-App bleiben lokal, `docs/analyse/screens/` ist gitignored.
 - Sicherheits-Baseline im Gate: `scripts/review-constraints.mjs` blockt Secrets, Zugangsdaten, private IPs, eingebettete Dateien und unsichere Code-Muster, auch in `docs/` und `.yaml`.
-- Pre-Push-Review-Pipeline steht: Gate-Schritt `agy-review` in `harness/projekt.yaml` ruft `scripts/review-agy.mjs` auf, das den Review-Gutachter über Orca startet und in die Befunddatei schreibt. Der Schritt läuft nur, wenn die Befunddatei nicht zum Stand passt. Der zweite Durchgang (`kilo-review-2` → `scripts/review-kilo.mjs`) bleibt bei das Review-Werkzeug und schreibt die zweite Befunddatei. Dafür erlaubt das Schema der Harness-Quelle jetzt eigene `{name, run}`-Schritte im Gate.
+- Pre-Push-Review-Pipeline steht: Gate-Schritt `agy-review` in `harness/projekt.yaml` ruft `scripts/review-agy.mjs` auf, das den ersten Gutachter über Orca startet und die Befunddatei schreibt. Der Schritt läuft nur, wenn die Befunddatei nicht zum Stand passt. Der zweite Durchgang (`kilo-review-2` → `scripts/review-kilo.mjs`) schreibt eine eigene Befunddatei. Dafür erlaubt das Schema der Harness-Quelle jetzt eigene `{name, run}`-Schritte im Gate.
 - Qualitätssicherung nach Prozess-Bewertung nachgebaut (2026-11-14):
   - Gate-Skripte sind versioniert, Harness und Agentenkonfiguration bleiben lokal. Ein frischer Clone führt das Gate mit den eingebauten Schritten aus: `npm ci` im Root, dann `node scripts/gate.mjs --schnell`. Simulation ohne Harness-Quelle geprüft.
   - CI hat einen Job `gate` (Requirements-Gate, Security-Baseline, Gitleaks) vor den Test-Jobs.
@@ -130,14 +130,14 @@
     Mitgliedschaftsentzug, PDF-Zugriff und beide Leitungsverluste.
 - Gate und Review beschleunigt (15.11.2026): gleiche Verify-Befehle laufen
   einmal statt pro R-Zeile, Schritte mit `parallel: true` starten zusammen mit
-  dem Gate, und ein zweiter Gutachter (ein externes Modell, direkte API) prüft
+  dem Gate, und ein zweiter Gutachter prüft
   denselben Diff in einer eigenen Befunddatei. Der Push dauert damit rund
   sieben statt dreizehn Minuten.
 - `verify-kern` und `verify-realtime` nutzen eigene Compose-Projektnamen und
   Ports je Lauf, zwei gleichzeitige Gates stören sich nicht mehr.
 
 - Review, Schulden und Export (19.11.2026):
-  - Erstgutachten läuft über Review-CLI (`scripts/review-agy.mjs`) und schreibt in die Befunddatei; das Review-Werkzeug bleibt Zweitgutachter. R1.
+  - Erstgutachten und Zweitgutachten laufen getrennt über `scripts/review-agy.mjs` und `scripts/review-kilo.mjs` und schreiben je eine eigene Befunddatei. R1.
   - `text.updated`-Ereignisse liegen in `useTextEreignisse`, sind auf 128 Einträge begrenzt und werden bei Bandwechsel und Abgleich geleert. R14.
   - `steuere` verlangt `band_id` und bindet die Bühnensitzung an die Band der Verbindung. Fremde Sitzungen enden wie im REST-Weg mit 404. R15.
   - CI prüft R14 und R15 gegen echte Container; `verify-ci.mjs` verlangt beide Läufe. R5.

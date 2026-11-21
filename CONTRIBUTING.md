@@ -60,6 +60,10 @@ Jede Änderung am Produktcode bekommt einen Eintrag in `CHANGELOG.md` unter
 `Fixed`, `Removed` und `Security`. Nenne die Wirkung, nicht nur die Datei. Gibt
 es eine Anforderung, steht ihre R-Nummer im Eintrag.
 
+Nenne keine Review-Werkzeuge, Modelle oder Anbieter. Interne Befund- und
+Arbeitsdateien unter `.tmp/` bleiben ebenfalls draußen. Diese Dateien sind
+nicht versioniert, und die Doku beschreibt das Produkt, nicht den Prüfweg.
+
 `PROGRESS.md` hält den aktuellen Stand fest: was fertig ist, was offen bleibt
 und was als Nächstes kommt. `DECISIONS.md` hält geltende Beschlüsse fest, je
 eine Zeile mit kurzer Begründung. Veraltete Einträge werden gestrichen, nicht
