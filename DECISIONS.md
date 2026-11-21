@@ -25,7 +25,7 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 ## Prozess
 
 - Anforderungen vor Code. Verify schreibt `State`, nicht der Agent.
-- Review-Schiene immer: vor Push oder Merge Request läuft ein Review zum aktuellen Stand. Reviewer ändert keinen Code. Mit lokaler Harness-Konfiguration ruft das Voll-Gate zuerst den ersten Gutachter automatisch auf (`scripts/review-agy.mjs`, eigene Befunddatei), sobald die Datei nicht zum Stand passt. Der zweite Durchgang (`scripts/review-kilo.mjs`, eigene Befunddatei) bleibt getrennt. Ohne Harness verlangt `review-stand` eine aktuelle Befunddatei. Offene Blocker oder Major stoppen den Push.
+- Review-Schiene immer: vor Push oder Merge Request läuft ein Review zum aktuellen Stand. Reviewer ändert keinen Code. Mit lokaler Harness-Konfiguration ruft das Voll-Gate zwei getrennte Gutachten mit je eigener Befunddatei auf, sobald eine Datei nicht zum Stand passt. Ohne Harness verlangt `review-stand` eine aktuelle Befunddatei. Offene Blocker oder Major stoppen den Push.
 - Versionierung nach SemVer, CHANGELOG nach Keep a Changelog. Jeder Release bekommt einen Version-Bump und einen CHANGELOG-Eintrag.
 - Git-Schreibaktionen nur der Mensch.
 - Gate-Skripte sind versioniert, einschließlich des Renderers `scripts/harness.mjs`. Harness, `AGENTS.md`, `kilo.jsonc` und die Agentenordner bleiben lokal und unversioniert. Grund: Das Gate muss in jedem Clone laufen; die Agentenkonfiguration ist maschinenbezogen. Ein frischer Clone nutzt die eingebauten Gate-Schritte.

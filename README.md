@@ -85,9 +85,9 @@ stehen in [docs/betrieb.md](docs/betrieb.md).
 ## Review vor Push
 
 Vor Push oder Merge Request: `node scripts/gate.mjs --voll`. Mit lokaler
-Harness-Konfiguration startet das Gate den Review-Agenten, wenn
-`.tmp/review/findings.md` nicht zum Stand passt. Ohne Harness legst du die
-Befunddatei selbst an. Der Kopf braucht `HEAD` und `DIFF` aus
+Harness-Konfiguration startet das Gate die Gutachten automatisch, wenn eine
+Befunddatei nicht zum Stand passt. Ohne Harness legst du die Befunddatei
+selbst an. Der Kopf braucht `HEAD` und `DIFF` aus
 `node scripts/review-stand.mjs`. Offene Blocker oder Major stoppen den Push.
 
 ## Dokumentation

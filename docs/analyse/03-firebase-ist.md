@@ -7,7 +7,7 @@ Dieses Dokument beschreibt den tatsächlichen Stand der Alt-App. Die Daten wurde
 - Firestore war ohne Anmeldung lesbar. Ein GET mit dem Web-API-Key genügte.
 - Gelesen: 4 Bands, 9 Mitgliedseinträge, 7 Songs, 2 Setlists, 9 Annotationen, 1 PDF.
 - Storage ließ sich nicht auflisten. Der Aufruf endete mit HTTP 403.
-- Die Rohdaten liegen lokal unter `.tmp/fb/`. Der Ordner ist gitignored. Nichts davon ist im Repo.
+- Die Rohdaten liegen in einem lokalen, gitignorierten Ordner. Nichts davon ist im Repo.
 - Die einzige PDF wurde lesend heruntergeladen und lokal geprüft.
 
 ## 2. Methode
@@ -162,7 +162,7 @@ Vorschlag für das Zielmodell:
 ## 12. Belege
 
 - Lesezeitpunkt: 13.11.2026, Nachmittag.
-- Rohdaten: `.tmp/fb/bands.json`, `.tmp/fb/export.json`, `.tmp/fb/*.csv`.
-- PDF: `.tmp/fb/pdfs/` (Dateiname enthält den alten Bandcode).
-- Paket: `.tmp/fb/export.zip`.
+- Rohdaten: lokaler, gitignorierter Ordner mit JSON- und CSV-Dateien.
+- PDF: lokaler Ordner; der Dateiname enthält den alten Bandcode.
+- Paket: lokale ZIP-Datei.
 - Alle Angaben stammen aus dem Firestore-REST-Lesesaufruf. Es wurden keine Werte erfunden oder ergänzt.

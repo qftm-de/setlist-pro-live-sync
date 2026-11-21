@@ -19,10 +19,10 @@
 - Harness auf den beschlossenen Stack umgestellt (`harness/projekt.yaml`), gerendert, keine Konflikte. Die Härtung von `scripts/review-constraints.mjs` liegt jetzt in der Harness-Quelle, sonst würde sie der nächste Render überschreiben.
 - Prozess scharf geschaltet: Requirements-Gate vor jedem Produktcode, Review vor jedem Push oder Merge Request, Version-Bumps nach SemVer mit CHANGELOG-Eintrag.
 - R2 umgesetzt: Gerüst steht. Frontend (Vite, React, TypeScript, Vitest), Backend (Django, DRF, Health-Endpoint unter `/api/health/`), `docker-compose.yml` mit web, api, db (PostgreSQL), cache (Redis) im Modus core, CI-Workflow baut und testet beide Seiten. Backend-Tests laufen lokal grün, Frontend-Tests und Build ebenso.
-- Lokaler Export der Alpha: `.tmp/fb/export.zip`, Rohdaten unter `.tmp/fb/`. Der Ordner ist gitignored.
+- Lokaler Export der Alpha liegt in einem lokalen, gitignorierten Ordner. Nichts davon ist im Repo.
 - Doku bereinigt: alte Projekt-ID, Bandcodes und Demo-Namen entfernt. Screens der Alt-App bleiben lokal, `docs/analyse/screens/` ist gitignored.
 - Sicherheits-Baseline im Gate: `scripts/review-constraints.mjs` blockt Secrets, Zugangsdaten, private IPs, eingebettete Dateien und unsichere Code-Muster, auch in `docs/` und `.yaml`.
-- Pre-Push-Review-Pipeline steht: Gate-Schritt `agy-review` in `harness/projekt.yaml` ruft `scripts/review-agy.mjs` auf, das den ersten Gutachter über Orca startet und die Befunddatei schreibt. Der Schritt läuft nur, wenn die Befunddatei nicht zum Stand passt. Der zweite Durchgang (`kilo-review-2` → `scripts/review-kilo.mjs`) schreibt eine eigene Befunddatei. Dafür erlaubt das Schema der Harness-Quelle jetzt eigene `{name, run}`-Schritte im Gate.
+- Pre-Push-Review-Pipeline steht: Zwei Gate-Schritte starten je ein Gutachten, wenn die Befunddatei nicht zum Stand passt. Die Konfiguration erlaubt dafür eigene `{name, run}`-Schritte im Gate.
 - Qualitätssicherung nach Prozess-Bewertung nachgebaut (2026-11-14):
   - Gate-Skripte sind versioniert, Harness und Agentenkonfiguration bleiben lokal. Ein frischer Clone führt das Gate mit den eingebauten Schritten aus: `npm ci` im Root, dann `node scripts/gate.mjs --schnell`. Simulation ohne Harness-Quelle geprüft.
   - CI hat einen Job `gate` (Requirements-Gate, Security-Baseline, Gitleaks) vor den Test-Jobs.
@@ -137,7 +137,7 @@
   Ports je Lauf, zwei gleichzeitige Gates stören sich nicht mehr.
 
 - Review, Schulden und Export (19.11.2026):
-  - Erstgutachten und Zweitgutachten laufen getrennt über `scripts/review-agy.mjs` und `scripts/review-kilo.mjs` und schreiben je eine eigene Befunddatei. R1.
+  - Erstgutachten und Zweitgutachten laufen getrennt und schreiben je eine eigene Befunddatei. R1.
   - `text.updated`-Ereignisse liegen in `useTextEreignisse`, sind auf 128 Einträge begrenzt und werden bei Bandwechsel und Abgleich geleert. R14.
   - `steuere` verlangt `band_id` und bindet die Bühnensitzung an die Band der Verbindung. Fremde Sitzungen enden wie im REST-Weg mit 404. R15.
   - CI prüft R14 und R15 gegen echte Container; `verify-ci.mjs` verlangt beide Läufe. R5.
@@ -157,7 +157,7 @@
 
 ## Offen
 
-- Firebase und Firestore sind abgekündigt. Der alte Bestand bleibt als lokaler Export in `.tmp/fb/` und ist keine Projektaufgabe mehr. Offen bleibt nur die persönliche Hygiene: ein in der Alt-App sichtbares Passwort bei anderer Gelegenheit rotieren.
+- Firebase und Firestore sind abgekündigt. Der alte Bestand bleibt als lokaler, gitignorierter Export und ist keine Projektaufgabe mehr. Offen bleibt nur die persönliche Hygiene: ein in der Alt-App sichtbares Passwort bei anderer Gelegenheit rotieren.
 - Hub-Domain, Name und Moderationsverantwortung festlegen.
 - Release-Rhythmus und die Antwortzeit in `SUPPORT.md` stehen. Offen ist nur noch, wer die Meldungen tatsächlich bearbeitet.
 - Governance festlegen: wer reviewt, wer merged, wer releast. CODEOWNERS, sobald ein Team steht.

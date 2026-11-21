@@ -36,9 +36,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   veröffentlicht volle Version, `major.minor` und Commit-Tag.
   `docker-compose.release.yml` zieht genau diese Images ohne lokalen Build.
 - Mobil-Smoke für Auftritte, PDF und Bühne im Playwright-Profil `mobil`.
-- `scripts/review-agy.mjs` fährt das erste Review-Gutachten über eine lokale
-  CLI in Orca. Das Skript startet den Agenten als Terminal, wartet auf die
-  Befunddatei und schreibt die Kopfzeilen HEAD, BASE und DIFF selbst. R1.
+- Das erste Review-Gutachten liefert eine lokale CLI. Das Skript startet den
+  Agenten als Terminal, wartet auf die Befunddatei und schreibt die Kopfzeilen
+  HEAD, BASE und DIFF selbst. R1.
 - `SUPPORT.md` nennt Meldeweg für Schwachstellen, Antwortzeiten, Art der
   Veröffentlichungen und die Grenze des Supports. `README.md` verweist darauf.
 - Das Gate kennt `doku-sync` als eingebauten Schritt. Er läuft auch ohne lokale
@@ -165,8 +165,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
-- Erstgutachten und Zweitgutachten laufen getrennt über
-  `scripts/review-agy.mjs` und `scripts/review-kilo.mjs` und schreiben je eine
+- Erstgutachten und Zweitgutachten laufen getrennt und schreiben je eine
   eigene Befunddatei. R1.
 - CI prüft zusätzlich R14 und R15 gegen echte Container (`verify-realtime.mjs`
   im Job `kern`). `scripts/verify-ci.mjs` verlangt beide Läufe und die
@@ -182,9 +181,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   jetzt einmal statt siebenmal.
 - Gate-Schritte mit `parallel: true` starten mit dem Gate und zählen an ihrer
   Stelle im Ablauf. Beide Reviews laufen dadurch parallel zum Verify.
-- Zweiter Review-Durchgang über eine eigene API-Anbindung. Getrennte
-  Befunddatei über `REVIEW_OUT`, ein offener Blocker oder Major eines der
-  beiden Gutachter stoppt den Push.
+- Zweiter Review-Durchgang mit eigener Befunddatei über `REVIEW_OUT`. Ein
+  offener Blocker oder Major eines der beiden Gutachter stoppt den Push.
 
 
 - Browser-Zurück mit ungespeichertem Entwurf hält die aktuelle URL stabil und
@@ -201,8 +199,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   Redis/Channels, Docker statt Single-File-PWA und Netlify.
 - Review-Policy verschärft: Review vor Push oder Merge Request ist
   verpflichtend statt nur auf Auftrag.
-- Review-Basis an den Commit-Bereich gebunden: Ohne Upstream fällt
-  `scripts/review-kilo.mjs` auf `origin/main` beziehungsweise `main`
+- Review-Basis an den Commit-Bereich gebunden: Ohne Upstream fällt der
+  Stand-Vergleich auf `origin/main` beziehungsweise `main`
   zurück, statt committete Änderungen ohne Review zu lassen.
 - Offene Blocker und Major werden im Gate strukturiert aus
   Befundabschnitten (`## F<n>`) gelesen statt per Textfenster-Regex.
