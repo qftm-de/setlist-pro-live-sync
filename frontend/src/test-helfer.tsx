@@ -9,10 +9,12 @@ export const KONFIGURATION = {
 
 export function verzögert<T>() {
   let aufloesen!: (wert: T) => void;
-  const promise = new Promise<T>((resolve) => {
+  let ablehnen!: (grund?: unknown) => void;
+  const promise = new Promise<T>((resolve, reject) => {
     aufloesen = resolve;
+    ablehnen = reject;
   });
-  return { promise, aufloesen };
+  return { promise, aufloesen, ablehnen };
 }
 
 export function sitzungAdapter(angemeldet = true, benutzername = "anna"): SessionAdapter {

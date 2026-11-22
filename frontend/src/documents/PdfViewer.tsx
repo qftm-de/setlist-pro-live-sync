@@ -14,10 +14,11 @@ export interface PdfViewerProps {
   werkzeug?: AnmerkungsWerkzeug;
   ausgewaehlteId?: number | null;
   entwurf?: { page_number: number; geometry: Geometrie } | null;
+  gesperrt?: boolean;
   onGeometrie?: (id: number, geometrie: Geometrie) => void;
   onMarkierung?: (geometrie: Geometrie) => void;
   onTextPlatzieren?: (geometrie: Geometrie) => void;
-  onAnmerkungAuswahl?: (id: number) => void;
+  onAnmerkungAuswahl?: (id: number) => boolean | void;
   onBevorSeiteWechsel?: (ziel: number) => boolean;
   onSeiteGeaendert?: (seite: number) => void;
   seitenSprung?: { ziel: number; token: number } | null;
@@ -34,6 +35,7 @@ export function PdfViewer({
   werkzeug = "lesen",
   ausgewaehlteId = null,
   entwurf = null,
+  gesperrt = false,
   onGeometrie,
   onMarkierung,
   onTextPlatzieren,
@@ -272,6 +274,7 @@ export function PdfViewer({
               werkzeug={werkzeug}
               ausgewaehlteId={ausgewaehlteId}
               entwurf={entwurf && entwurf.page_number === seite ? entwurf.geometry : null}
+              gesperrt={gesperrt}
               onMarkierung={onMarkierung ?? (() => undefined)}
               onTextPlatzieren={onTextPlatzieren ?? (() => undefined)}
               onAuswahl={onAnmerkungAuswahl ?? (() => undefined)}

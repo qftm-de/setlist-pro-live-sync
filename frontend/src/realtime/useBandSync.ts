@@ -22,6 +22,7 @@ export function useBandSync(
   beiSitzungAbgelaufen: () => void,
   aktiv = true,
   beiAntwort?: (nachricht: Record<string, unknown>) => void,
+  beiRechtVerlust?: (bandId: string) => void,
 ): BandSyncZustand {
   const [zustand, setZustand] = useState<Verbindungszustand>("verbinden");
   const [verbindungId, setVerbindungId] = useState<string | null>(null);
@@ -30,10 +31,12 @@ export function useBandSync(
   const abgleichRef = useRef(beiAbgleich);
   const sitzungRef = useRef(beiSitzungAbgelaufen);
   const antwortRef = useRef(beiAntwort);
+  const rechtVerlustRef = useRef(beiRechtVerlust);
   ereignisRef.current = beiEreignis;
   abgleichRef.current = beiAbgleich;
   sitzungRef.current = beiSitzungAbgelaufen;
   antwortRef.current = beiAntwort;
+  rechtVerlustRef.current = beiRechtVerlust;
 
   const pruefeSitzung = useCallback(() => {
     void apiFetch("/api/session/").catch((fehler: unknown) => {
@@ -49,6 +52,7 @@ export function useBandSync(
       setVerbindungId(null);
       return;
     }
+    let aktivLauf = true;
     const client = new BandSync({
       bandId,
       ladeAbgleich: async (id) => {
@@ -58,8 +62,18 @@ export function useBandSync(
           );
           return { counters: antwort.counters, daten: antwort };
         } catch (fehler) {
-          if (fehler instanceof ApiFehler && fehler.code === "unauthenticated") {
-            sitzungRef.current();
+          if (!aktivLauf) {
+            throw fehler;
+          }
+          if (fehler instanceof ApiFehler) {
+            if (fehler.code === "unauthenticated") {
+              sitzungRef.current();
+            } else if (
+              fehler.code === "not_found" ||
+              fehler.code === "forbidden"
+            ) {
+              rechtVerlustRef.current?.(id);
+            }
           }
           throw fehler;
         }
@@ -67,13 +81,22 @@ export function useBandSync(
       beiEreignis: (ereignis) => ereignisRef.current(ereignis),
       beiZustand: setZustand,
       beiAbgleich: (daten) => abgleichRef.current(daten),
-      beiVerbindungsverlust: pruefeSitzung,
+      beiVerbindungsverlust: (grund?: string) => {
+        if (!aktivLauf) {
+          return;
+        }
+        pruefeSitzung();
+        if (grund === "ohne-recht") {
+          rechtVerlustRef.current?.(bandId);
+        }
+      },
       beiBereit: (info) => setVerbindungId(info.connection ?? null),
       beiAntwort: (nachricht) => antwortRef.current?.(nachricht),
     });
     clientRef.current = client;
     client.start();
     return () => {
+      aktivLauf = false;
       client.stop();
       if (clientRef.current === client) {
         clientRef.current = null;

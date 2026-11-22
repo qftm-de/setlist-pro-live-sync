@@ -18,6 +18,16 @@ Kurze, geltende Beschlüsse. Eine Zeile, plus warum. Veraltetes streichen.
 - Abschnitte und Einträge tragen dauerhafte UUIDs, Textfelder Yjs-Zustände mit Epoche. Grund: strukturierte Änderungen bleiben idempotent, Texte lassen sich zusammenführen, und ein REST-Ersatz kann alte Updates nicht wiederbeleben.
 - Bandweite Anmerkungen darf jedes Mitglied bearbeiten, die Sichtbarkeit nur der Autor. Grund: gemeinsames Arbeiten am selben Stand ohne Aufgabe der Privatsphäre. Löschrecht bleibt beim Autor und beim aktuellen Owner.
 
+## Bands und Mitglieder
+
+- Band-Einstellungen und Rollenwechsel gehören dem Owner, Lesen und Austreten jedem Mitglied. Bisher durfte jedes Mitglied umbenennen. Grund: Die Band soll nicht durch ein einzelnes Mitglied umbenannt oder aufgelöst werden. `R7` gilt entsprechend.
+- Einladungen sind mehrfach nutzbare Links mit 48 Stunden Laufzeit, optionalem Nutzungslimit und SHA-256-Hash in der Datenbank. Der Klartext erscheint nur einmal bei der Erstellung. Grund: Ein Link in einer Messenger-Gruppe bleibt praktisch, ohne Klartext-Token im Datenbestand.
+- Kontoerstellung nur über einen gültigen Einladungslink. Design Doc `docs/design/band-verwaltung-einladungen.md` und ADR `docs/adr/0001-einladung-mit-kontoerstellung.md` halten Rollenmodell, Sperrordnung und STRIDE-Threat-Model fest. Grund: R21 und R22 ändern Auth, Rollen, Datenmodell und öffentliche Endpunkte.
+- Anonyme Beitritte laufen als Django-Views unter der CSRF-Middleware und bekommen eine eigene nginx-Rate-Limit-Zone. Grund: DRF verlangt standardmäßig eine Anmeldung, die öffentliche Vorschau und der Beitritt müssen aber ohne Session funktionieren. Die CSRF-Middleware schützt den POST zusätzlich.
+- Teilen über einen Kopier-Button statt externer Messenger-URLs. Grund: Der Core ruft keine Drittanbieter auf, und der Link bleibt im Bandchat.
+- Mitgliedschaften sind im Django-Admin nur lesbar. Grund: Der Standard-Admin würde den Schutz des letzten Owners, die Echtzeit-Ereignisse und die Sync-Seiteneffekte umgehen.
+- Band-Einstellungen senden nur berührte Felder per PATCH. Grund: Eine parallele Änderung an einem unberührten Feld darf das Speichern nicht auf den alten Stand zurücksetzen.
+
 ## Lizenz
 
 - AGPL-3.0. Liegt bei als `LICENSE`, README und CONTRIBUTING nennen sie. Copyleft schützt, dass Hub-Betreiber den Quelltext offenlegen müssen.

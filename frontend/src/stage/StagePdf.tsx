@@ -196,7 +196,9 @@ export function StagePdf({ bandId, eintrag, seite, vorrat, annotationen }: Stage
         <canvas ref={leinwand} aria-label="PDF-Seite" />
         {ansicht ? (
           <PdfAnmerkungsEbene
-            annotationen={annotationen}
+            annotationen={annotationen.filter(
+              (anmerkung) => anmerkung.page_number === zielSeite,
+            )}
             basis={ansicht.basis}
             aktuell={ansicht.aktuell}
             breite={ansicht.breite}

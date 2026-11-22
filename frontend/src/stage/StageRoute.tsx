@@ -329,11 +329,6 @@ export function StageRoute({
     );
   }
 
-  const aktuellerEintrag = sitzung.sections
-    .flatMap((abschnitt) => abschnitt.entries)
-    .find((eintrag) => eintrag.uuid === sitzung.current.entry_uuid);
-  const versionId = aktuellerEintrag?.document?.version_id ?? null;
-
   return (
     <>
       {!beigetreten && sitzung.state === "active" ? (
@@ -352,7 +347,7 @@ export function StageRoute({
         antwort={antwort}
         sende={sende}
         vorrat={vorrat}
-        annotationen={versionId ? (anmerkungen[versionId] ?? []) : []}
+        annotationen={anmerkungen}
         reserve={reserve}
         anmerkungsFehler={anmerkungsFehler}
         onSitzungAktualisieren={() => setNeuLaden((wert) => wert + 1)}

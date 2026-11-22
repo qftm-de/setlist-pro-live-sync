@@ -20,10 +20,11 @@ interface EbeneProps {
   werkzeug: AnmerkungsWerkzeug;
   ausgewaehlteId: number | null;
   entwurf?: Geometrie | null;
+  gesperrt?: boolean;
   onGeometrie?: (id: number, geometrie: Geometrie) => void;
   onMarkierung: (geometrie: Geometrie) => void;
   onTextPlatzieren: (geometrie: Geometrie) => void;
-  onAuswahl: (id: number) => void;
+  onAuswahl: (id: number) => boolean | void;
 }
 
 interface Position {
@@ -69,6 +70,7 @@ export function PdfAnmerkungsEbene({
   werkzeug,
   ausgewaehlteId,
   entwurf = null,
+  gesperrt = false,
   onGeometrie,
   onMarkierung,
   onTextPlatzieren,
@@ -79,6 +81,15 @@ export function PdfAnmerkungsEbene({
   const beruehrung = useRef<{x:number;y:number} | null>(null);
   useEffect(() => () => { if (halten.current) clearTimeout(halten.current); }, []);
   const flaeche = useRef<HTMLDivElement>(null);
+  const start = useRef<Punkt | null>(null);
+  const [vorschau, setVorschau] = useState<Geometrie | null>(null);
+  useEffect(() => {
+    if (!gesperrt) return;
+    if (halten.current) { clearTimeout(halten.current); halten.current = null; }
+    ziehen.current = null;
+    start.current = null;
+    setVorschau(null);
+  }, [gesperrt]);
   useEffect(() => {
     const element = flaeche.current;
     const bewegen = (e: TouchEvent) => {
@@ -93,8 +104,6 @@ export function PdfAnmerkungsEbene({
     element?.addEventListener("touchstart", bewegen, {passive:false});
     return () => { element?.removeEventListener("touchmove", bewegen); element?.removeEventListener("touchstart", bewegen); };
   }, [onGeometrie]);
-  const start = useRef<Punkt | null>(null);
-  const [vorschau, setVorschau] = useState<Geometrie | null>(null);
 
   const positionen = useMemo(
     () =>
@@ -122,7 +131,7 @@ export function PdfAnmerkungsEbene({
   }
 
   function unten(ereignis: React.PointerEvent) {
-    if (werkzeug === "lesen") {
+    if (gesperrt || werkzeug === "lesen") {
       return;
     }
     if (start.current) { abbrechen(); return; }
@@ -144,7 +153,7 @@ export function PdfAnmerkungsEbene({
   }
 
   function bewegen(ereignis: React.PointerEvent) {
-    if (!start.current || werkzeug === "lesen") {
+    if (gesperrt || !start.current || werkzeug === "lesen") {
       return;
     }
     const jetzt = punkt(ereignis);
@@ -158,7 +167,7 @@ export function PdfAnmerkungsEbene({
   }
 
   function oben(ereignis: React.PointerEvent) {
-    if (!start.current || werkzeug === "lesen") {
+    if (gesperrt || !start.current || werkzeug === "lesen") {
       return;
     }
     const jetzt = punkt(ereignis) ?? start.current;
@@ -221,19 +230,21 @@ export function PdfAnmerkungsEbene({
           }
           onContextMenu={e => e.preventDefault()}
           onPointerDown={e => {
-            if (werkzeug !== "lesen") {
+            if (gesperrt || werkzeug !== "lesen") {
               return;
             }
             e.stopPropagation();
             beruehrung.current = {x:e.clientX,y:e.clientY};
             const p = punkt(e), target = e.currentTarget, pointerId = e.pointerId;
             if (anmerkung.can_edit && p) halten.current = setTimeout(() => {
-              onAuswahl(anmerkung.id);
+              halten.current = null;
+              if (onAuswahl(anmerkung.id) === false) return;
               ziehen.current = {id:anmerkung.id,p,g:anmerkung.geometry};
               try { target.setPointerCapture(pointerId); } catch { /* Pointer bereits beendet. */ }
             }, 400);
           }}
           onPointerMove={e => {
+            if (gesperrt) { ziehen.current = null; return; }
             const z = ziehen.current, p = punkt(e);
             if (z && p) {
               e.stopPropagation();
@@ -244,11 +255,11 @@ export function PdfAnmerkungsEbene({
           }}
           onPointerUp={() => { if (halten.current) clearTimeout(halten.current); ziehen.current = null; }}
           onPointerCancel={() => { if (halten.current) clearTimeout(halten.current); if (ziehen.current) onGeometrie?.(ziehen.current.id,ziehen.current.g); ziehen.current = null; }}
-          onClick={() => { if (werkzeug === "lesen") onAuswahl(anmerkung.id); }}
+          onClick={() => { if (!gesperrt && werkzeug === "lesen") onAuswahl(anmerkung.id); }}
         >
           {anmerkung.kind === "text" ? anmerkung.text : null}
         </button>
-        {ausgewaehlteId === anmerkung.id && anmerkung.can_edit && onGeometrie ? (
+        {!gesperrt && ausgewaehlteId === anmerkung.id && anmerkung.can_edit && onGeometrie ? (
           <div className="anmerkung-griffe" style={{left:position.left,top:position.top,width:position.width,height:position.height}}>
             <AnmerkungsGriff geometrie={anmerkung.geometry} punkt={punkt} onAendern={g => onGeometrie(anmerkung.id,g)} />
             <AnmerkungsGriff groesse geometrie={anmerkung.geometry} punkt={punkt} onAendern={g => onGeometrie(anmerkung.id,g)} />

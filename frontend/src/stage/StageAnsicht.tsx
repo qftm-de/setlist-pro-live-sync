@@ -17,7 +17,7 @@ interface StageAnsichtProps {
   antwort: Record<string, unknown> | null;
   sende: (nachricht: Record<string, unknown>) => void;
   vorrat: PdfVorrat;
-  annotationen: Anmerkung[];
+  annotationen: Record<number, Anmerkung[]>;
   reserve: VorratStand | null;
   anmerkungsFehler?: number;
   onSitzungAktualisieren: () => void;
@@ -69,6 +69,8 @@ export function StageAnsicht({
     : null;
   const seiten = ziel ? seitenAnzeige(sitzung, ziel) : null;
   const naechster = ziel ? naechsterSongTitel(sitzung, ziel) : null;
+  const versionId = eintrag?.document?.version_id ?? null;
+  const sichtbareAnmerkungen = versionId ? (annotationen[versionId] ?? []) : [];
   const beendet = sitzung.state === "ended";
   const steuerbar = !beendet && buehne.istLeitung && verbunden;
 
@@ -154,7 +156,7 @@ export function StageAnsicht({
           eintrag={eintrag}
           seite={ziel?.page ?? null}
           vorrat={vorrat}
-          annotationen={annotationen}
+          annotationen={sichtbareAnmerkungen}
         />
 
         <nav className="buehne-uebersicht" aria-label="Setlist-Übersicht">

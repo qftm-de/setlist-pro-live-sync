@@ -119,6 +119,25 @@ function csrfToken(): string | null {
   return null;
 }
 
+async function liesFehlerdaten(
+  antwort: Response,
+): Promise<{ text: string; daten?: Record<string, unknown> }> {
+  let text = "";
+  try {
+    text = await antwort.text();
+  } catch {
+    text = "";
+  }
+  let daten: Record<string, unknown> | undefined;
+  try {
+    const roh = text ? JSON.parse(text) : null;
+    daten = roh && typeof roh === "object" ? roh : undefined;
+  } catch {
+    daten = undefined;
+  }
+  return { text, daten };
+}
+
 async function pruefeAntwort(antwort: Response): Promise<never> {
   if (antwort.status === 401) {
     throw new ApiFehler(401, "unauthenticated");
@@ -130,19 +149,7 @@ async function pruefeAntwort(antwort: Response): Promise<never> {
     throw new ApiFehler(404, "not_found");
   }
   if (antwort.status === 409) {
-    let text = "";
-    try {
-      text = await antwort.text();
-    } catch {
-      text = "";
-    }
-    let daten: Record<string, unknown> | undefined;
-    try {
-      const roh = text ? JSON.parse(text) : null;
-      daten = roh && typeof roh === "object" ? roh : undefined;
-    } catch {
-      daten = undefined;
-    }
+    const { text, daten } = await liesFehlerdaten(antwort);
     throw new ApiFehler(409, "conflict", serverMeldung(text), daten);
   }
   if (antwort.status === 413) {
@@ -151,13 +158,8 @@ async function pruefeAntwort(antwort: Response): Promise<never> {
   if (antwort.status >= 500) {
     throw new ApiFehler(antwort.status, "server");
   }
-  let text = "";
-  try {
-    text = await antwort.text();
-  } catch {
-    text = "";
-  }
-  throw new ApiFehler(antwort.status, "bad_request", serverMeldung(text));
+  const { text, daten } = await liesFehlerdaten(antwort);
+  throw new ApiFehler(antwort.status, "bad_request", serverMeldung(text), daten);
 }
 
 function pruefePfad(pfad: string): void {

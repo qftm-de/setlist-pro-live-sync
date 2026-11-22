@@ -35,8 +35,12 @@ export interface TextSync {
   sende: (update: string, epoch: number) => Promise<TextAntwort>;
 }
 
+export type SpeicherErgebnis =
+  | { ok: true }
+  | { ok: false; fehler: string };
+
 export interface FormularHandle {
-  speichere: () => Promise<boolean>;
+  speichere: () => Promise<SpeicherErgebnis>;
   istGeaendert: () => boolean;
 }
 
@@ -111,21 +115,26 @@ function FormularInner(
     if (bewegung) aendern({ geometry: bewegung });
   }, [bewegung]);
 
-  async function speichern(): Promise<boolean> {
+  async function speichern(): Promise<SpeicherErgebnis> {
     if (geloescht) {
-      return false;
+      const meldung = "Diese Anmerkung wurde inzwischen gelöscht.";
+      setFehler(meldung);
+      return { ok: false, fehler: meldung };
     }
     if (!gueltig(geometrie) || seite < 1 || seite > seiten) {
-      setFehler("Rechteck und Seite müssen gültig sein.");
-      return false;
+      const meldung = "Rechteck und Seite müssen gültig sein.";
+      setFehler(meldung);
+      return { ok: false, fehler: meldung };
     }
     if (artWert === "text" && !text.trim()) {
-      setFehler("Bitte einen Text eintragen.");
-      return false;
+      const meldung = "Bitte einen Text eintragen.";
+      setFehler(meldung);
+      return { ok: false, fehler: meldung };
     }
     if (artWert === "text" && text.trim().length > 2000) {
-      setFehler("Höchstens 2.000 Zeichen.");
-      return false;
+      const meldung = "Höchstens 2.000 Zeichen.";
+      setFehler(meldung);
+      return { ok: false, fehler: meldung };
     }
     setSpeichert(true);
     setFehler(null);
@@ -141,11 +150,12 @@ function FormularInner(
       });
       setDirty(false);
       onDirtyChange?.(false);
-      return true;
+      return { ok: true };
     } catch (ursache) {
-      const meldung = behandleFehler(ursache, onSitzungAbgelaufen);
-      setFehler(meldung ?? fehlerText(ursache));
-      return false;
+      const meldung =
+        behandleFehler(ursache, onSitzungAbgelaufen) ?? fehlerText(ursache);
+      setFehler(meldung);
+      return { ok: false, fehler: meldung };
     } finally {
       setSpeichert(false);
     }

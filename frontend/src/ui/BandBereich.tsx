@@ -1,6 +1,8 @@
 import { Startseite } from "./Startseite";
 import type { ComponentType, ReactNode } from "react";
 import type { Band, BandAdapter, Song } from "../bands/bands";
+import type { BandVerwaltungAdapter } from "../bands/verwaltung";
+import { BandVerwaltung } from "../bands/BandVerwaltung";
 import type { BandDatenZustand } from "../bands/useBandDaten";
 import type { AnmerkungAdapter } from "../annotations/annotations";
 import type { DokumentAdapter } from "../documents/documents";
@@ -36,6 +38,7 @@ export interface BandBereichProps {
   buehnenFehler: string | null;
   kontoZeile: ReactNode;
   bandAdapter: BandAdapter;
+  verwaltungAdapter: BandVerwaltungAdapter;
   registriereWaechter: (waechter: NavigationsWaechter | null) => void;
   echtzeit: BandSyncZustand;
   songsFuerListe: Song[];
@@ -48,6 +51,7 @@ export interface BandBereichProps {
   dokumentViewer?: ComponentType<PdfViewerProps>;
   setlistMarke: number;
   ereignisMarke: number;
+  bandMarke: number;
   dokumentMarke: number;
   syncMarke: number;
   stageMarke: number;
@@ -58,6 +62,9 @@ export interface BandBereichProps {
   onSitzungAbgelaufen: () => void;
   onNavigieren: (pfad: string) => void;
   onBuehneOeffnen: (setlistId: number) => void;
+  onBandGeaendert: () => void | Promise<void>;
+  onBandVerlassen: (bandId: string) => void | Promise<void>;
+  onBandAngelegt: (name: string) => Promise<void>;
   onSongsGeaendert: () => void;
 }
 
@@ -71,6 +78,7 @@ export function BandBereich({
   buehnenFehler,
   kontoZeile,
   bandAdapter,
+  verwaltungAdapter,
   registriereWaechter,
   echtzeit,
   songsFuerListe,
@@ -83,6 +91,7 @@ export function BandBereich({
   dokumentViewer,
   setlistMarke,
   ereignisMarke,
+  bandMarke,
   dokumentMarke,
   syncMarke,
   stageMarke,
@@ -93,9 +102,31 @@ export function BandBereich({
   onSitzungAbgelaufen,
   onNavigieren,
   onBuehneOeffnen,
+  onBandGeaendert,
+  onBandVerlassen,
+  onBandAngelegt,
   onSongsGeaendert,
 }: BandBereichProps) {
   const gewaehlteBand = bands.find((band) => band.id === bandId);
+  const syncBand: Band | null =
+    syncPasst && syncStand
+      ? {
+          id: String(syncStand.band.id),
+          name: syncStand.band.name,
+          genre: syncStand.band.genre,
+          location: syncStand.band.location,
+          description: syncStand.band.description,
+          internal_notes: syncStand.band.internal_notes,
+          role: syncStand.band.role ?? undefined,
+          can_manage: syncStand.band.can_manage,
+        }
+      : null;
+  const verwaltungsBand: Band =
+    syncBand ??
+    (bandDaten.status === "fertig"
+      ? (bandDaten.daten.band ??
+        gewaehlteBand ?? { id: bandDaten.daten.bandId, name: "" })
+      : (gewaehlteBand ?? { id: bandId ?? "", name: "" }));
   const verbunden =
     echtzeit.zustand !== "unterbrochen" &&
     echtzeit.zustand !== "abgleich-fehlgeschlagen";
@@ -125,6 +156,13 @@ export function BandBereich({
               onSitzungAbgelaufen={onSitzungAbgelaufen}
             />
         ) : null}
+        <button
+          type="button"
+          className="band-verwaltung-einstieg"
+          onClick={() => onNavigieren("/band")}
+        >
+          Band &amp; Mitglieder
+        </button>
       </div></details>
       {direktFehler ? <FehlerAnzeige text={direktFehler} /> : null}
       {buehnenFehler ? <FehlerAnzeige text={buehnenFehler} /> : null}
@@ -148,7 +186,27 @@ export function BandBereich({
             Bereich {pfad}
           </p>
           {route.bereich === "start" ? (
-            <Startseite key={bandId} bandId={bandDaten.daten.bandId} adapter={gigAdapter} onNavigieren={onNavigieren} onSitzungAbgelaufen={onSitzungAbgelaufen} />
+            <Startseite
+              key={bandDaten.daten.bandId}
+              bandId={bandDaten.daten.bandId}
+              band={verwaltungsBand}
+              adapter={gigAdapter}
+              aktualisierung={ereignisMarke}
+              vorgabe={syncPasst && syncStand ? syncStand.gigs : null}
+              onNavigieren={onNavigieren}
+              onSitzungAbgelaufen={onSitzungAbgelaufen}
+            />
+          ) : route.bereich === "band" ? (
+            <BandVerwaltung
+              key={bandDaten.daten.bandId}
+              band={verwaltungsBand}
+              verwaltung={verwaltungAdapter}
+              aktualisierung={bandMarke}
+              onBandGeaendert={onBandGeaendert}
+              onBandVerlassen={onBandVerlassen}
+              onBandAnlegen={onBandAngelegt}
+              onSitzungAbgelaufen={onSitzungAbgelaufen}
+            />
           ) : route.bereich === "stage" ? (
             <StageRoute
               bandId={bandDaten.daten.bandId}

@@ -15,6 +15,8 @@ import { pruefeAktivesLimit, pruefeOhneLimit } from "./lib/verify-pdf-limits.mjs
 import { pruefeAnmerkungen } from "./lib/verify-annotations.mjs";
 import { pruefeDokumente } from "./lib/verify-documents.mjs";
 import { pruefeGigs } from "./lib/verify-gigs.mjs";
+import { pruefeBandVerwaltung } from "./lib/verify-band-verwaltung.mjs";
+import { pruefeEinladungBrowser } from "./lib/verify-einladung-browser.mjs";
 import { pruefeExport } from "./lib/verify-export.mjs";
 import { pruefeMobil } from "./lib/verify-mobil.mjs";
 
@@ -306,6 +308,8 @@ try {
   pruefe((await zweite.ruf(`${setlistPfad}/`)).status === 404, "Fremde Setlist ist nicht 404");
 
   await pruefeGigs({ erste, zweite, bandId, setlistId, pruefe });
+  await pruefeEinladungBrowser({ basis, bandId, benutzer: "pilot", passwort });
+  await pruefeBandVerwaltung({ erste, zweite, bandId, basis, pruefe });
 
   pruefe(
     (await erste.ruf(`/api/bands/${bandId}/songs/${song.daten.id}/`, { methode: "DELETE" })).status === 204,

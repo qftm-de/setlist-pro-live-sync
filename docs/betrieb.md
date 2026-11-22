@@ -70,6 +70,46 @@ Dazu kommen alle PDF-Versionen der Band unter `pdfs/<song_id>/`.
 - Das Archiv wird in einer temporären Datei gebaut und nach dem Download
   verworfen. Ein Import ist nicht Teil des Exports.
 
+## Einladungen und Mitglieder
+
+Band-Owner erzeugen unter `POST /api/bands/<id>/invitations/` einen
+Einladungslink. Er gilt 48 Stunden, lässt sich mehrfach nutzen und kann optional
+auf 1 bis 100 Beitritte begrenzt werden.
+
+- Der Klartext-Token erscheint nur einmal in der Antwort. In der Datenbank steht
+  ausschließlich der SHA-256-Hash. Wer den Link verliert, erzeugt einen neuen
+  und widerruft den alten.
+- `GET /api/invitations/<token>/` ist die öffentliche Vorschau. Sie liefert nur
+  Bandname, Ablaufzeit und den Anmeldestatus und verändert nichts.
+- `POST /api/invitations/<token>/accept/` verlangt ein CSRF-Token. Neue Konten
+  werden mit Argon2-Hash und eindeutiger E-Mail angelegt, bestehende Konten
+  melden sich an. Ohne gültigen Link bleibt die Registrierung geschlossen.
+- Der Proxy begrenzt die öffentlichen Aufrufe über die Zone `einladung` auf 20
+  Anfragen pro Minute je IP mit Burst 10. Überschreitungen antworten mit 429.
+  Diese Bremse liegt im nginx-Betrieb vor der API. Schreibende Owner-Endpunkte
+  haben zusätzlich den DRF-Throttle `invitations-owner` mit 20/min, auch beim
+  Widerruf. Die Einladungsliste liest mit `invitations-list` und 60/min, damit
+  das Nachladen nach einer Aktion nicht am Schreiblimit hängt.
+- Der Klartext-Token steht in keinem Zugriffs- oder Fehlerlog. nginx schreibt
+  das Zugriffslog in einem eigenen Format und ersetzt den Token in
+  `/api/invitations/<token>/` und `/einladung/<token>` durch `[token]`.
+  Statuscodes wie 429, 502 und 504 bleiben dadurch sichtbar. Das Fehlerlog
+  dieses Pfads beginnt bei `crit`, weil nginx dort die angefragte URL nicht
+  redigieren kann; für Details den HTTP-Status der Antwort nutzen. Daphne
+  startet mit `-v 0` ohne Zugriffslog. Django redigiert Einladungspfade
+  zusätzlich in `django.request` und `django.security` über einen Logfilter.
+  Die Einladungsseite antwortet mit `Referrer-Policy: strict-origin`. Der
+  Token landet damit nicht über den Referer in Asset- oder API-Logs, und der
+  Browser sendet beim Beitritts-POST den eigenen Origin für den CSRF-Check.
+- Mitglieder verwalten Rollen unter `PATCH /api/bands/<id>/members/<id>/` und
+  entfernen Mitglieder unter `DELETE` auf denselben Pfad. Der letzte aktive
+  Owner kann weder herabgestuft noch entfernt werden; gesperrte Konten zählen
+  dabei nicht als aktive Verwaltung. Ein eigenes Austreten läuft über
+  denselben DELETE-Pfad.
+- Muss ein Betreiber den letzten aktiven Owner einer Band im Admin sperren,
+  setzt er per Verwaltungskommando einen neuen aktiven Owner:
+  `docker compose exec api python manage.py band_owner_setzen <band_id> <username>`.
+
 ## Diagnose
 
 - Ein 413 vom Proxy bedeutet, dass der Request die Proxy-Grenze überschreitet.

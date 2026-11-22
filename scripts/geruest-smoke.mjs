@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const projekt = "geruest-smoke";
+const projekt = `geruest-smoke-${randomUUID().replace(/-/g, "").slice(0, 8)}`;
 const env = {
   ...process.env,
   APP_MODE: "core",

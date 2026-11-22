@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { ApiFehler } from "../api/client";
 import { erstelleTestAdapter, type BandDaten, type Song } from "./bands";
 import { useBandDaten } from "./useBandDaten";
 
@@ -49,6 +50,34 @@ describe("useBandDaten", () => {
       status: "fertig",
       daten: { bandId: "b", songs: [song("Song B")] },
     });
+  });
+
+  it("räumt die Ansicht bei entzogenem Zugriff statt alte Daten zu behalten", async () => {
+    let aufrufe = 0;
+    const adapter = erstelleTestAdapter(
+      [{ id: "a", name: "Band A" }],
+      async (bandId) => {
+        aufrufe += 1;
+        if (aufrufe > 1) {
+          throw new ApiFehler(404, "not_found");
+        }
+        return { bandId, songs: [song("Song A")] };
+      },
+    );
+    const { result, rerender } = renderHook(
+      ({ version }) => useBandDaten(adapter, "a", version),
+      { initialProps: { version: 0 } },
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current.status).toBe("fertig");
+
+    rerender({ version: 1 });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current).toMatchObject({ status: "fehler", code: "not_found" });
   });
 
   it("zeigt nach dem Wechsel sofort Ladezustand statt alter Daten", async () => {

@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from django.db import connection, transaction
+from django.http import Http404
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from gigs.models import Gig
 from setlists.models import Setlist
+
+from bands.models import Membership
 
 from .bands import band_fuer
 from .gig_serializers import GigSerializer
@@ -29,14 +32,24 @@ class BandAbgleich(APIView):
             )
         if connection.in_atomic_block:
             # Tests und aufrufende Transaktionen erlauben keine neue Isolationsstufe.
-            return Response(self._daten(band, request.user))
+            return Response(self._daten(band_id, request.user))
         with transaction.atomic():
             with connection.cursor() as cursor:
                 cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
-            daten = self._daten(band, request.user)
+            daten = self._daten(band_id, request.user)
         return Response(daten)
 
-    def _daten(self, band, user):
+    def _daten(self, band_id, user):
+        # Mitgliedschaft und Band im selben Snapshot lesen. Sonst kann ein
+        # paralleler Austritt nach der Vorprüfung noch volle Banddaten liefern.
+        mitgliedschaft = (
+            Membership.objects.select_related("band")
+            .filter(band_id=band_id, user=user)
+            .first()
+        )
+        if mitgliedschaft is None:
+            raise Http404
+        band = mitgliedschaft.band
         zahlen = zaehler(band.id, user.id)
         songs = list(band.songs.all().order_by("id"))
         setlists = list(
@@ -55,8 +68,18 @@ class BandAbgleich(APIView):
             key=lambda gig: sortierschluessel(gig, absteigend=True),
         )
         sitzung = aktive_sitzung(band)
+        rolle = mitgliedschaft.role
         return {
-            "band": {"id": band.id, "name": band.name},
+            "band": {
+                "id": band.id,
+                "name": band.name,
+                "genre": band.genre,
+                "location": band.location,
+                "description": band.description,
+                "internal_notes": band.internal_notes,
+                "role": rolle,
+                "can_manage": rolle == Membership.ROLE_OWNER,
+            },
             "songs": SongSerializer(songs, many=True).data,
             "setlists": SetlistSerializer(setlists, many=True).data,
             "gigs": {

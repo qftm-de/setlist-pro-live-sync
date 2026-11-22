@@ -77,3 +77,39 @@ class AnmeldungTest(TestCase):
         self.assertEqual(self.client.get("/api/session/").status_code, 401)
         self.assertEqual(self.client.get("/api/bands/").status_code, 401)
         self.assertEqual(self.client.post("/api/bands/").status_code, 401)
+
+    def test_unbekanntes_konto_nutzt_genau_einen_vergleich_ohne_hash_erzeugung(self):
+        from unittest.mock import patch
+        from django.contrib.auth.hashers import check_password, make_password
+        from api import konto
+
+        # Vorbereiteten Vergleichshash aufwärmen.
+        konto.vergleichs_hash()
+        with (
+            patch("api.konto.check_password", wraps=check_password) as dummy_check,
+            patch("api.konto.make_password", wraps=make_password) as neu_hash,
+            patch.object(
+                User, "check_password", autospec=True, side_effect=User.check_password
+            ) as nutzer_check,
+        ):
+            self.assertEqual(self.anmelden(benutzername="gibtesnicht").status_code, 400)
+            self.assertEqual(dummy_check.call_count, 1)
+            self.assertEqual(neu_hash.call_count, 0)
+            self.assertEqual(nutzer_check.call_count, 0)
+
+            self.assertEqual(self.anmelden(passwort="falsch").status_code, 400)
+            self.assertEqual(dummy_check.call_count, 1)
+            self.assertEqual(neu_hash.call_count, 0)
+            self.assertEqual(nutzer_check.call_count, 1)
+
+    def test_alter_pbkdf2_hash_wird_bei_anmeldung_auf_argon2_aktualisiert(self):
+        from django.contrib.auth.hashers import make_password
+
+        self.benutzer.password = make_password("geheim-1234", hasher="pbkdf2_sha256")
+        self.benutzer.save(update_fields=["password"])
+        self.assertTrue(self.benutzer.password.startswith("pbkdf2_sha256$"))
+
+        antwort = self.anmelden()
+        self.assertEqual(antwort.status_code, 200)
+        self.benutzer.refresh_from_db()
+        self.assertTrue(self.benutzer.password.startswith("argon2$"))

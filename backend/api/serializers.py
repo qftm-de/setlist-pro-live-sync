@@ -3,7 +3,7 @@ from collections.abc import Mapping
 
 from rest_framework import serializers
 
-from bands.models import Band
+from bands.models import Band, Membership
 from library.models import Song
 from setlists.content import MAX_ABSCHNITTE, MAX_EINTRAEGE
 from setlists.models import NAME_VERGEBEN, Entry, Section, Setlist, name_frei
@@ -17,10 +17,73 @@ class SongSerializer(serializers.ModelSerializer):
 
 class BandSerializer(serializers.ModelSerializer):
     songs = SongSerializer(many=True, read_only=True)
+    role = serializers.SerializerMethodField()
+    can_manage = serializers.SerializerMethodField()
 
     class Meta:
         model = Band
-        fields = ["id", "name", "songs"]
+        fields = [
+            "id",
+            "name",
+            "genre",
+            "location",
+            "description",
+            "internal_notes",
+            "role",
+            "can_manage",
+            "songs",
+        ]
+
+    def validate_name(self, name):
+        sauber = (name or "").strip()
+        if not sauber:
+            raise serializers.ValidationError("Bitte einen Bandnamen eintragen.")
+        if len(sauber) > 120:
+            raise serializers.ValidationError("Höchstens 120 Zeichen.")
+        return sauber
+
+    def _begrenzt(self, wert, grenze):
+        if len(wert or "") > grenze:
+            raise serializers.ValidationError(f"Höchstens {grenze} Zeichen.")
+        return wert
+
+    def validate_genre(self, wert):
+        return self._begrenzt(wert, 120)
+
+    def validate_location(self, wert):
+        return self._begrenzt(wert, 200)
+
+    def validate_description(self, wert):
+        return self._begrenzt(wert, 2_000)
+
+    def validate_internal_notes(self, wert):
+        return self._begrenzt(wert, 10_000)
+
+    def _mitgliedschaft(self, band):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if user is None or not user.is_authenticated:
+            return None
+        zwischengespeichert = getattr(self, "_mitgliedschaften", None)
+        if zwischengespeichert is None:
+            zwischengespeichert = {}
+            self._mitgliedschaften = zwischengespeichert
+        if band.id not in zwischengespeichert:
+            zwischengespeichert[band.id] = Membership.objects.filter(
+                band=band, user=user
+            ).first()
+        return zwischengespeichert[band.id]
+
+    def get_role(self, band):
+        mitgliedschaft = self._mitgliedschaft(band)
+        return mitgliedschaft.role if mitgliedschaft is not None else None
+
+    def get_can_manage(self, band):
+        mitgliedschaft = self._mitgliedschaft(band)
+        return bool(
+            mitgliedschaft is not None
+            and mitgliedschaft.role == Membership.ROLE_OWNER
+        )
 
 
 class SetlistNamePruefung:

@@ -1,8 +1,24 @@
 import { apiFetch } from "../api/client";
 
+export type BandRolle = "owner" | "member";
+
 export interface Band {
   id: string;
   name: string;
+  genre?: string;
+  location?: string;
+  description?: string;
+  internal_notes?: string;
+  role?: BandRolle;
+  can_manage?: boolean;
+}
+
+export interface BandEingabe {
+  name?: string;
+  genre?: string;
+  location?: string;
+  description?: string;
+  internal_notes?: string;
 }
 
 export interface Song {
@@ -25,6 +41,7 @@ export interface SongEingabe {
 export interface BandDaten {
   bandId: string;
   songs: Song[];
+  band?: Band;
 }
 
 export interface BandAdapter {
@@ -39,11 +56,24 @@ export interface BandAdapter {
 interface BandAntwort {
   id: number;
   name: string;
+  genre?: string;
+  location?: string;
+  description?: string;
+  internal_notes?: string;
+  role?: BandRolle;
+  can_manage?: boolean;
   songs?: Song[];
 }
 
-function alsBand(antwort: BandAntwort): Band {
-  return { id: String(antwort.id), name: antwort.name };
+export function alsBand(antwort: BandAntwort): Band {
+  const band: Band = { id: String(antwort.id), name: antwort.name };
+  if (antwort.genre !== undefined) band.genre = antwort.genre;
+  if (antwort.location !== undefined) band.location = antwort.location;
+  if (antwort.description !== undefined) band.description = antwort.description;
+  if (antwort.internal_notes !== undefined) band.internal_notes = antwort.internal_notes;
+  if (antwort.role !== undefined) band.role = antwort.role;
+  if (antwort.can_manage !== undefined) band.can_manage = antwort.can_manage;
+  return band;
 }
 
 export const apiBands: BandAdapter = {
@@ -53,7 +83,7 @@ export const apiBands: BandAdapter = {
   },
   async ladeBandDaten(bandId) {
     const antwort = await apiFetch<BandAntwort>(`/api/bands/${encodeURIComponent(bandId)}/`);
-    return { bandId, songs: antwort.songs ?? [] };
+    return { bandId, songs: antwort.songs ?? [], band: alsBand(antwort) };
   },
   async erstelleBand(name) {
     const antwort = await apiFetch<BandAntwort>("/api/bands/", {

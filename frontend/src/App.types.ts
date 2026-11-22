@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import type { AnmerkungAdapter } from "./annotations/annotations";
 import type { LaufzeitKonfiguration } from "./api/config";
 import type { Band, BandAdapter } from "./bands/bands";
+import type { BandVerwaltungAdapter } from "./bands/verwaltung";
 import type { DokumentAdapter } from "./documents/documents";
 import type { PdfViewerProps } from "./documents/PdfViewer";
 import type { GigAdapter } from "./gigs/gigs";
@@ -12,6 +13,7 @@ export interface AppProps {
   konfigurationLaden?: () => Promise<LaufzeitKonfiguration>;
   sessionAdapter?: SessionAdapter;
   bandAdapter?: BandAdapter;
+  verwaltungAdapter?: BandVerwaltungAdapter;
   setlistAdapter?: SetlistAdapter;
   gigAdapter?: GigAdapter;
   dokumentAdapter?: DokumentAdapter;

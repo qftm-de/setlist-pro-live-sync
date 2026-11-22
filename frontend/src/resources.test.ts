@@ -100,6 +100,17 @@ describe("lokale Ressourcen", () => {
     }
   });
 
+  it("schützt den Einladungslink ohne den eigenen Origin zu verlieren", () => {
+    const nginx = fs.readFileSync(path.resolve(process.cwd(), "nginx.conf"), "utf8");
+    const start = nginx.indexOf("location ^~ /einladung/");
+    const ende = nginx.indexOf("location / {", start);
+    expect(start).toBeGreaterThan(-1);
+    expect(ende).toBeGreaterThan(start);
+    const block = nginx.slice(start, ende);
+    expect(block).toContain('Referrer-Policy "strict-origin"');
+    expect(block).not.toContain("no-referrer");
+  });
+
   it("reicht den Host samt Port an die API weiter", () => {
     const nginx = fs.readFileSync(path.resolve(process.cwd(), "nginx.conf"), "utf8");
     expect(nginx).toContain("map $http_host $ziel_host");

@@ -14,8 +14,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const findingsRel = process.env.REVIEW_OUT || ".tmp/review/zweit.md";
 const findingsPath = path.join(root, findingsRel);
 const timeoutSekunden = Number.parseInt(process.env.KILO_REVIEW_TIMEOUT || "", 10) || 600;
-// Review-Modell: glm-5.3 über OpenCode Go, unabhängig vom Kilo-Standard.
-const modell = process.env.KILO_REVIEW_MODEL || "opencode-go/glm-5.3";
+const agent =
+  process.env.KILO_REVIEW_AGENT ||
+  (findingsRel.endsWith("zweit.md") ? "zweitreview" : "review");
+const standardModell =
+  agent === "zweitreview" ? "openai/gpt-6.2-sol" : "opencode-go/minimax-m3.1-flash";
+const modell = process.env.KILO_REVIEW_MODEL || standardModell;
 
 function stand() {
   const r = spawnSync(process.execPath, [path.join(root, "scripts", "review-stand.mjs")], {
@@ -49,7 +53,7 @@ function findingsAktuell(st) {
 function diffBasis() {
   const base = resolveDiffBase(root);
   if (!base) {
-    process.stderr.write("Keine Review-Basis gefunden (kein Upstream, kein origin/main/main). Review prüft nur den Working Tree.\n");
+    console.log("Keine Review-Basis gefunden (kein Upstream, kein origin/main/main). Review prüft nur den Working Tree.");
   }
   return base;
 }
@@ -77,17 +81,24 @@ if (base) {
   env.REQUIREMENTS_DIFF_BASE = base;
 }
 const basisText = base
-  ? `Branch-Diff ab ${base} plus Working Tree. Prüfe mit "git diff ${base}..HEAD" und "git diff ${base}".`
+  ? `Branch-Diff ab ${base} plus Working Tree. Prüfe kompakt mit "git diff --stat ${base}" und "git diff ${base}" (enthält Commits und Working Tree in einem Aufruf).`
   : "Working Tree";
 
 const r = spawnSync("kilo", [
   "run",
   "--model",
   modell,
-  "--agent", "review",
-  "--title", "Pre-Push-Review",
-  `Pre-Push-Review: Prüfe den Diff nach dem Skill review. Basis: ${basisText}. Schreibe ${findingsRel}.`,
-], { cwd: root, encoding: "utf8", env, timeout: timeoutSekunden * 1000, shell: process.platform === "win32" });
+  "--agent", agent,
+  "--title", agent === "zweitreview" ? "Pre-Push-Zweitreview" : "Pre-Push-Review",
+  `Pre-Push-Review: Prüfe den Diff nach dem Skill review. Basis: ${basisText}. Schreibe ausschließlich nach ${findingsRel}.`,
+], {
+  cwd: root,
+  encoding: "utf8",
+  env,
+  stdio: ["ignore", "pipe", "pipe"],
+  timeout: timeoutSekunden * 1000,
+  shell: process.platform === "win32",
+});
 
 if ((r.error && r.error.code === "ETIMEDOUT") || r.signal === "SIGTERM") {
   process.stderr.write(`kilo run Timeout nach ${timeoutSekunden}s (KILO_REVIEW_TIMEOUT anpassbar)\n`);

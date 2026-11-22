@@ -1,4 +1,12 @@
-export type AppBereich = "start" | "songs" | "setlists" | "gigs" | "document" | "stage";
+export type AppBereich =
+  | "start"
+  | "songs"
+  | "setlists"
+  | "gigs"
+  | "document"
+  | "stage"
+  | "band"
+  | "invite";
 
 export interface AppRoute {
   bereich: AppBereich;
@@ -7,6 +15,7 @@ export interface AppRoute {
   songId: number | null;
   versionId: number | null;
   stageSessionId?: number | null;
+  inviteToken?: string | null;
   bandFehler?: string;
 }
 
@@ -26,6 +35,17 @@ function leereRoute(bereich: AppBereich): AppRoute {
 
 export function parseRoute(pfad: string): AppRoute {
   const rein = ohneAnhang(pfad);
+  const einladung = rein.match(/^\/einladung\/([^/]+)\/?$/);
+  if (einladung) {
+    try {
+      return {
+        ...leereRoute("invite"),
+        inviteToken: decodeURIComponent(einladung[1]),
+      };
+    } catch {
+      return { ...leereRoute("invite"), inviteToken: null };
+    }
+  }
   const buehne = rein.match(/^\/stage\/([^/]+)(?:\/(\d+))?\/?$/);
   if (buehne) {
     try {
@@ -90,6 +110,9 @@ export function parseRoute(pfad: string): AppRoute {
   }
   if (rein === "/gigs" || rein.startsWith("/gigs/")) {
     return leereRoute("gigs");
+  }
+  if (rein === "/band" || rein.startsWith("/band/")) {
+    return leereRoute("band");
   }
   if (rein === "/songs" || rein.startsWith("/songs/")) {
     return leereRoute("songs");

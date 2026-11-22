@@ -75,3 +75,19 @@ class BandsTest(TestCase):
     def test_leerer_und_zu_langer_name_werden_abgelehnt(self):
         self.assertEqual(self.anlegen(name="").status_code, 400)
         self.assertEqual(self.anlegen(name="x" * 121).status_code, 400)
+
+    def test_umbenennen_nur_owner(self):
+        band_id = self.anlegen().json()["id"]
+        mitglied = User.objects.create_user(
+            username="mitglied", email="mitglied@example.test", password="geheim-1234"
+        )
+        Membership.objects.create(band_id=band_id, user=mitglied, role="member")
+        mitgliedclient = Client()
+        mitgliedclient.login(username="mitglied", password="geheim-1234")
+        antwort = mitgliedclient.patch(
+            f"/api/bands/{band_id}/",
+            data=json.dumps({"name": "Nicht erlaubt"}),
+            content_type="application/json",
+        )
+        self.assertEqual(antwort.status_code, 403)
+        self.assertEqual(Band.objects.get(id=band_id).name, "Die Band")

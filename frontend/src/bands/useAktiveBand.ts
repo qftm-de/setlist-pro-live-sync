@@ -22,7 +22,7 @@ export function useAktiveBand(
     }
     if (route.bandId === null) {
       setDirektFehler(null);
-      if (bandId === null) {
+      if (bandId === null || !bands.some((band) => band.id === bandId)) {
         setBandId(bands[0]?.id ?? null);
       }
       return;

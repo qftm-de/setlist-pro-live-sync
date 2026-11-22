@@ -41,17 +41,19 @@ export function useBandDaten(
         if (token !== lauf.current) {
           return;
         }
-        // Ein Fehlschlag beim Nachladen behält den alten Stand, damit die
-        // Ansicht montiert bleibt. Der nächste Wechsel oder ein erneutes
-        // Speichern versucht es wieder.
+        // Ein vorübergehender Fehlschlag beim Nachladen behält den alten Stand,
+        // damit die Ansicht montiert bleibt. Ein entzogener Zugriff räumt sie.
+        const code = istApiFehler(fehler) ? fehler.code : "invalid_response";
+        const voruebergehend =
+          code === "network" || code === "server" || code === "invalid_response";
         setZustand((vorher) =>
-          vorher.status === "fertig" && vorher.bandId === bandId
+          vorher.status === "fertig" && vorher.bandId === bandId && voruebergehend
             ? vorher
             : {
                 bandId,
                 status: "fehler",
                 fehler: fehlerText(fehler),
-                code: istApiFehler(fehler) ? fehler.code : "invalid_response",
+                code,
               },
         );
       });

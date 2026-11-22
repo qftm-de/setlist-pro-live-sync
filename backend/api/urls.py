@@ -3,11 +3,14 @@ from django.urls import path
 from . import (
     annotation_texte,
     annotations,
+    band_members,
     bands,
     document_datei,
     documents,
     export,
     gigs,
+    invitation_accept,
+    invitations,
     session,
     setlists,
     stage,
@@ -24,6 +27,22 @@ urlpatterns = [
     path("abmeldung/", session.abmeldung),
     path("bands/", bands.BandListe.as_view()),
     path("bands/<int:band_id>/", bands.BandDetail.as_view()),
+    path("bands/<int:band_id>/members/", band_members.MitgliederListe.as_view()),
+    path(
+        "bands/<int:band_id>/members/<int:membership_id>/",
+        band_members.MitgliedDetail.as_view(),
+    ),
+    path(
+        "bands/<int:band_id>/invitations/", invitations.EinladungsListe.as_view()
+    ),
+    path(
+        "bands/<int:band_id>/invitations/<int:invitation_id>/",
+        invitations.EinladungDetail.as_view(),
+    ),
+    path("invitations/<str:token>/", invitation_accept.einladung_vorschau),
+    path(
+        "invitations/<str:token>/accept/", invitation_accept.einladung_beitreten
+    ),
     path("bands/<int:band_id>/sync/", sync.BandAbgleich.as_view()),
     path("bands/<int:band_id>/export/", export.BandExport.as_view()),
     path("bands/<int:band_id>/songs/", songs.SongListe.as_view()),

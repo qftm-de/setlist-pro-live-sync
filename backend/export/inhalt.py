@@ -259,7 +259,14 @@ def band_export(band, user) -> tuple[dict, list[dict]]:
         "format": FORMAT,
         "version": FORMAT_VERSION,
         "created_at": timezone.now().isoformat(),
-        "band": {"id": band.id, "name": band.name},
+        "band": {
+            "id": band.id,
+            "name": band.name,
+            "genre": band.genre,
+            "location": band.location,
+            "description": band.description,
+            "internal_notes": band.internal_notes,
+        },
         "songs": song_daten,
         "setlists": _setlist_daten(setlists, abschnitte, eintraege, staende),
         "gigs": [

@@ -66,6 +66,8 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
     const [konflikt, setKonflikt] = useState(false);
     const [aktionsFehler, setAktionsFehler] = useState<string | null>(null);
     const [wechsel, setWechsel] = useState<{ weiter: () => void } | null>(null);
+    const [dialogFehler, setDialogFehler] = useState<string | null>(null);
+    const [dialogBeschaeftigt, setDialogBeschaeftigt] = useState(false);
     const [formDirty, setFormDirty] = useState(false);
     const [sprung, setSprung] = useState<{ ziel: number; token: number } | null>(null);
     const formRef = useRef<FormularHandle>(null);
@@ -103,6 +105,8 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
       setKonflikt(false);
       setAktionsFehler(null);
       setWechsel(null);
+      setDialogFehler(null);
+      setDialogBeschaeftigt(false);
       setFormDirty(false);
       setBewegung(null);
       setSeite(1);
@@ -165,6 +169,7 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
         weiter();
         return;
       }
+      setDialogFehler(null);
       setWechsel({ weiter });
     }
 
@@ -230,6 +235,9 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
     }
 
     async function markierung(geometrie: Anmerkung["geometry"]) {
+      if (wechsel) {
+        return;
+      }
       setAktionsFehler(null);
       try {
         await erstelle({
@@ -249,6 +257,9 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
     }
 
     function textPlatzieren(geometrie: Anmerkung["geometry"]) {
+      if (wechsel) {
+        return;
+      }
       pruefeWechsel(() => {
         setAusgewaehltId(null);
         setWerkzeug("lesen");
@@ -256,10 +267,37 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
       });
     }
 
+    function waehleAnmerkung(id: number): boolean {
+      if (wechsel) {
+        return false;
+      }
+      if (id === ausgewaehltId) {
+        return true;
+      }
+      if (hatEntwurf) {
+        setDialogFehler(null);
+        setWechsel({
+          weiter: () => {
+            setEntwurf(null);
+            setFormDirty(false);
+            setWerkzeug("lesen");
+            setAusgewaehltId(id);
+          },
+        });
+        return false;
+      }
+      setEntwurf(null);
+      setFormDirty(false);
+      setWerkzeug("lesen");
+      setAusgewaehltId(id);
+      return true;
+    }
+
     function bevorSeiteWechsel(ziel: number): boolean {
       if (!hatEntwurf) {
         return true;
       }
+      setDialogFehler(null);
       setWechsel({
         weiter: () => setSprung({ ziel, token: Date.now() }),
       });
@@ -267,22 +305,42 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
     }
 
     async function speichernUndWeiter() {
-      const erfolg = await formRef.current?.speichere();
-      if (!erfolg) {
+      if (dialogBeschaeftigt) {
+        return;
+      }
+      const formular = formRef.current;
+      if (!formular) {
+        setDialogFehler("Speichern ist gerade nicht möglich.");
+        return;
+      }
+      setDialogFehler(null);
+      setDialogBeschaeftigt(true);
+      try {
+        const ergebnis = await formular.speichere();
+        if (!ergebnis.ok) {
+          setDialogFehler(ergebnis.fehler);
+          return;
+        }
+        const ziel = wechsel;
+        setWechsel(null);
+        setDialogFehler(null);
+        setEntwurf(null);
+        setAusgewaehltId(null);
+        setFormDirty(false);
+        setBewegung(null);
+        ziel?.weiter();
+      } finally {
+        setDialogBeschaeftigt(false);
+      }
+    }
+
+    function verwerfenUndWeiter() {
+      if (dialogBeschaeftigt) {
         return;
       }
       const ziel = wechsel;
       setWechsel(null);
-      setEntwurf(null);
-      setAusgewaehltId(null);
-      setFormDirty(false);
-      setBewegung(null);
-      ziel?.weiter();
-    }
-
-    function verwerfenUndWeiter() {
-      const ziel = wechsel;
-      setWechsel(null);
+      setDialogFehler(null);
       setEntwurf(null);
       setAusgewaehltId(null);
       setFormDirty(false);
@@ -356,21 +414,16 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
           daten={daten}
           titel={titel}
           annotationen={sichtbar.map(a => a.id === ausgewaehltId && bewegung ? {...a, geometry: bewegung} : a)}
+          gesperrt={Boolean(wechsel)}
           onGeometrie={(id, geometry) => {
-            if (id === ausgewaehltId && ausgewaehlt?.can_edit) { setBewegung(geometry); setFormDirty(true); }
+            if (!wechsel && id === ausgewaehltId && ausgewaehlt?.can_edit) { setBewegung(geometry); setFormDirty(true); }
           }}
           werkzeug={werkzeug}
           ausgewaehlteId={ausgewaehltId}
           entwurf={entwurf}
           onMarkierung={markierung}
           onTextPlatzieren={textPlatzieren}
-          onAnmerkungAuswahl={(id) => {
-            if (id === ausgewaehltId) return;
-            pruefeWechsel(() => {
-              setEntwurf(null); setFormDirty(false);
-              setWerkzeug("lesen"); setAusgewaehltId(id);
-            });
-          }}
+          onAnmerkungAuswahl={waehleAnmerkung}
           onBevorSeiteWechsel={bevorSeiteWechsel}
           onSeiteGeaendert={setSeite}
           seitenSprung={sprung}
@@ -380,11 +433,7 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
           liste={sichtbar}
           ausgewaehlteId={ausgewaehltId}
           onAuswahl={(id) => {
-            if (id === ausgewaehltId) return;
-            pruefeWechsel(() => {
-              setEntwurf(null); setFormDirty(false);
-              setWerkzeug("lesen"); setAusgewaehltId(id);
-            });
+            waehleAnmerkung(id);
           }}
         />
         </details>
@@ -392,7 +441,13 @@ export const AnmerkungsBereich = forwardRef<AnmerkungsBereichHandle, BereichProp
           <EntwurfsDialog
             onSpeichern={speichernUndWeiter}
             onVerwerfen={verwerfenUndWeiter}
-            onAbbrechen={() => setWechsel(null)}
+            beschaeftigt={dialogBeschaeftigt}
+            fehler={dialogFehler}
+            onAbbrechen={() => {
+              if (!dialogBeschaeftigt) {
+                setWechsel(null);
+              }
+            }}
           />
         ) : null}
       </section>

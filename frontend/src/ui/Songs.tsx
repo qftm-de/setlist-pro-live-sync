@@ -83,6 +83,14 @@ export function Songs({
     (song) => !songs.some((eintrag) => eintrag.id === song.id),
   );
   const anzeige = [...songs, ...vermisste];
+  const suchText = suche.trim().toLocaleLowerCase("de");
+  const gefiltert = suchText
+    ? anzeige.filter(
+        (song) =>
+          offeneSongs[song.id] ||
+          `${song.title} ${song.artist}`.toLocaleLowerCase("de").includes(suchText),
+      )
+    : anzeige;
 
   function merkeBearbeitung(song: Song, offen: boolean) {
     setOffeneSongs((vorher) => {
@@ -98,12 +106,22 @@ export function Songs({
   return (
     <section className="songs" aria-labelledby="songs-titel">
       <h2 id="songs-titel">Songs</h2>
-      <label className="song-suche">Songs suchen<input type="search" placeholder="Titel oder Interpret" value={suche} onChange={e => setSuche(e.target.value)} /></label>
+      <label className="song-suche">
+        Songs suchen
+        <input
+          type="search"
+          placeholder="Titel oder Interpret"
+          value={suche}
+          onChange={(e) => setSuche(e.target.value)}
+        />
+      </label>
       {anzeige.length === 0 ? (
         <p>Keine Songs in dieser Band.</p>
+      ) : gefiltert.length === 0 ? (
+        <p role="status">Keine passenden Songs gefunden.</p>
       ) : (
         <ul className="songliste">
-          {anzeige.filter(song => offeneSongs[song.id] || `${song.title} ${song.artist}`.toLocaleLowerCase("de").includes(suche.toLocaleLowerCase("de"))).map((song) => (
+          {gefiltert.map((song) => (
             <SongZeile
               key={song.id}
               bandId={bandId}

@@ -1,5 +1,5 @@
-import { fehlerText } from "../api/client";
-import { useState } from "react";
+import { behandleFehler, fehlerText } from "../api/client";
+import { useEffect, useState } from "react";
 import type { Anmerkung } from "./annotations";
 
 interface AnmerkungLesenProps {
@@ -7,6 +7,7 @@ interface AnmerkungLesenProps {
   geloescht?: boolean;
   onLoeschen: () => Promise<void>;
   onSchliessen: () => void;
+  onSitzungAbgelaufen?: () => void;
 }
 
 export function AnmerkungLesen({
@@ -14,15 +15,34 @@ export function AnmerkungLesen({
   geloescht = false,
   onLoeschen,
   onSchliessen,
+  onSitzungAbgelaufen,
 }: AnmerkungLesenProps) {
-  const [bestaetigen,setBestaetigen] = useState(false);
-  const [fehler,setFehler] = useState<string | null>(null);
-  const [laeuft,setLaeuft] = useState(false);
+  const [bestaetigen, setBestaetigen] = useState(false);
+  const [fehler, setFehler] = useState<string | null>(null);
+  const [laeuft, setLaeuft] = useState(false);
+
+  useEffect(() => {
+    setBestaetigen(false);
+    setFehler(null);
+  }, [anmerkung.id]);
+
   async function entfernen() {
-    if (!bestaetigen) { setBestaetigen(true); return; }
-    setLaeuft(true); setFehler(null);
-    try { await onLoeschen(); } catch (e) { setFehler(fehlerText(e)); } finally { setLaeuft(false); }
+    if (!bestaetigen) {
+      setBestaetigen(true);
+      return;
+    }
+    setLaeuft(true);
+    setFehler(null);
+    try {
+      await onLoeschen();
+      setBestaetigen(false);
+    } catch (e) {
+      setFehler(behandleFehler(e, onSitzungAbgelaufen) ?? fehlerText(e));
+    } finally {
+      setLaeuft(false);
+    }
   }
+
   return (
     <section className="anmerkung-formular" aria-label="Anmerkung lesen">
       <h4>Bandweite Anmerkung</h4>
@@ -36,13 +56,32 @@ export function AnmerkungLesen({
           Diese Anmerkung wurde inzwischen gelöscht. Dein Entwurf bleibt erhalten.
         </p>
       ) : null}
-      {anmerkung.can_delete && !geloescht ? (
-        <button type="button" disabled={laeuft} onClick={() => void entfernen()}>
-          {bestaetigen ? "Löschen bestätigen" : "Anmerkung löschen"}
-        </button>
-      ) : null}
       {fehler ? <p role="alert">{fehler}</p> : null}
-      <button type="button" disabled={laeuft} onClick={onSchliessen}>Schließen</button>
+      <div className="anmerkung-aktionen">
+        {anmerkung.can_delete && !geloescht ? (
+          bestaetigen ? (
+            <>
+              <button type="button" disabled={laeuft} onClick={() => void entfernen()}>
+                Löschen bestätigen
+              </button>
+              <button
+                type="button"
+                disabled={laeuft}
+                onClick={() => setBestaetigen(false)}
+              >
+                Löschen abbrechen
+              </button>
+            </>
+          ) : (
+            <button type="button" disabled={laeuft} onClick={() => setBestaetigen(true)}>
+              Anmerkung löschen
+            </button>
+          )
+        ) : null}
+        <button type="button" disabled={laeuft} onClick={onSchliessen}>
+          Schließen
+        </button>
+      </div>
     </section>
   );
 }

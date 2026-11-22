@@ -7,8 +7,29 @@ import { erstelleSetlistTestAdapter } from "./setlists/setlists";
 import type { SessionAdapter } from "./session/session";
 import { KONFIGURATION, sitzungAdapter, song, verzögert } from "./test-helfer";
 
+class SyncTestSocket {
+  static letzte: SyncTestSocket | null = null;
+  onopen: ((ereignis: Event) => void) | null = null;
+  onmessage: ((ereignis: MessageEvent) => void) | null = null;
+  onclose: ((ereignis: CloseEvent) => void) | null = null;
+  onerror: ((ereignis: Event) => void) | null = null;
+
+  constructor(public url: string) {
+    SyncTestSocket.letzte = this;
+  }
+
+  send(): void {}
+
+  close(): void {}
+
+  oeffnen(): void {
+    this.onopen?.(new Event("open"));
+  }
+}
+
 beforeEach(() => {
   window.history.replaceState({}, "", "/songs");
+  SyncTestSocket.letzte = null;
 });
 
 afterEach(() => {
@@ -288,5 +309,146 @@ describe("App", () => {
     fireEvent.change(erstesFeld, { target: { value: "Capo 2" } });
     expect(erstesFeld).toHaveValue("Capo 2");
     expect(zweitesFeld).toHaveValue("");
+  });
+
+  it("räumt die Bandansicht bei bestätigtem Rechteentzug sofort", async () => {
+    const ladeBands = vi
+      .fn()
+      .mockResolvedValueOnce([{ id: "a", name: "Band A" }])
+      .mockResolvedValue([]);
+    const adapter = erstelleTestAdapter(
+      [{ id: "a", name: "Band A" }],
+      async (bandId) => ({ bandId, songs: [song("Geheimer Song")] }),
+      { ladeBands },
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        ({
+          ok: false,
+          status: 403,
+          text: async () => "",
+        }) as Response,
+      ),
+    );
+    vi.stubGlobal("WebSocket", SyncTestSocket as unknown as typeof WebSocket);
+    render(
+      <App
+        konfigurationLaden={vi.fn().mockResolvedValue(KONFIGURATION)}
+        sessionAdapter={sitzungAdapter()}
+        bandAdapter={adapter}
+      />,
+    );
+    expect(await screen.findByText("Geheimer Song")).toBeInTheDocument();
+    await waitFor(() => expect(SyncTestSocket.letzte).not.toBeNull());
+    act(() => {
+      SyncTestSocket.letzte?.oeffnen();
+    });
+    await waitFor(() => expect(screen.queryByText("Geheimer Song")).toBeNull());
+    expect(await screen.findByText(/Noch keine Band/)).toBeInTheDocument();
+    expect(ladeBands).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignoriert einen späten Sync-Fehler einer alten Band nach Bandwechsel", async () => {
+    const syncA = verzögert<Response>();
+    const fetchMock = vi.fn((pfad: RequestInfo | URL) => {
+      const url = String(pfad);
+      if (url.includes("/api/bands/a/sync/")) {
+        return syncA.promise;
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        text: async () =>
+          JSON.stringify({
+            band: { id: 2, name: "Band B" },
+            songs: [song("Song B", { id: 2 })],
+            setlists: [],
+            gigs: { upcoming: [], past: [] },
+            stage: null,
+            counters: { band: 1, personal: 0 },
+          }),
+      } as Response);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("WebSocket", SyncTestSocket as unknown as typeof WebSocket);
+    const adapter = erstelleTestAdapter(
+      [
+        { id: "a", name: "Band A" },
+        { id: "b", name: "Band B" },
+      ],
+      async (bandId) => ({
+        bandId,
+        songs: [song(bandId === "a" ? "Song A" : "Song B", { id: bandId === "a" ? 1 : 2 })],
+      }),
+    );
+    render(
+      <App
+        konfigurationLaden={vi.fn().mockResolvedValue(KONFIGURATION)}
+        sessionAdapter={sitzungAdapter()}
+        bandAdapter={adapter}
+      />,
+    );
+    expect(await screen.findByText("Song A")).toBeInTheDocument();
+    await waitFor(() => expect(SyncTestSocket.letzte).not.toBeNull());
+    act(() => {
+      SyncTestSocket.letzte?.oeffnen();
+    });
+
+    fireEvent.change(screen.getByLabelText("Band"), { target: { value: "b" } });
+    expect(await screen.findByText("Song B")).toBeInTheDocument();
+
+    await act(async () => {
+      syncA.aufloesen({ ok: false, status: 403, text: async () => "" } as Response);
+    });
+    expect(screen.getByText("Song B")).toBeInTheDocument();
+  });
+
+  it("stellt eine Band nach positivem Recheck trotz geschlossenem Socket wieder her", async () => {
+    const ladeBands = vi
+      .fn()
+      .mockResolvedValue([{ id: "a", name: "Band A" }]);
+    const adapter = erstelleTestAdapter(
+      [{ id: "a", name: "Band A" }],
+      async (bandId) => ({ bandId, songs: [song("Bleibender Song")] }),
+      { ladeBands },
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        ({
+          ok: true,
+          status: 200,
+          text: async () =>
+            JSON.stringify({
+              band: { id: 1, name: "Band A" },
+              songs: [song("Bleibender Song")],
+              setlists: [],
+              gigs: { upcoming: [], past: [] },
+              stage: null,
+              counters: { band: 1, personal: 0 },
+            }),
+        }) as Response,
+      ),
+    );
+    vi.stubGlobal("WebSocket", SyncTestSocket as unknown as typeof WebSocket);
+    render(
+      <App
+        konfigurationLaden={vi.fn().mockResolvedValue(KONFIGURATION)}
+        sessionAdapter={sitzungAdapter()}
+        bandAdapter={adapter}
+      />,
+    );
+    expect(await screen.findByText("Bleibender Song")).toBeInTheDocument();
+    await waitFor(() => expect(SyncTestSocket.letzte).not.toBeNull());
+    act(() => {
+      SyncTestSocket.letzte?.onmessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({ type: "closed", reason: "unauthorized" }),
+        }),
+      );
+    });
+    expect(await screen.findByText("Bleibender Song")).toBeInTheDocument();
+    expect(ladeBands.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 });

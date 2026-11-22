@@ -53,4 +53,66 @@ describe("Gedrückt halten und ziehen", () => {
     expect(textPlatzieren).toHaveBeenCalledTimes(1);
     expect(auswahl).not.toHaveBeenCalled();
   });
+  it("blockiert Zug, Griffe und Auswahl bei gesperrter Ebene", () => {
+    vi.useFakeTimers();
+    const auswahl = vi.fn(), aendern = vi.fn(), markierung = vi.fn(), textPlatzieren = vi.fn();
+    render(
+      <PdfAnmerkungsEbene
+        annotationen={[annotation]}
+        basis={viewport}
+        aktuell={viewport}
+        breite={100}
+        hoehe={100}
+        werkzeug="lesen"
+        ausgewaehlteId={1}
+        gesperrt
+        onAuswahl={auswahl}
+        onGeometrie={aendern}
+        onMarkierung={markierung}
+        onTextPlatzieren={textPlatzieren}
+      />,
+    );
+    vi.spyOn(screen.getByTestId("pdf-ebene"), "getBoundingClientRect").mockReturnValue({
+      left: 0, top: 0, width: 100, height: 100,
+    } as DOMRect);
+    vi.stubGlobal("PointerEvent", MouseEvent);
+    const knopf = screen.getByRole("button", { name: "Textanmerkung 1" });
+    expect(screen.queryByRole("button", { name: "Anmerkung verschieben" })).not.toBeInTheDocument();
+    fireEvent.pointerDown(knopf, { clientX: 25, clientY: 25 });
+    act(() => vi.advanceTimersByTime(500));
+    fireEvent.pointerMove(knopf, { clientX: 40, clientY: 40 });
+    fireEvent.click(knopf);
+    expect(auswahl).not.toHaveBeenCalled();
+    expect(aendern).not.toHaveBeenCalled();
+  });
+  it("startet keinen Zug, wenn onAuswahl wegen Entwurfsdialog false liefert", () => {
+    vi.useFakeTimers();
+    const auswahl = vi.fn(() => false);
+    const aendern = vi.fn();
+    render(
+      <PdfAnmerkungsEbene
+        annotationen={[annotation]}
+        basis={viewport}
+        aktuell={viewport}
+        breite={100}
+        hoehe={100}
+        werkzeug="lesen"
+        ausgewaehlteId={null}
+        onAuswahl={auswahl}
+        onGeometrie={aendern}
+        onMarkierung={vi.fn()}
+        onTextPlatzieren={vi.fn()}
+      />,
+    );
+    vi.spyOn(screen.getByTestId("pdf-ebene"), "getBoundingClientRect").mockReturnValue({
+      left: 0, top: 0, width: 100, height: 100,
+    } as DOMRect);
+    vi.stubGlobal("PointerEvent", MouseEvent);
+    const knopf = screen.getByRole("button", { name: "Textanmerkung 1" });
+    fireEvent.pointerDown(knopf, { clientX: 25, clientY: 25 });
+    act(() => vi.advanceTimersByTime(400));
+    fireEvent.pointerMove(knopf, { clientX: 40, clientY: 40 });
+    expect(auswahl).toHaveBeenCalledWith(1);
+    expect(aendern).not.toHaveBeenCalled();
+  });
 });

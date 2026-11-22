@@ -379,7 +379,12 @@ function schrittGitleaks() {
 // Ergebnis wird erst gezählt, wenn der Schritt an der Reihe ist, die Ausgabe
 // bleibt also in der gewohnten Reihenfolge.
 function starteImHintergrund(step) {
-  const kind = spawn(step.run, { cwd: root, env: process.env, shell: true });
+  const kind = spawn(step.run, {
+    cwd: root,
+    env: process.env,
+    shell: true,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
   let aus = "";
   let fehler = "";
   kind.stdout.on("data", (stueck) => {

@@ -52,10 +52,12 @@ export function AnmerkungsFormulare({
   if (angezeigt && !angezeigt.can_edit) {
     return (
       <AnmerkungLesen
+        key={`lesen-${angezeigt.id}`}
         onSchliessen={onAbbrechenAuswahl}
         anmerkung={angezeigt}
         geloescht={ausgewaehlt === null}
         onLoeschen={onLoeschen}
+        onSitzungAbgelaufen={onSitzungAbgelaufen}
       />
     );
   }

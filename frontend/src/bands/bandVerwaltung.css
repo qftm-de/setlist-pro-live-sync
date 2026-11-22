@@ -1,0 +1,174 @@
+.band-verwaltung,
+.einladung-ansicht {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 52rem;
+}
+
+.band-verwaltung-block {
+  border: 1px solid var(--linie);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: var(--flaeche);
+}
+
+.band-verwaltung-block h3 {
+  margin-top: 0;
+}
+
+.band-einstellungen,
+.einladung-formular,
+.einladung-beitritt form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.band-einstellungen label,
+.einladung-formular label,
+.einladung-beitritt label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.band-einstellungen textarea {
+  resize: vertical;
+}
+
+.band-daten {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+
+.band-daten dt {
+  color: var(--sekundaer);
+}
+
+.band-daten dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.band-rolle,
+.hinweis {
+  color: var(--sekundaer);
+}
+
+.mitglieder-liste,
+.einladungen-liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.mitglied,
+.einladung {
+  border-top: 1px solid var(--linie);
+  padding-top: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.mitglied-kopf,
+.einladung-kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mitglied-benutzer {
+  color: var(--sekundaer);
+}
+
+.rolle,
+.du-kennung,
+.einladung-status {
+  border: 1px solid var(--linie);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.85rem;
+}
+
+.rolle-owner,
+.einladung-status-active {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.einladung-status-revoked,
+.einladung-status-expired,
+.einladung-status-exhausted {
+  color: var(--sekundaer);
+}
+
+button.gefahr {
+  border-color: var(--warnung);
+}
+
+.mitglied-aktionen,
+.bestaetigung {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.bestaetigung {
+  border: 1px solid var(--warnung);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.einladung-erstellt {
+  border: 1px solid var(--erfolg);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.einladung-erstellt label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.einladung-erstellt input {
+  font-family: inherit;
+}
+
+.einladung-nutzung {
+  margin: 0;
+  color: var(--sekundaer);
+}
+
+.einladung-umschalter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.einladung-umschalter button[aria-pressed="true"] {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.anlegen-menue {
+  border: 1px solid var(--linie);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.anlegen-menue summary {
+  cursor: pointer;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+}

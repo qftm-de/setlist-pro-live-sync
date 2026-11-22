@@ -7,6 +7,64 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- Einladungen sind im Django-Admin vollständig schreibgeschützt. Laufzeit, Widerruf und Löschung laufen nur über die Fachdienste (R22).
+- Ein verspäteter Listenabruf nach einem Einladungsbeitritt wechselt nach einer zwischenzeitlichen Navigation die aktive Band nicht mehr (R4, R22).
+- Ein laufender Einladungsabruf überschreibt keine bereits bestätigte Erstellung oder keinen bestätigten Widerruf mehr; nach dem Entfernen eines Mitglieds schließt ein fehlgeschlagener Listenabgleich die Bestätigung und zeigt den Fehler getrennt (R21, R22).
+- Eine ältere PATCH-Antwort der Band-Einstellungen überschreibt keine während des Speicherns eingetroffene Hintergrundänderung an unberührten Feldern mehr (R21).
+- Verspätete 403/404-Sync-Fehler einer verlassenen Band sperren die neu gewählte Band nicht mehr (R4, R13, R21).
+- Ein vorübergehender Verbindungsabbruch mit positivem Serverabgleich stellt den Zugriff auf die Band wieder her und bietet bei Fehlern einen erneuten Versuch (R13, R21).
+- Nach einem bestätigten Einladungsbeitritt wiederholt ein Ladefehler nur das Öffnen der Band statt den Einladungs-POST erneut zu senden (R22).
+- Der Django-Admin verhindert das Anlegen von Bands ohne Owner sowie das Löschen von Konten über kaskadierende Mitgliedschaften (R6, R7, R21).
+- Der Bühnenmodus zeigt nur Anmerkungen der sichtbaren PDF-Seite und des tatsächlich angezeigten Songs. Lokales Blättern und Songwechsel mischen keine fremden Texte mehr ein (R15).
+- Die Einladungsseite sendet `Referrer-Policy: strict-origin` statt `no-referrer`. Der Browser übermittelt beim Beitritts-POST den eigenen Origin, sodass der CSRF-Check greift, und der Klartext-Token bleibt weiter aus dem Referer (R22).
+- Bandänderungen im Django-Admin lösen ein `band.updated`-Ereignis aus. Offene Tabs erhalten den neuen Stand wie nach einem API-PATCH (R21).
+- Die Registrierung per Einladung prüft das Passwort vor den Kontoabfragen. Schwache Passwörter verraten keine vorhandenen Benutzernamen oder E-Mail-Adressen (R6, R22).
+- Ein herabgestufter Owner sieht in der Leseansicht die bestätigten Banddaten statt eines ungespeicherten Entwurfs (R21).
+- Der Widerruf einer Einladung sperrt die Einladungszeile und liefert den frischen Nutzungsstand (R22).
+- Der R2-Smoke startet mit einem frischen Compose-Projekt. Alte Datenbank-Volumes mit abweichendem Passwort blockieren den Lauf nicht mehr (R2).
+- Der Vollabgleich liest Mitgliedschaft und Band im selben Snapshot. Ein paralleler Austritt liefert 404 statt vollständige Banddaten (R13, R21).
+- Eine auf der Einladungsseite abgelaufene Session lädt die Vorschau anonym neu und zeigt einen verständlichen Hinweis (R22).
+- Text- und Setlist-Ereignisse lösen keine Abrufe von Auftritten oder Mitgliedern mehr aus. Band- und Auftrittsansichten laden nur bei den passenden Ereignissen nach (R13, R18, R21).
+- Einladungs-Tokens stehen in keinem Zugriffs- oder Fehlerlog. nginx schreibt das Zugriffslog in einem eigenen Format und ersetzt jedes Token-Segment in `/api/invitations/` und `/einladung/` (auch mit angehängten Satzzeichen oder Leerzeichen) durch `[token]`; Statuscodes wie 429, 502 und 504 bleiben sichtbar. Django leitet auch die Logger `django` und `django.server` über den redigierten Handler, inklusive DEBUG-Betrieb. Daphne startet ohne Zugriffslog (R22).
+- Band-Einstellungen behalten Feldkonflikte auch nach weiteren Hintergrundänderungen an anderen Feldern, bis der Entwurf gespeichert oder verworfen wird (R21).
+- Ein verspäteter Fehler oder eine verspätete Antwort der Start-Sitzungs- oder Bandlistenabfrage überschreibt einen bereits erfolgreichen Einladungsbeitritt nicht mehr; gleichzeitige Hintergrundabrufe behalten die Zielband des Beitritts bei (R4, R13, R22).
+- Nach einem bestätigten eigenen Band-Austritt verschwindet die verlassene Band sofort aus Ansicht und Auswahl, auch bei fehlgeschlagenem Listenabruf und späterem Bandwechsel; eine inzwischen gewählte andere Band bleibt bei verspäteter Austrittsantwort unberührt (R13, R21).
+- Ein 401 beim Löschen einer Anmerkung in der Leseansicht führt zurück zur Anmeldung (R4, R12).
+- Anmeldung und Einladungsanmeldung prüfen bekannte, gesperrte und unbekannte Konten über denselben zentralen Argon2-Verifikationspfad ohne doppelten Hash-Aufwand; Benutzernamen werden einheitlich per NFKC normalisiert (auch in `manage.py band_owner_setzen`) (R6, R21, R22).
+- Schlägt das Nachladen der Bandliste nach einer erfolgreichen Bandanlage fehl, bleibt die Anlage bestätigt und wiederholt nur den Listenabruf statt eine zweite Band zu erzeugen (R7, R21).
+- Ein verspäteter Einladungsbeitritt überschreibt eine zwischenzeitliche Navigation nicht mehr; der Einladungswiderruf sperrt während des Aufrufs und blendet einen widerrufenen Einmal-Link aus (R18, R22).
+- Einladungs-POST meldet bei ungültiger Eingabe nur noch das tatsächlich betroffene Feld; nginx redigiert im Zugriffslog zusätzlich Einladungs-Tokens im `Referer`-Header (R22).
+- Parallele Gate-Schritte und `review-kilo.mjs` schließen `stdin`, damit Hintergrund-Reviews nicht an einer offenen Pipe hängen bleiben (R1).
+- Der Schutz des letzten Band-Owners zählt nur aktive Konten. Für eine Betreiber-Sperre des letzten aktiven Owners setzt `manage.py band_owner_setzen <band_id> <username>` einen neuen aktiven Owner; im Django-Admin lassen sich keine Einladungen ohne gültigen Token anlegen (R21, R22).
+- Der Widerruf einer Einladung sperrt nur die Einladungszeile. Ein gleichzeitiger Beitritt über eine andere Einladung derselben Band kann dadurch keinen Deadlock mehr auslösen (R22).
+- Erstellung und Ablauf einer Einladung nutzen denselben Zeitpunkt. `expires_at` liegt exakt 48 Stunden nach dem gespeicherten `created_at` (R22).
+- Band-Einstellungen sperren ihre Felder während des Speicherns. Eingaben während eines laufenden PATCH gehen nicht mehr verloren (R21).
+- Der Entwurfsdialog zeigt Speicher- und Validierungsfehler direkt an, sperrt seine Aktionen während des Speicherns und ignoriert Escape bis zum Ende (R12, R19).
+- Bandlisten-Abrufe tragen eine Laufkennung. Eine verspätete ältere Antwort kann eine entfernte Band nicht wieder in die Auswahl bringen (R4, R13, R21).
+- Ein gleichzeitig entfernter oder herabgestufter Owner kann keine Einladung mehr erstellen oder widerrufen. Nebenläufigkeitstests belegen die erneute Rollenprüfung unter Zeilensperre (R21, R22).
+- Der Django-Admin zeigt Mitgliedschaften nur lesend. Rollenwechsel, Entfernen und Sammellöschung laufen ausschließlich über die Fachdienste und können den letzten Owner nicht umgehen (R21).
+- Ein bestätigter Rechteentzug räumt die betroffene Bandansicht sofort und blendet die Band aus. Die Bandliste lädt unabhängig davon neu, Transportfehler bleiben getrennt (R4, R13, R21).
+- Band-Einstellungen senden nur berührte Felder per PATCH. Parallele Änderungen an unberührten Feldern bleiben erhalten; Konflikte am selben Feld werden benannt (R21).
+- Der API-Adapter reicht strukturierte 400-Antworten weiter. Eine auf der Einladungsseite abgelaufene Session wird auch im echten HTTP-Pfad erkannt und lädt die Vorschau anonym neu (R4, R22).
+- Ein entferntes oder ausgetretenes Mitglied verliert die Band sofort aus Liste und offener Ansicht. Der Client lädt nach einer Serverschließung die Bandliste neu und wählt eine sichtbare Band (R21).
+- Speichern der Band-Einstellungen meldet keinen Fehler mehr, wenn nur die Listenaktualisierung scheitert. Der Listenfehler erscheint getrennt (R21).
+- Ungespeicherte Band-Einstellungen bleiben bei Echtzeit-Updates erhalten. Ein Hinweis bietet den bewussten Wechsel auf den Serverstand an (R13, R21).
+- Rollenwechsel prüft die Owner-Rolle nach der Zeilensperre erneut. Entfernte oder herabgestufte Owner können niemanden mehr befördern (R21).
+- Der Widerruf einer Einladung nutzt denselben Owner-Throttle wie Liste und Erstellung (R22).
+- Die Registrierung per Einladung lehnt ungültige Anzeigenamen mit 400 ab. Ohne Anzeigename kürzt sie den Benutzernamen auf 120 Zeichen statt mit 500 zu scheitern (R22).
+- Banddaten, Rolle und Mitgliederliste laufen nach Speichern und Vollabgleich wieder zusammen. Die Ansicht übernimmt den frischen Sync-Stand statt alter Werte (R21).
+- Einladungserstellung und Widerruf prüfen die Owner-Rolle erneut unter Zeilensperre. Ein gleichzeitig entfernter Owner kann keine Links mehr ausstellen oder sperren (R21, R22).
+- Ein 401 beim Nachladen der Bandliste führt zur Anmeldung. Nach dem eigenen Austritt wird auch bei einem Listenfehler navigiert (R4, R21).
+- Umbenennen oder Löschen einer Setlist lädt verknüpfte Auftritte und die Startseite neu. Gelöschte Links und alte Namen bleiben nicht stehen (R10, R13).
+- Ein beim Beitritt ungültig gewordener Link zeigt die richtige Meldung. Eine abgelaufene Session bleibt auf der Einladungsseite sichtbar (R22).
+- Speichern mit Randleerzeichen löst keine falsche Warnung vor einer Hintergrundänderung mehr aus (R21).
+- Mitgliederliste und Einladungen laden getrennt. Hintergrundabgleiche unmounten die Mitgliederliste nicht, und eine Aktion löst keine doppelte Listenabfrage aus (R21, R22).
+- Die Einladungsliste liest mit einem eigenen DRF-Throttle. Schreibaktionen blockieren das Nachladen nicht mehr (R22).
+- Der Entwurfsdialog setzt den Fokus in den Dialog, hält die Tabulatornavigation dort und sperrt den Seitenhintergrund (R19).
+- Löschbestätigung in der lesenden Anmerkungsansicht setzt sich bei jedem Anmerkungswechsel zurück und bietet Abbrechen an (R12, R19).
+- Songsuche ohne Treffer zeigt eine sichtbare Meldung statt einer leeren Liste (R8, R18).
+- Der Entwurfsdialog liegt als modale Überlagerung über der PDF-Ansicht und sperrt Verschieben, Auswahl und Zeichnen bis zur Entscheidung (R12, R19).
+- Die Startseite übernimmt den nächsten Auftritt direkt aus dem Echtzeit-Abgleich und lädt bei Bandereignissen nach (R13, R18).
 - Einheitliche Abstände zwischen PDF-Menüs und Aktionen. Songbearbeitung und mobile Bühnensteuerung halten auch beim Zeilenumbruch Abstand (R18).
 - Marker und Text lassen sich wieder über vorhandenen Anmerkungen setzen. Im Werkzeugmodus öffnet der Klick keine Bearbeitung (R12).
 - Der Fuß mit Urheber, Betreiber und Quellcode erscheint jetzt auch auf der Bühne und in der PDF-Ansicht (R20).
@@ -14,6 +72,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- `App.tsx` und die Einladungsansicht sind in Hooks und eigene Darstellungen aufgeteilt. Einladungs- und Verwaltungstests liegen in getrennten Dateien unter dem Strukturziel (R4, R13, R21, R22).
+- Der automatisierte Diff-Prüflauf holt den Branch-Diff inklusive Working Tree in einem Durchgang statt doppelt.
+- Band-Owner verwalten die Band-Einstellungen und das Umbenennen. Normale Mitglieder lesen die Daten und treten selbst aus. Bisher durfte jedes Mitglied umbenennen (R7, R21).
+- Die Startseite nennt Genre und Ort/Proberaum und führt über "Band & Mitglieder" zur Verwaltung. Bandänderungen erscheinen ohne Neuladen (R21).
+- Die Spezifikation zu Band-Verwaltung und Einladungen nennt jetzt Pflichtfelder, exakte Feldgrenzen, Teil-PATCH-Semantik, E-Mail-Schutz für alle Rollen, sofortigen Zugriffsverlust, Tokenform und exakte Laufzeit. Neue und erweiterte Tests belegen diese Fälle (R21, R22).
 - Menüs und Setlist-Editor mit größeren Formularfeldern, klaren Aktionsgruppen und mehr Abstand. Lange Namen drängen Bühnen- und Löschaktionen nicht mehr zusammen (R18).
 - Mobile Navigation und PDF-Werkzeuge kompakter dargestellt; vorhandenes Bandlogo integriert. Auf großen Bildschirmen stehen die PDF-Werkzeuge seitlich (R18).
 - Startübersicht mit nächstem Auftritt, Song-Suche und einklappbare Formulare ergänzt (R18).
@@ -24,6 +87,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- Band-Einstellungen (R7, R21): Owner pflegen Name, Genre, Ort/Proberaum, Beschreibung und interne Band-Notiz. Mitglieder lesen alle Felder und die Mitgliederliste ohne E-Mail-Adressen.
+- Mitgliederverwaltung (R21): Rollenwechsel, Entfernen und eigener Austritt. Der letzte Owner bleibt transaktional geschützt. Änderungen laufen über Echtzeit, Sync-Snapshot und Bandexport mit.
+- Einladungslinks (R22): Owner erzeugen 48-Stunden-Links mit optionalem Hinweis und Nutzungslimit. Der Klartext-Token erscheint einmalig, gespeichert wird nur der SHA-256-Hash. Die öffentliche Beitrittsseite unterstützt neue und bestehende Konten, verlangt CSRF und läuft unter einem nginx-Rate-Limit.
 - Fuß jeder Seite nennt Urheber und Betreiber und führt zum Quellcode im
   Repository, damit Fremde Fehler melden, mitarbeiten oder selbst hosten
   können. R20.

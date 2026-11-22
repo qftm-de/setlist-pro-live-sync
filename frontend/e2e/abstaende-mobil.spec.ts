@@ -1,7 +1,36 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { pdfBytes } from "../../scripts/lib/pdf.mjs";
 
-const band = { id: 1, name: "Abstandsband mit außergewöhnlich langem Namen" };
+const band = {
+  id: 1,
+  name: "Abstandsband mit außergewöhnlich langem Namen",
+  genre: "Rock",
+  location: "Stadthalle mit langem Namen",
+  role: "owner",
+  can_manage: true,
+};
+const mitglieder = [
+  {
+    id: 1,
+    user_id: 1,
+    username: "e2e",
+    display_name: "E2E Test mit langem Anzeigenamen",
+    role: "owner",
+    is_self: true,
+    can_change_role: false,
+    can_remove: false,
+  },
+  {
+    id: 2,
+    user_id: 2,
+    username: "gast",
+    display_name: "Gast im Abstandstest",
+    role: "member",
+    is_self: false,
+    can_change_role: true,
+    can_remove: true,
+  },
+];
 const song = { id: 11, title: "Song für sichtbare Abstände", artist: "Testband", key: "C", bpm: 120, notes: "Notiz" };
 const gig = {
   id: 41,
@@ -44,7 +73,15 @@ const antworten: Record<string, unknown> = {
   "/api/config/": { mode: "core", instance_name: "E2E-Abstände", community_url: null },
   "/api/session/": { username: "e2e", display_name: "E2E Test" },
   "/api/bands/": [band],
-  "/api/bands/1/": { id: 1, name: band.name, songs: [song] },
+  "/api/bands/1/": { ...band, songs: [song] },
+  "/api/bands/1/members/": mitglieder,
+  "/api/bands/1/invitations/": [],
+  "/api/invitations/test-token/": {
+    band_name: band.name,
+    expires_at: "2099-06-15T20:00:00Z",
+    authenticated: false,
+    already_member: false,
+  },
   "/api/bands/1/setlists/": [],
   "/api/bands/1/gigs/": { upcoming: [gig], past: [] },
   "/api/bands/1/sync/": { counters: { band: 0, personal: 0 }, server_time: "2026-01-01T00:00:00Z" },
@@ -218,6 +255,36 @@ test("Song-Menü hält Abstände", async ({ page }) => {
   for (const breite of breiten) {
     await page.setViewportSize({ width: breite, height: 900 });
     expect.soft(await abstaende(formular, "Song-Bearbeitung"), `Song bei ${breite}px`).toEqual([]);
+  }
+});
+
+test("Band-Verwaltung hält Abstände", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/band");
+  await expect(page.getByRole("heading", { name: "Band & Mitglieder" })).toBeVisible();
+  for (const breite of breiten) {
+    await page.setViewportSize({ width: breite, height: 900 });
+    expect
+      .soft(await abstaende(page.locator(".band-verwaltung"), "Band-Verwaltung"), `Band bei ${breite}px`)
+      .toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      breite + 1,
+    );
+  }
+});
+
+test("Einladungsseite hält Abstände", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/einladung/test-token");
+  await expect(page.getByRole("heading", { name: /Einladung zu/ })).toBeVisible();
+  for (const breite of breiten) {
+    await page.setViewportSize({ width: breite, height: 900 });
+    expect
+      .soft(await abstaende(page.locator(".einladung-ansicht"), "Einladung"), `Einladung bei ${breite}px`)
+      .toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      breite + 1,
+    );
   }
 });
 

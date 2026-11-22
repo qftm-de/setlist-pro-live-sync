@@ -22,9 +22,11 @@ Serverbestätigung als gespeichert angezeigt.
 **Vorabversion des Kerns.** Frontend, Backend, Compose und CI stehen. Umgesetzt
 sind Laufzeitkonfiguration, gleiche Origin über nginx, lokale Anmeldung mit
 Session, Bands, Songs und Setlists mit Abschnitten, Pausen und Zugaben.
-Bandmitglieder laden ihre Band als ZIP mit Manifest, Setlists, Auftritten,
-Anmerkungen und allen PDF-Versionen herunter. Grenze und Datenschutz stehen in
-[docs/betrieb.md](docs/betrieb.md). Konten
+Band-Owner pflegen Band-Einstellungen und verwalten Mitglieder. Einladungslinks
+gelten 48 Stunden und öffnen neuen wie bestehenden Konten den Beitritt, ohne
+eine offene Registrierung. Bandmitglieder laden ihre Band als ZIP mit Manifest,
+Setlists, Auftritten, Anmerkungen und allen PDF-Versionen herunter. Grenze und
+Datenschutz stehen in [docs/betrieb.md](docs/betrieb.md). Konten
 legt der Betreiber an, eine öffentliche Registrierung gibt es im Core nicht. Die nächsten Schritte stehen in
 [`PROGRESS.md`](PROGRESS.md), die geltenden Entscheidungen in
 [`DECISIONS.md`](DECISIONS.md).

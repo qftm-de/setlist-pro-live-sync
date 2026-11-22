@@ -148,6 +148,25 @@ describe("apiFetch", () => {
     expect(fehlerText(fehler)).toBe("Die Anfrage wurde abgelehnt. Bitte Eingaben prüfen.");
   });
 
+  it("reicht strukturierte 400-Daten an den Aufrufer weiter", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        antwort(400, { mode: "mode login oder register ist Pflicht." }),
+      ),
+    );
+    let fehler: unknown;
+    try {
+      await apiFetch("/api/invitations/abc/accept/", { method: "POST" });
+    } catch (ursache) {
+      fehler = ursache;
+    }
+    expect(fehler).toBeInstanceOf(ApiFehler);
+    expect((fehler as ApiFehler).daten).toEqual({
+      mode: "mode login oder register ist Pflicht.",
+    });
+  });
+
   it("zeigt keine internen Details bei 500", async () => {
     vi.stubGlobal(
       "fetch",

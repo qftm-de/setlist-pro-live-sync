@@ -144,6 +144,8 @@ REST_FRAMEWORK = {
         "text": "300/min",
         "commands": "120/min",
         "export": "6/min",
+        "invitations-owner": "20/min",
+        "invitations-list": "60/min",
     },
 }
 
@@ -151,6 +153,39 @@ LANGUAGE_CODE = "de"
 TIME_ZONE = "Europe/Berlin"
 USE_I18N = True
 USE_TZ = True
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "redigiere_einladungstoken": {
+            "()": "core.log_redaktion.RedigiereEinladungstoken",
+        }
+    },
+    "formatters": {
+        "standard": {"format": "%(levelname)s %(asctime)s %(name)s %(message)s"}
+    },
+    "handlers": {
+        "konsole": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+            "filters": ["redigiere_einladungstoken"],
+        }
+    },
+    "loggers": {
+        "django": {
+            "handlers": [],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "django.server": {
+            "handlers": [],
+            "level": "INFO",
+            "propagate": True,
+        },
+    },
+    "root": {"handlers": ["konsole"], "level": "INFO"},
+}
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"

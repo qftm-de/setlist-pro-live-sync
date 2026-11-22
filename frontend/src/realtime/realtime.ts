@@ -284,7 +284,7 @@ export class BandSync {
     if (nachricht.type === "closed") {
       this.aufgeben = true;
       this.melde("abgleich-fehlgeschlagen");
-      this.optionen.beiVerbindungsverlust?.();
+      this.optionen.beiVerbindungsverlust?.("ohne-recht");
       this.raeumeZeit();
       const socket = this.socket;
       this.socket = null;
