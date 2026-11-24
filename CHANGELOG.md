@@ -5,6 +5,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Changed
+
+- Release 0.2.0: Version in `frontend/package.json` und in `docker-compose.release.yml` auf 0.2.0 gehoben, damit Tag, Images und Compose zusammenpassen (R17).
+
 ### Fixed
 
 - Einladungen sind im Django-Admin vollständig schreibgeschützt. Laufzeit, Widerruf und Löschung laufen nur über die Fachdienste (R22).

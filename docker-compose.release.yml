@@ -22,7 +22,7 @@ x-api-umgebung: &api-umgebung
 
 services:
   web:
-    image: ghcr.io/qftm-de/setlist-pro-live-sync/web:0.1.0
+    image: ghcr.io/qftm-de/setlist-pro-live-sync/web:0.2.0
     pull_policy: always
     ports:
       - "${WEB_HOST:-127.0.0.1}:${WEB_PORT:-8080}:80"
@@ -34,7 +34,7 @@ services:
       api:
         condition: service_healthy
   api:
-    image: ghcr.io/qftm-de/setlist-pro-live-sync/api:0.1.0
+    image: ghcr.io/qftm-de/setlist-pro-live-sync/api:0.2.0
     pull_policy: always
     command: sh -c "python manage.py collectstatic --noinput && python manage.py migrate --noinput && daphne -v 0 -b 0.0.0.0 -p 8000 core.asgi:application"
     volumes:
@@ -52,7 +52,7 @@ services:
       timeout: 3s
       retries: 10
   relay:
-    image: ghcr.io/qftm-de/setlist-pro-live-sync/api:0.1.0
+    image: ghcr.io/qftm-de/setlist-pro-live-sync/api:0.2.0
     pull_policy: always
     command: sh -c "python manage.py migrate --noinput && python manage.py relay --intervall 0.2"
     environment: *api-umgebung
