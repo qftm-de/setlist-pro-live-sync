@@ -16,6 +16,8 @@ export interface AppRoute {
   versionId: number | null;
   stageSessionId?: number | null;
   inviteToken?: string | null;
+  /** "instanz" legt nur ein Konto an, "band" tritt einer Band bei. */
+  inviteArt?: "band" | "instanz";
   bandFehler?: string;
 }
 
@@ -35,15 +37,34 @@ function leereRoute(bereich: AppBereich): AppRoute {
 
 export function parseRoute(pfad: string): AppRoute {
   const rein = ohneAnhang(pfad);
+  // /beitritt und /beitritt/ sind ebenfalls Instanz-Routen, nur ohne Token.
+  // Sonst faellt der Aufruf auf die Startroute und anonyme Besucher sehen das
+  // Anmeldeformular statt des Hinweises auf einen ungueltigen Link.
+  const beitritt = rein.match(/^\/beitritt(?:\/([^/]+))?\/?$/);
+  if (beitritt) {
+    if (!beitritt[1]) {
+      return { ...leereRoute("invite"), inviteArt: "instanz", inviteToken: null };
+    }
+    try {
+      return {
+        ...leereRoute("invite"),
+        inviteArt: "instanz",
+        inviteToken: decodeURIComponent(beitritt[1]),
+      };
+    } catch {
+      return { ...leereRoute("invite"), inviteArt: "instanz", inviteToken: null };
+    }
+  }
   const einladung = rein.match(/^\/einladung\/([^/]+)\/?$/);
   if (einladung) {
     try {
       return {
         ...leereRoute("invite"),
+        inviteArt: "band",
         inviteToken: decodeURIComponent(einladung[1]),
       };
     } catch {
-      return { ...leereRoute("invite"), inviteToken: null };
+      return { ...leereRoute("invite"), inviteArt: "band", inviteToken: null };
     }
   }
   const buehne = rein.match(/^\/stage\/([^/]+)(?:\/(\d+))?\/?$/);

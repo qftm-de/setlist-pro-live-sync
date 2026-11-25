@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { BandsZustand, KonfigurationZustand, SitzungZustand } from "../App.types";
 import type { Band } from "../bands/bands";
+import { BeitrittAnsicht } from "../bands/BeitrittAnsicht";
 import { EinladungAnsicht } from "../bands/EinladungAnsicht";
 import type { BandVerwaltungAdapter } from "../bands/verwaltung";
 import type { AppRoute } from "../routing";
@@ -18,6 +19,7 @@ interface StartInhaltProps {
   verwaltungAdapter: BandVerwaltungAdapter;
   sitzungAbgelaufen: () => void;
   einladungAngenommen: (bandId: string, quellPfad: string) => void | Promise<void>;
+  beitrittFertig: () => void;
   pfad: string;
   kontoZeile: ReactNode;
   direktFehler: string | null;
@@ -38,6 +40,7 @@ export function startInhalt({
   verwaltungAdapter,
   sitzungAbgelaufen,
   einladungAngenommen,
+  beitrittFertig,
   pfad,
   kontoZeile,
   direktFehler,
@@ -55,6 +58,17 @@ export function startInhalt({
     return <FehlerAnzeige text={konfiguration.fehler} onWiederholen={erneutVersuchen} />;
   }
   if (route.bereich === "invite") {
+    if (route.inviteArt === "instanz") {
+      return route.inviteToken ? (
+        <BeitrittAnsicht
+          token={route.inviteToken}
+          onSitzungAbgelaufen={sitzungAbgelaufen}
+          onFertig={beitrittFertig}
+        />
+      ) : (
+        <FehlerAnzeige text="Dieser Einladungslink ist ungültig oder abgelaufen." />
+      );
+    }
     return route.inviteToken ? (
       <EinladungAnsicht
         token={route.inviteToken}

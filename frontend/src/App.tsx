@@ -212,6 +212,9 @@ export function App({
         navigiere("/");
       }
     },
+    // Instanz-Einladung: nach der Kontoanlage neu laden, damit die Sitzung
+    // frisch gelesen wird und die Band-Erstellung erscheint.
+    beitrittFertig: () => window.location.assign("/"),
     pfad,
     kontoZeile,
     direktFehler,

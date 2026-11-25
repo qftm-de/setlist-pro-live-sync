@@ -13,6 +13,8 @@ interface EinladungFormularProps {
   setPasswortWiederholung: (wert: string) => void;
   laeuft: boolean;
   onSubmit: () => void;
+  /** "konto" fuer Einladungen ohne Band, sonst "beitreten". */
+  aktion?: "beitreten" | "konto";
 }
 
 export function EinladungFormular({
@@ -30,6 +32,7 @@ export function EinladungFormular({
   setPasswortWiederholung,
   laeuft,
   onSubmit,
+  aktion = "beitreten",
 }: EinladungFormularProps) {
   return (
     <>
@@ -117,10 +120,16 @@ export function EinladungFormular({
         ) : null}
         <button type="submit" disabled={laeuft}>
           {laeuft
-            ? "Beitritt läuft …"
+            ? aktion === "konto"
+              ? "Wird angelegt …"
+              : "Beitritt läuft …"
             : modus === "register"
-              ? "Konto anlegen und beitreten"
-              : "Anmelden und beitreten"}
+              ? aktion === "konto"
+                ? "Konto anlegen"
+                : "Konto anlegen und beitreten"
+              : aktion === "konto"
+                ? "Anmelden"
+                : "Anmelden und beitreten"}
         </button>
       </form>
     </>
