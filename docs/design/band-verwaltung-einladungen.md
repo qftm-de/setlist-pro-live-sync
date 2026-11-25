@@ -67,3 +67,13 @@ Die Details der Kontoerstellung stehen im ADR.
 
 - **Testing Trophy:** Django-Tests decken Rollen, Token, Laufzeit, CSRF und Nebenläufigkeit ab. Frontend-Tests decken Formular, Fehler und Dialogverhalten ab. Der Kern-Smoke prüft den echten Browserweg.
 - **Rollout & Betrieb:** Kein Feature Flag. Die Migration `bands/0002` legt neue Tabellen an, `bands/0003` ändert nur den Default von `created_at`. Ein Rollback vor dem ersten produktiven Einladungslink ist unkritisch.
+
+## 7. Instanz-Einladung ohne Band (R23, R24)
+
+- **Problem:** Eine fremde Band soll den Server selbst einrichten, ohne dass der Betreiber vorher eine Band mit fremdem Namen anlegt und später austritt. Entscheidung und Alternativen stehen in `docs/adr/0002-instanz-einladung.md`.
+- **Datenmodell:** Eigenes Modell `InstanzEinladung` in `accounts` mit `token_hash`, `expires_at`, `revoked_at`, `uses_count`, `max_uses` und `created_by`. Laufzeit 1 bis 90 Tage, Nutzungslimit 1 bis 100. Kein `band`-Feld, keine Mitgliedschaft beim Beitritt.
+- **Schnittstellen:** `GET /api/beitritt/<token>/` liefert `kind`, `note`, `expires_at` und `authenticated`. `POST /api/beitritt/<token>/accept/` kennt `mode=login` und `mode=register` und meldet das Konto an. Beide sind Django-Views unter der CSRF-Middleware.
+- **Oberfläche:** `/beitritt/<token>` zeigt Hinweis und Ablaufzeit, nutzt das Formular der Band-Einladung mit den Beschriftungen "Konto anlegen" und "Anmelden" und führt nach Erfolg zur Band-Erstellung. Ungültige, abgelaufene und widerrufene Links zeigen denselben Hinweis wie die Band-Einladung.
+- **Gemeinsame Regeln:** Hash, Grenzwerte, Ausnahmen und die Suche unter Zeilensperre liegen in `backend/core/einladungstoken.py`. Eine Regeländerung passiert dort einmal.
+- **Betrieb:** Der Betreiber erzeugt den Link mit `manage.py instanz_einladung`; die öffentliche Adresse kommt aus `INSTANZ_BASIS` oder `--basis`. Widerruf über `--widerrufen <id>`. Ablauf und Grenzen prüft der Server unter Sperre; Logs redigieren den Token wie beim Band-Pfad.
+- **Nicht-Ziele:** Kein E-Mail-Versand, keine Selbstbedienung in der Oberfläche, kein zweiter Weg zur Band-Mitgliedschaft.

@@ -9,17 +9,12 @@ from __future__ import annotations
 import json
 
 from django.contrib.auth import login
-from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
-from accounts.models import User
 from bands.einladungen import (
     EinladungUngueltig,
     aktive_einladung_finden,
@@ -28,7 +23,7 @@ from bands.einladungen import (
 from bands.models import BandInvitation, Membership
 from realtime.services import band_ereignis
 
-from .konto import konto_pruefen, normalisiere_benutzername
+from .konto import konto_pruefen, registriere_konto
 from .session import FEHLER_ANMELDUNG
 
 FEHLER_EINGABE = {"detail": "Eingaben prüfen."}
@@ -112,61 +107,9 @@ def _anmelden(request, einladung: BandInvitation, daten: dict) -> JsonResponse:
 
 
 def _registrieren(request, einladung: BandInvitation, daten: dict) -> JsonResponse:
-    benutzername = normalisiere_benutzername(daten.get("username"))
-    passwort = daten.get("password")
-    if not benutzername or len(benutzername) > 150 or not isinstance(passwort, str):
-        return JsonResponse(FEHLER_EINGABE, status=400)
-    try:
-        UnicodeUsernameValidator()(benutzername)
-    except ValidationError:
-        return JsonResponse(FEHLER_EINGABE, status=400)
-    rohe_mail = daten.get("email")
-    email = rohe_mail.strip().lower() if isinstance(rohe_mail, str) else ""
-    if not email or len(email) > 254:
-        return JsonResponse(FEHLER_EINGABE, status=400)
-    try:
-        validate_email(email)
-    except ValidationError:
-        return JsonResponse(FEHLER_EINGABE, status=400)
-
-    # Passwort vor den Datenbankabfragen prüfen. Sonst unterscheiden sich die
-    # Antworten für vorhandene und freie Konten, obwohl nichts angelegt wird.
-    konto = User(username=benutzername, email=email)
-    try:
-        validate_password(passwort, konto)
-    except ValidationError:
-        return JsonResponse(
-            {"password": "Passwort erfüllt die Regeln nicht."}, status=400
-        )
-
-    if User.objects.filter(username=benutzername).exists():
-        return JsonResponse(FEHLER_EINGABE, status=400)
-    if User.objects.filter(email__iexact=email).exists():
-        return JsonResponse(FEHLER_EINGABE, status=400)
-
-    roher_anzeigename = daten.get("display_name")
-    if roher_anzeigename is None or (
-        isinstance(roher_anzeigename, str) and not roher_anzeigename.strip()
-    ):
-        anzeigename = benutzername[:120]
-    elif not isinstance(roher_anzeigename, str):
-        return JsonResponse(FEHLER_EINGABE, status=400)
-    else:
-        anzeigename = roher_anzeigename.strip()
-        if len(anzeigename) > 120:
-            return JsonResponse(FEHLER_EINGABE, status=400)
-
-    try:
-        with transaction.atomic():
-            konto = User.objects.create_user(
-                username=benutzername,
-                email=email,
-                password=passwort,
-                display_name=anzeigename,
-            )
-    except IntegrityError:
-        return JsonResponse(FEHLER_EINGABE, status=400)
-
+    konto, fehler, status = registriere_konto(daten)
+    if fehler is not None:
+        return JsonResponse(fehler, status=status)
     Membership.objects.create(
         band=einladung.band, user=konto, role=Membership.ROLE_MEMBER
     )

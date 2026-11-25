@@ -5,7 +5,9 @@ from __future__ import annotations
 import logging
 import re
 
-EINLADUNG_TOKEN = re.compile(r"(/(?:api/invitations|einladung)/)[^\s/?#\"']+")
+EINLADUNG_TOKEN = re.compile(
+    r"(/(?:api/invitations|api/beitritt|einladung|beitritt)/)[^\s/?#\"']+"
+)
 
 
 class RedigiereEinladungstoken(logging.Filter):

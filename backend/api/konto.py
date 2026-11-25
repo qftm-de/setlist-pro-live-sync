@@ -1,4 +1,4 @@
-"""Gemeinsame Kontoprüfung für Anmeldung und öffentlichen Einladungsbeitritt.
+"""Gemeinsame Kontoprüfung und Kontoanlage für Anmeldung und Einladungen.
 
 Beide Wege nutzen exakt einen Argon2-Verifikationspfad (auch für unbekannte
 oder gesperrte Konten), damit weder Antworttext noch Hash-Aufwand verraten,
@@ -9,9 +9,18 @@ from __future__ import annotations
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.db import IntegrityError, transaction
+
+User = get_user_model()
 
 _VERGLEICHS_HASH = None
 _AUTH_BACKEND = "django.contrib.auth.backends.ModelBackend"
+
+FEHLER_EINGABE = {"detail": "Eingaben prüfen."}
 
 
 def normalisiere_benutzername(roh: object) -> str:
@@ -51,3 +60,64 @@ def konto_pruefen(roh_benutzername: object, passwort: str):
         return None
     konto.backend = _AUTH_BACKEND
     return konto
+
+
+def registriere_konto(daten: dict):
+    """Legt ein Konto aus Einladungsdaten an.
+
+    Gibt ``(konto, fehler, status)`` zurück. Bei Erfolg ist ``fehler`` None und
+    ``status`` 201. Sonst ist ``konto`` None und ``fehler`` die Antwortnutzlast.
+    """
+    benutzername = normalisiere_benutzername(daten.get("username"))
+    passwort = daten.get("password")
+    if not benutzername or len(benutzername) > 150 or not isinstance(passwort, str):
+        return None, FEHLER_EINGABE, 400
+    try:
+        UnicodeUsernameValidator()(benutzername)
+    except ValidationError:
+        return None, FEHLER_EINGABE, 400
+    rohe_mail = daten.get("email")
+    email = rohe_mail.strip().lower() if isinstance(rohe_mail, str) else ""
+    if not email or len(email) > 254:
+        return None, FEHLER_EINGABE, 400
+    try:
+        validate_email(email)
+    except ValidationError:
+        return None, FEHLER_EINGABE, 400
+
+    # Passwort vor den Datenbankabfragen prüfen. Sonst unterscheiden sich die
+    # Antworten für vorhandene und freie Konten, obwohl nichts angelegt wird.
+    konto = User(username=benutzername, email=email)
+    try:
+        validate_password(passwort, konto)
+    except ValidationError:
+        return None, {"password": "Passwort erfüllt die Regeln nicht."}, 400
+
+    if User.objects.filter(username=benutzername).exists():
+        return None, FEHLER_EINGABE, 400
+    if User.objects.filter(email__iexact=email).exists():
+        return None, FEHLER_EINGABE, 400
+
+    roher_anzeigename = daten.get("display_name")
+    if roher_anzeigename is None or (
+        isinstance(roher_anzeigename, str) and not roher_anzeigename.strip()
+    ):
+        anzeigename = benutzername[:120]
+    elif not isinstance(roher_anzeigename, str):
+        return None, FEHLER_EINGABE, 400
+    else:
+        anzeigename = roher_anzeigename.strip()
+        if len(anzeigename) > 120:
+            return None, FEHLER_EINGABE, 400
+
+    try:
+        with transaction.atomic():
+            konto = User.objects.create_user(
+                username=benutzername,
+                email=email,
+                password=passwort,
+                display_name=anzeigename,
+            )
+    except IntegrityError:
+        return None, FEHLER_EINGABE, 400
+    return konto, None, 201

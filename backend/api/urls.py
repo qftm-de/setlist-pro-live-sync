@@ -5,6 +5,7 @@ from . import (
     annotations,
     band_members,
     bands,
+    beitritt,
     document_datei,
     documents,
     export,
@@ -43,6 +44,8 @@ urlpatterns = [
     path(
         "invitations/<str:token>/accept/", invitation_accept.einladung_beitreten
     ),
+    path("beitritt/<str:token>/", beitritt.beitritt_vorschau),
+    path("beitritt/<str:token>/accept/", beitritt.beitritt_annehmen),
     path("bands/<int:band_id>/sync/", sync.BandAbgleich.as_view()),
     path("bands/<int:band_id>/export/", export.BandExport.as_view()),
     path("bands/<int:band_id>/songs/", songs.SongListe.as_view()),

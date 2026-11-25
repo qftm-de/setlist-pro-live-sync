@@ -258,7 +258,7 @@ class BeitrittTest(Basis):
     def test_integrity_error_bei_kontoanlage(self):
         einladung, rohtoken = self.neue_einladung()
         with patch(
-            "api.invitation_accept.User.objects.create_user",
+            "api.konto.User.objects.create_user",
             side_effect=IntegrityError("doppelt"),
         ):
             antwort = Client().post(

@@ -110,6 +110,29 @@ auf 1 bis 100 Beitritte begrenzt werden.
   setzt er per Verwaltungskommando einen neuen aktiven Owner:
   `docker compose exec api python manage.py band_owner_setzen <band_id> <username>`.
 
+### Instanz-Einladung ohne Band
+
+Für eine fremde Band, die sich selbst auf dem Server einrichten soll, gibt es
+einen Link ohne Bandbezug. Er legt nur ein Konto an, die Band entsteht danach
+im normalen Ablauf.
+
+```
+docker compose exec api python manage.py instanz_einladung --ersteller <username> \
+  --notiz "Nachbarband" --max-nutzungen 1 --tage 14 \
+  --basis https://setlistpro.qftm.de
+```
+
+- Ohne `--basis` gibt das Kommando nur den Pfad `/beitritt/<token>` aus; die
+  Adresse kann auch über `INSTANZ_BASIS` in der `.env` kommen.
+- Ohne `--tage` gilt der Link 7 Tage, erlaubt sind 1 bis 90. Ohne
+  `--max-nutzungen` ist er unbegrenzt, erlaubt sind 1 bis 100.
+- Widerrufen mit `--widerrufen <id>`; die ID steht in der Ausgabe.
+- Öffentlich sind `GET /api/beitritt/<token>/` als schreibfreie Vorschau und
+  `POST /api/beitritt/<token>/accept/` mit `mode` `login` oder `register`.
+  Beide liegen in derselben nginx-Zone `einladung` wie die Band-Einladung.
+- Der Token erscheint nur einmal im Klartext und wird wie bei der Band-Einladung
+  in Logs redigiert.
+
 ## Diagnose
 
 - Ein 413 vom Proxy bedeutet, dass der Request die Proxy-Grenze überschreitet.
