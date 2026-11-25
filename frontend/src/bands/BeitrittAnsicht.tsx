@@ -55,6 +55,7 @@ export function BeitrittAnsicht({
   useEffect(() => {
     let aktiv = true;
     setZustand({ status: "laedt" });
+    setFehler(null);
     api
       .pruefe(token)
       .then((vorschau) => {
@@ -125,7 +126,9 @@ export function BeitrittAnsicht({
       }
       setFehler(
         behandleFehler(ursache, onSitzungAbgelaufen) ??
-          "Konto konnte nicht angelegt werden. Bitte erneut versuchen.",
+          (modus === "register"
+            ? "Konto konnte nicht angelegt werden. Bitte erneut versuchen."
+            : "Anmeldung fehlgeschlagen. Bitte erneut versuchen."),
       );
     } finally {
       if (montiertRef.current) {

@@ -34,6 +34,7 @@ const tests = lauf("npx", [
   "vitest",
   "run",
   "src/bands/BeitrittAnsicht.test.tsx",
+  "src/app/startInhalt.test.tsx",
 ]);
 if (tests.status !== 0) {
   process.stderr.write(tests.stdout || "");

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiFehler } from "../api/client";
 import { parseRoute } from "../routing";
+import { beitrittApi } from "./beitritt";
 import { BeitrittAnsicht } from "./BeitrittAnsicht";
 import type { BeitrittAdapter, BeitrittVorschau } from "./beitritt";
 
@@ -118,6 +119,62 @@ describe("BeitrittAnsicht", () => {
         "Dieser Einladungslink ist ungültig oder abgelaufen.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("meldet sich mit einem bestehenden Konto an", async () => {
+    const akzeptiere = vi.fn().mockResolvedValue({
+      konto_angelegt: false,
+      note: "",
+    });
+    render(
+      <BeitrittAnsicht
+        token="abc"
+        api={adapter({ akzeptiere })}
+        onFertig={() => {}}
+      />,
+    );
+    await screen.findByText(/Einladung zum Server/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Mit bestehendem Konto anmelden" }),
+    );
+    fireEvent.change(screen.getByLabelText("Benutzername"), {
+      target: { value: "bestand" },
+    });
+    fireEvent.change(screen.getByLabelText("Passwort"), {
+      target: { value: "testpasswort-1111" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Anmelden" }));
+    await waitFor(() =>
+      expect(akzeptiere).toHaveBeenCalledWith("abc", {
+        mode: "login",
+        username: "bestand",
+        password: "testpasswort-1111",
+      }),
+    );
+  });
+
+  it("spricht die oeffentlichen Endpunkte mit kodiertem Token an", async () => {
+    const aufrufe: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (pfad: string, init?: RequestInit) => {
+        aufrufe.push(`${init?.method ?? "GET"} ${pfad}`);
+        return new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }),
+    );
+    await beitrittApi.pruefe("a b");
+    await beitrittApi.akzeptiere("a b", {
+      mode: "register",
+      username: "neu",
+      password: "testpasswort-1111",
+    });
+    expect(aufrufe).toEqual([
+      "GET /api/beitritt/a%20b/",
+      "POST /api/beitritt/a%20b/accept/",
+    ]);
   });
 
   it("meldet einen zwischenzeitlich ungueltigen Link beim Absenden", async () => {

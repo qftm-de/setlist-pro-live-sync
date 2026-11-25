@@ -63,41 +63,46 @@ def beitritt_vorschau(request, token: str):
 
 @require_POST
 def beitritt_annehmen(request, token: str):
-    # Token zuerst prüfen, dann den Körper auswerten. Sonst bekommt ein
-    # ungültiger Link bei kaputtem JSON 400 statt des einheitlichen 404.
+    # Reihenfolge: Link lesend prüfen (404), Körper auswerten (400), und erst
+    # im schreibenden Zweig die Zeile sperren. So bekommt ein ungültiger Link
+    # bei kaputtem JSON trotzdem 404, und ein Anmeldeversuch blockiert die
+    # Zeilensperre nicht während des Argon2-Vergleichs.
     try:
-        with transaction.atomic():
-            einladung = aktive_instanz_einladung_sperren(token)
-            try:
-                daten = json.loads(request.body or b"{}")
-            except (ValueError, UnicodeDecodeError):
-                return JsonResponse(FEHLER_EINGABE, status=400)
-            if not isinstance(daten, dict):
-                return JsonResponse(FEHLER_EINGABE, status=400)
-            if request.user.is_authenticated:
-                if not request.user.is_active:
-                    return JsonResponse(FEHLER_ANMELDUNG, status=400)
-                return _antwort(einladung, False, 200)
-            modus = daten.get("mode")
-            if modus == "login":
-                passwort = daten.get("password")
-                konto = konto_pruefen(
-                    daten.get("username"),
-                    passwort if isinstance(passwort, str) else "",
-                )
-                if konto is None:
-                    return JsonResponse(FEHLER_ANMELDUNG, status=400)
-                login(request, konto)
-                return _antwort(einladung, False, 200)
-            if modus == "register":
+        einladung = aktive_instanz_einladung_finden(token)
+    except EinladungUngueltig:
+        return _nicht_gefunden()
+    try:
+        daten = json.loads(request.body or b"{}")
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse(FEHLER_EINGABE, status=400)
+    if not isinstance(daten, dict):
+        return JsonResponse(FEHLER_EINGABE, status=400)
+    if request.user.is_authenticated:
+        if not request.user.is_active:
+            return JsonResponse(FEHLER_ANMELDUNG, status=400)
+        return _antwort(einladung, False, 200)
+    modus = daten.get("mode")
+    if modus == "login":
+        passwort = daten.get("password")
+        konto = konto_pruefen(
+            daten.get("username"),
+            passwort if isinstance(passwort, str) else "",
+        )
+        if konto is None:
+            return JsonResponse(FEHLER_ANMELDUNG, status=400)
+        login(request, konto)
+        return _antwort(einladung, False, 200)
+    if modus == "register":
+        try:
+            with transaction.atomic():
+                gesperrt = aktive_instanz_einladung_sperren(token)
                 konto, fehler, status = registriere_konto(daten)
                 if fehler is not None:
                     return JsonResponse(fehler, status=status)
-                _zaehlen(einladung)
+                _zaehlen(gesperrt)
                 login(request, konto)
-                return _antwort(einladung, True, 201)
-            return JsonResponse(
-                {"mode": "mode login oder register ist Pflicht."}, status=400
-            )
-    except EinladungUngueltig:
-        return _nicht_gefunden()
+                return _antwort(gesperrt, True, 201)
+        except EinladungUngueltig:
+            return _nicht_gefunden()
+    return JsonResponse({"mode": "mode login oder register ist Pflicht."}, status=400)
+

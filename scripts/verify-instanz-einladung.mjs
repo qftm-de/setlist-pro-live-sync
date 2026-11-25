@@ -8,6 +8,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -38,6 +39,30 @@ function compose(args) {
 function abbruch(text) {
   process.stderr.write(`${text}\n`);
   compose(["down", "-v"]);
+  process.exit(1);
+}
+
+// Statische Pruefung: Der oeffentliche Pfad braucht dieselbe Bremse und
+// dieselbe Log-Redaktion wie die Band-Einladung. Ein fehlender Block faellt
+// hier auf, ohne dass Docker laufen muss.
+const nginx = fs.readFileSync(path.join(root, "frontend", "nginx.conf"), "utf8");
+const redaktion = fs.readFileSync(
+  path.join(root, "backend", "core", "log_redaktion.py"),
+  "utf8",
+);
+const pflicht = [
+  [/location \^~ \/api\/beitritt\//, "nginx: location /api/beitritt/ fehlt"],
+  [/api\/beitritt/, "nginx: Token-Redaktion fuer api/beitritt fehlt"],
+  [/beitritt/, "log_redaktion: beitritt-Pfad fehlt"],
+];
+for (const [muster, meldung] of pflicht) {
+  if (!muster.test(nginx + "\n" + redaktion)) {
+    process.stderr.write(`${meldung}\n`);
+    process.exit(1);
+  }
+}
+if (!/location \^~ \/api\/beitritt\/ \{[\s\S]{0,400}limit_req zone=einladung/.test(nginx)) {
+  process.stderr.write("nginx: /api/beitritt/ ohne limit_req zone=einladung\n");
   process.exit(1);
 }
 
