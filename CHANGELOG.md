@@ -7,11 +7,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- Instanz-Einladungen lassen sich in der Band-Verwaltung anlegen: Bereich "Weitere Band einladen" mit Hinweis, Laufzeit, Nutzungslimit, einmalig sichtbarem Link und Widerruf. Nur das Betreiber-Konto sieht ihn (R25).
+
 - Betreiber erzeugen mit `manage.py instanz_einladung` einen Einladungslink ohne Bandbezug. Wer ihn oeffnet, legt nur ein Konto an und gruendet seine Band danach selbst. Laufzeit 1 bis 90 Tage, optionales Nutzungslimit, Widerruf per Kommando, eigene Vorschau und Beitritt unter `/api/beitritt/<token>/` mit derselben Rate-Bremse und Token-Redaktion wie die Band-Einladung (R23).
 - Die Seite `/beitritt/<token>` zeigt Hinweis und Ablaufzeit, nutzt das Formular der Band-Einladung mit neutralen Beschriftungen und fuehrt nach der Kontoanlage zur Band-Erstellung. Bereits angemeldete Besucher bekommen den Weg zur Band statt eines zweiten Kontos (R24).
 
 ### Changed
 
+- Release 0.4.0: Version in `frontend/package.json` und `docker-compose.release.yml` auf 0.4.0 gehoben (R17).
 - Release 0.3.0: Version in `frontend/package.json` und in `docker-compose.release.yml` auf 0.3.0 gehoben, damit Tag, Images und Compose zusammenpassen (R17).
 - Release 0.2.0: Version in `frontend/package.json` und in `docker-compose.release.yml` auf 0.2.0 gehoben, damit Tag, Images und Compose zusammenpassen (R17).
 

@@ -226,3 +226,14 @@ R24 | Behavior: Wer einen Instanz-Einladungslink `/beitritt/<token>` oeffnet, le
    |  R24-N: Abweichende Passwoerter und fehlender Benutzername oder fehlendes Passwort brechen ohne Aufruf mit sichtbarem Hinweis ab; ein 404 der Vorschau zeigt "Dieser Einladungslink ist ungueltig oder abgelaufen."; ein Fehler beim Beitritt bleibt als role=alert sichtbar.
    |  R24-G: `/beitritt/<token>` und `/einladung/<token>` werden unterschieden (inviteArt instanz bzw. band), der Token bleibt dekodiert erhalten, und ein fehlender Token zeigt den Fehlerhinweis statt eines Formulars.
    | State:   passing
+
+R25 | Behavior: Der Betreiber erzeugt Instanz-Einladungen in der App, ohne Kommandozeile.
+   |  Der Bereich "Weitere Band einladen" steht in der Band-Verwaltung, sieht nur ein Staff-Konto und ist fuer alle anderen unsichtbar (403 blendet ihn aus).
+   |  Anlegen mit Hinweis, Laufzeit 1 bis 90 Tage (Vorgabe 14) und optionalem Nutzungslimit 1 bis 100; der Link erscheint einmal und laesst sich kopieren.
+   |  Die Liste zeigt Hinweis, Ablauf, Nutzung und Status; aktive Einladungen lassen sich widerrufen. Anlegen und Widerruf laufen ueber /api/instanz-einladungen/.
+   | Verify:  node scripts/verify-instanz-ui.mjs
+   | Scope:   backend/api/instanz_einladungen.py, backend/api/test_instanz_einladungen_api.py, backend/api/urls.py, frontend/src/bands/instanzEinladungen.ts, frontend/src/bands/InstanzEinladungen.tsx, frontend/src/bands/InstanzEinladungen.test.tsx, frontend/src/bands/BandVerwaltung.tsx, scripts/verify-instanz-ui.mjs, scripts/verify-instanz-einladung.mjs
+   | Risk:    mittel
+   | Cases:   R25-P: Ein Staff-Konto legt eine Einladung an und erhaelt invite_path mit /beitritt/; die Liste zeigt sie; Widerruf setzt Status revoked und bleibt bei erneutem Widerruf revoked.
+   |  R25-N: Ein normales Konto bekommt auf Liste, Anlegen und Widerruf 403; anonym ebenso; Laufzeit 0 oder als Text und Nutzungslimit ausserhalb 1 bis 100 enden als 400 ohne Datensatz; ein 403 beim Laden blendet den Bereich aus.
+   | State:   passing

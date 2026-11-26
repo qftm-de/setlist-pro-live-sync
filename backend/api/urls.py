@@ -10,6 +10,7 @@ from . import (
     documents,
     export,
     gigs,
+    instanz_einladungen,
     invitation_accept,
     invitations,
     session,
@@ -32,6 +33,13 @@ urlpatterns = [
     path(
         "bands/<int:band_id>/members/<int:membership_id>/",
         band_members.MitgliedDetail.as_view(),
+    ),
+    path(
+        "instanz-einladungen/", instanz_einladungen.InstanzEinladungsListe.as_view()
+    ),
+    path(
+        "instanz-einladungen/<int:einladung_id>/",
+        instanz_einladungen.InstanzEinladungDetail.as_view(),
     ),
     path(
         "bands/<int:band_id>/invitations/", invitations.EinladungsListe.as_view()

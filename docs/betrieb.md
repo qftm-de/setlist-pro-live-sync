@@ -124,6 +124,9 @@ docker compose exec api python manage.py instanz_einladung --ersteller <username
 
 - Ohne `--basis` gibt das Kommando nur den Pfad `/beitritt/<token>` aus; die
   Adresse kann auch über `INSTANZ_BASIS` in der `.env` kommen.
+- Denselben Link erzeugt die App: Band-Verwaltung, Bereich "Weitere Band
+  einladen". Sichtbar ist der Bereich nur für das Betreiber-Konto
+  (`is_staff`), dort stehen Liste und Widerruf daneben.
 - Ohne `--tage` gilt der Link 7 Tage, erlaubt sind 1 bis 90. Ohne
   `--max-nutzungen` ist er unbegrenzt, erlaubt sind 1 bis 100.
 - Widerrufen mit `--widerrufen <id>`; die ID steht in der Ausgabe.

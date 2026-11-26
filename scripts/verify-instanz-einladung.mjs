@@ -74,12 +74,14 @@ if (hoch.status !== 0) {
 const test = compose([
   "run",
   "--rm",
+  "--build",
   "--no-deps",
   "api",
   "python",
   "manage.py",
   "test",
   "api.test_instanz_einladung",
+  "api.test_instanz_einladungen_api",
 ]);
 
 const runter = compose(["down", "-v"]);

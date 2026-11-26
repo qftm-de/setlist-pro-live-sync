@@ -40,6 +40,10 @@ Aktueller Entwicklungsstand von **Setlist Pro Live Sync** im Betriebsmodus `core
 - Pflege- und Beitragsprozesse für das öffentliche Repository festlegen (Release-Rhythmus, Bearbeitung von Meldungen aus `SUPPORT.md`, `CODEOWNERS`).
 - Namen vor einer breiten öffentlichen Ankündigung rechtlich prüfen.
 
+## Zuletzt fertig
+
+- R25: Bereich "Weitere Band einladen" in der Band-Verwaltung. Nur das Staff-Konto sieht ihn, Links entstehen per Knopfdruck statt per Kommando, Liste und Widerruf inklusive.
+
 ## Als Nächstes
 
 1. Commit per `--amend` aktualisieren und das Voll-Gate grün durchlaufen lassen.

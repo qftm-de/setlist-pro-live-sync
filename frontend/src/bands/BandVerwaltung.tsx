@@ -10,6 +10,7 @@ import type {
 } from "./verwaltung";
 import { BandEinstellungenFormular } from "./BandEinstellungenFormular";
 import { EinladungenBereich } from "./EinladungenBereich";
+import { InstanzEinladungen } from "./InstanzEinladungen";
 import { MitgliederListe } from "./MitgliederListe";
 import { BandFormular } from "../ui/BandFormular";
 import { FehlerAnzeige } from "../ui/FehlerAnzeige";
@@ -193,6 +194,8 @@ export function BandVerwaltung({
           onSitzungAbgelaufen={onSitzungAbgelaufen}
         />
       ) : null}
+
+      <InstanzEinladungen />
 
       <details className="anlegen-menue">
         <summary>Weitere Band anlegen</summary>
